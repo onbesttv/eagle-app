@@ -39,8 +39,8 @@ class MovieDetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_movie_detail)
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        user = prefs.getString("SAVED_USER", "Wcjhrr3mzj") ?: "Wcjhrr3mzj"
-        pass = prefs.getString("SAVED_PASS", "qww2rsEHnY") ?: "qww2rsEHnY"
+        user = prefs.getString("SAVED_USER", "").orEmpty()
+        pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         streamId = intent.getIntExtra("STREAM_ID", 0)
         streamTitle = intent.getStringExtra("STREAM_TITLE") ?: ""

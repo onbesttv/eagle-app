@@ -25,7 +25,9 @@ data class LiveStream(
     @SerializedName("name") val name: String,
     @SerializedName("stream_id") val streamId: Int,
     @SerializedName("stream_icon") val streamIcon: String?,
-    @SerializedName("category_id") val categoryId: String?
+    @SerializedName("category_id") val categoryId: String?,
+    @SerializedName("tv_archive") val tvArchive: Any? = null,
+    @SerializedName("tv_archive_duration") val tvArchiveDuration: Any? = null
 )
 
 // Modelo para Categorias de Filmes (VOD)

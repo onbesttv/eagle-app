@@ -23,6 +23,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class EpgActivity : AppCompatActivity() {
 
@@ -40,6 +42,17 @@ class EpgActivity : AppCompatActivity() {
     private var user = ""
     private var pass = ""
 
+    private fun formatProgramTime(value: String): String {
+        return try {
+            val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).parse(value) ?: return value
+            val pattern = if (getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                    .getString("time_format", "12 Hr") == "24 Hr") "HH:mm" else "hh:mm a"
+            SimpleDateFormat(pattern, Locale.getDefault()).format(date)
+        } catch (_: Exception) {
+            value
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_epg)
@@ -50,8 +63,8 @@ class EpgActivity : AppCompatActivity() {
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        user = prefs.getString("SAVED_USER", "Wcjhrr3mzj") ?: "Wcjhrr3mzj"
-        pass = prefs.getString("SAVED_PASS", "qww2rsEHnY") ?: "qww2rsEHnY"
+        user = prefs.getString("SAVED_USER", "").orEmpty()
+        pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         rvCategories = findViewById(R.id.rvEpgCategories)
         rvChannels = findViewById(R.id.rvEpgChannels)
@@ -150,14 +163,23 @@ class EpgActivity : AppCompatActivity() {
                 try {
                     val epgData = gson.fromJson(json, EpgResponse::class.java)
                     val programas = epgData.epgListings ?: emptyList()
+                    val days = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                        .getString("epg_period", "1 Day")?.substringBefore(' ')?.toLongOrNull() ?: 1L
+                    val horizon = System.currentTimeMillis() + days * 24L * 60L * 60L * 1000L
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    val filteredPrograms = programas.filter { program ->
+                        val start = try { sdf.parse(program.start.orEmpty())?.time } catch (_: Exception) { null }
+                        start == null || start <= horizon
+                    }
+                    val displayedPrograms = filteredPrograms.ifEmpty { programas }
 
                     runOnUiThread {
                         pbLoading.visibility = View.GONE
-                        if (programas.isEmpty()) {
+                        if (displayedPrograms.isEmpty()) {
                             tvEmpty.visibility = View.VISIBLE
                         } else {
                             tvEmpty.visibility = View.GONE
-                            rvPrograms.adapter = ProgramAdapter(programas)
+                            rvPrograms.adapter = ProgramAdapter(displayedPrograms)
                         }
                     }
                 } catch (e: Exception) {
@@ -273,7 +295,7 @@ class EpgActivity : AppCompatActivity() {
 
             val sTime = prog.start ?: ""
             val eTime = prog.end ?: ""
-            holder.tvTime.text = if (sTime.isNotEmpty()) "$sTime  ➔  $eTime" else "Horário a definir"
+            holder.tvTime.text = if (sTime.isNotEmpty()) "${this@EpgActivity.formatProgramTime(sTime)}  ➔  ${this@EpgActivity.formatProgramTime(eTime)}" else "Horário a definir"
 
             holder.tvTitle.text = if (prog.title.isNotEmpty()) prog.title else "Sem título"
             holder.tvDesc.text = if (prog.description.isNotEmpty()) prog.description else "Sem descrição disponível."

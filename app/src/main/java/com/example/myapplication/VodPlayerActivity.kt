@@ -116,6 +116,9 @@ class VodPlayerActivity : AppCompatActivity() {
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
 
+        player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            .getInt("player_volume", 100).coerceIn(0, 100) / 100f
+
         playerView.player = player
 
         player?.addListener(object : Player.Listener {

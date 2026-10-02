@@ -55,8 +55,8 @@ class SeriesActivity : AppCompatActivity() {
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        user = prefs.getString("SAVED_USER", "Wcjhrr3mzj") ?: "Wcjhrr3mzj"
-        pass = prefs.getString("SAVED_PASS", "qww2rsEHnY") ?: "qww2rsEHnY"
+        user = prefs.getString("SAVED_USER", "").orEmpty()
+        pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         rvCategories = findViewById(R.id.rvSeriesCategories)
         rvSeries = findViewById(R.id.rvSeriesGrid)
@@ -282,12 +282,12 @@ class SeriesActivity : AppCompatActivity() {
             holder.tv.text = cat.categoryName
 
             if (cat.categoryId == "FAVORITES") {
-                holder.tv.setTextColor(0xFFFFD93D.toInt())
+                holder.tv.setTextColor(0xFFF5C56B.toInt())
             } else {
                 holder.tv.setTextColor(0xFFFFFFFF.toInt())
             }
 
-            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF1E2836.toInt() else 0x00000000)
+            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF23324A.toInt() else 0x00000000)
 
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition

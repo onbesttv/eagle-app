@@ -86,8 +86,8 @@ class LiveTvActivity : AppCompatActivity() {
         setContentView(R.layout.activity_live_tv)
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        user = prefs.getString("SAVED_USER", "Wcjhrr3mzj") ?: "Wcjhrr3mzj"
-        pass = prefs.getString("SAVED_PASS", "qww2rsEHnY") ?: "qww2rsEHnY"
+        user = prefs.getString("SAVED_USER", "").orEmpty()
+        pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         // 1. Botão de voltar ao Dashboard principal (canto superior esquerdo)
         findViewById<ImageButton>(R.id.btnBackLiveTv)?.setOnClickListener {
@@ -223,11 +223,17 @@ class LiveTvActivity : AppCompatActivity() {
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
+        player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            .getInt("player_volume", 100).coerceIn(0, 100) / 100f
         playerView.player = player
     }
 
     private fun tocarNoMiniPlayer(canal: LiveStream) {
-        val url = "$baseUrl/live/$user/$pass/${canal.streamId}.ts"
+        getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit()
+            .putInt("last_live_stream_id", canal.streamId).apply()
+        val extension = if (getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                .getString("stream_type", "MPEGTS") == "HLS") "m3u8" else "ts"
+        val url = "$baseUrl/live/$user/$pass/${canal.streamId}.$extension"
         currentStreamUrl = url
         player?.apply {
             setMediaItem(MediaItem.fromUri(url))
@@ -292,7 +298,7 @@ class LiveTvActivity : AppCompatActivity() {
                             tvEpgBadge.visibility = View.VISIBLE
 
                             if (start.isNotEmpty() && end.isNotEmpty()) {
-                                tvEpgCurrentTime.text = "$start  ➔  $end"
+                                tvEpgCurrentTime.text = "${formatProgramTime(start)}  ➔  ${formatProgramTime(end)}"
                                 calcularProgresso(start, end)
                             }
 
@@ -300,7 +306,7 @@ class LiveTvActivity : AppCompatActivity() {
                                 val nextProg = listings.getJSONObject(1)
                                 val nextTitle = decodeSafe(nextProg.optString("title"))
                                 val nextStart = nextProg.optString("start")
-                                tvEpgNextTitle.text = "A Seguir: $nextTitle ($nextStart)"
+                                tvEpgNextTitle.text = "A Seguir: $nextTitle (${formatProgramTime(nextStart)})"
                             } else {
                                 tvEpgNextTitle.text = ""
                             }
@@ -316,6 +322,18 @@ class LiveTvActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun formatProgramTime(value: String): String {
+        return try {
+            val input = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val date = input.parse(value) ?: return value
+            val pattern = if (getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                    .getString("time_format", "12 Hr") == "24 Hr") "HH:mm" else "hh:mm a"
+            SimpleDateFormat(pattern, Locale.getDefault()).format(date)
+        } catch (_: Exception) {
+            value
+        }
     }
 
     private fun calcularProgresso(startStr: String, endStr: String) {
@@ -414,7 +432,11 @@ class LiveTvActivity : AppCompatActivity() {
                         rvOverlayChannels.adapter = overlayAdapter
 
                         if (canais.isNotEmpty()) {
-                            tocarNoMiniPlayer(canais[0])
+                            val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                            val lastId = appSettings.getInt("last_live_stream_id", -1)
+                            val resumeLast = appSettings.getBoolean("last_live", false)
+                            val selected = if (resumeLast) canais.firstOrNull { it.streamId == lastId } else null
+                            tocarNoMiniPlayer(selected ?: canais[0])
                         }
                     }
                 } catch (e: Exception) {
@@ -460,7 +482,7 @@ class LiveTvActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val cat = list[position]
             holder.tv.text = cat.categoryName
-            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF1E2836.toInt() else 0x00000000)
+            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF23324A.toInt() else 0x00000000)
 
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition
@@ -513,7 +535,7 @@ class LiveTvActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val canal = list[position]
             holder.tv.text = canal.name
-            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF1A2634.toInt() else 0x00000000)
+            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF172338.toInt() else 0x00000000)
 
             if (!canal.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)
@@ -569,7 +591,7 @@ class LiveTvActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val canal = list[position]
             holder.tv.text = canal.name
-            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF1A2634.toInt() else 0x00000000)
+            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF172338.toInt() else 0x00000000)
 
             if (!canal.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context).load(canal.streamIcon).into(holder.iv)

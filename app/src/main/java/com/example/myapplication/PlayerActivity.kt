@@ -50,8 +50,8 @@ class PlayerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_player)
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        user = prefs.getString("SAVED_USER", "Wcjhrr3mzj") ?: "Wcjhrr3mzj"
-        pass = prefs.getString("SAVED_PASS", "qww2rsEHnY") ?: "qww2rsEHnY"
+        user = prefs.getString("SAVED_USER", "").orEmpty()
+        pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         val initialStreamUrl = intent.getStringExtra("STREAM_URL") ?: ""
         categoryId = intent.getStringExtra("CATEGORY_ID") ?: ""
@@ -118,6 +118,9 @@ class PlayerActivity : AppCompatActivity() {
             .setMediaSourceFactory(mediaSourceFactory)
             .build()
 
+        player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            .getInt("player_volume", 100).coerceIn(0, 100) / 100f
+
         playerView.player = player
     }
 
@@ -144,7 +147,9 @@ class PlayerActivity : AppCompatActivity() {
 
                     runOnUiThread {
                         rvOverlayChannels.adapter = OverlayChannelAdapter(canais) { canal ->
-                            val novoUrl = "$baseUrl/live/$user/$pass/${canal.streamId}.ts"
+                            val extension = if (getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                                    .getString("stream_type", "MPEGTS") == "HLS") "m3u8" else "ts"
+                            val novoUrl = "$baseUrl/live/$user/$pass/${canal.streamId}.$extension"
                             tocarStream(novoUrl)
                             fecharGrelha()
                         }

@@ -3,8 +3,8 @@ package com.example.myapplication
 import android.content.Context
 import android.os.Bundle
 import android.widget.ImageView
+import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import okhttp3.Call
@@ -37,14 +37,15 @@ class MainActivity : AppCompatActivity() {
         val cardTvGuide = findViewById<CardView>(R.id.cardEpg)
         val cardMovies = findViewById<CardView>(R.id.cardMovies)
         val cardSeries = findViewById<CardView>(R.id.cardSeries)
+        val cardCatchUp = findViewById<CardView>(R.id.cardCatchUp)
 
         // Carrega o teu logótipo
         ivLogo.setImageResource(R.drawable.img)
 
         // Credenciais guardadas ou predefinidas
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        val savedUser = prefs.getString("SAVED_USER", "Wcjhrr3mzj") ?: "Wcjhrr3mzj"
-        val savedPass = prefs.getString("SAVED_PASS", "qww2rsEHnY") ?: "qww2rsEHnY"
+        val savedUser = prefs.getString("SAVED_USER", "").orEmpty()
+        val savedPass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         tvAccountName.text = "Utilizador: $savedUser"
         tvExpiration.text = "A verificar validade..."
@@ -71,6 +72,24 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, SeriesActivity::class.java)
             startActivity(intent)
         }
+        cardCatchUp.setOnClickListener {
+            startActivity(Intent(this, CatchUpActivity::class.java))
+        }
+
+        findViewById<ImageButton>(R.id.btnSettings).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+
+        findViewById<ImageButton>(R.id.btnUpdateService).setOnClickListener { button ->
+            atualizarCatalogo(button as ImageButton, savedUser, savedPass)
+        }
+    }
+
+    private fun atualizarCatalogo(button: ImageButton, user: String, pass: String) {
+        button.isEnabled = false
+        CatalogRefreshDialog.show(this, user, pass) {
+            button.isEnabled = true
+        }
     }
 
     private fun obterValidadeConta(user: String, pass: String, tvExp: TextView) {
@@ -93,7 +112,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val json = JSONObject(corpo)
                     val userInfo = json.optJSONObject("user_info")
-                    val expDateStr = userInfo?.optString("exp_date", null)
+                    val expDateStr = userInfo?.optString("exp_date")
 
                     val formatado = if (!expDateStr.isNullOrEmpty() && expDateStr != "null") {
                         val timestampSegundos = expDateStr.toLongOrNull()
