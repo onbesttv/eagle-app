@@ -4,14 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:background="#0A0F14">
+    android:background="@drawable/bg_app_surface">
 
     <!-- COLUNA 1: Categorias com Botão Voltar -->
     <LinearLayout
         android:layout_width="220dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#121820">
+        android:background="#101827">
 
         <!-- Barra Superior com Seta de Voltar -->
         <LinearLayout
@@ -26,7 +26,8 @@
                 android:id="@+id/btnBackEpg"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:background="@drawable/bg_icon_button"
+                android:foreground="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Voltar"
                 android:src="@android:drawable/ic_menu_revert"
                 app:tint="#FFFFFF" />
@@ -36,7 +37,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="GUIA TV"
-                android:textColor="#4D96FF"
+                android:textColor="#65A5FF"
                 android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -44,7 +45,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#1E2836" />
+            android:background="#23324A" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvEpgCategories"
@@ -55,14 +56,14 @@
     <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="#1E2836" />
+        android:background="#23324A" />
 
     <!-- COLUNA 2: Lista de Canais -->
     <LinearLayout
         android:layout_width="230dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#0E141C">
+        android:background="#0C1422">
 
         <TextView
             android:layout_width="match_parent"
@@ -78,7 +79,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#1E2836" />
+            android:background="#23324A" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvEpgChannels"
@@ -89,7 +90,7 @@
     <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="#1E2836" />
+        android:background="#23324A" />
 
     <!-- COLUNA 3: Linha do Tempo / Programas do Canal -->
     <LinearLayout
@@ -97,7 +98,7 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:background="#0A0F14"
+        android:background="#080D16"
         android:padding="12dp">
 
         <TextView
@@ -106,7 +107,7 @@
             android:layout_height="40dp"
             android:gravity="center_vertical"
             android:text="GUIA DE PROGRAMAÇÃO"
-            android:textColor="#FFD93D"
+            android:textColor="#F5C56B"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -133,7 +134,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="Sem guia de programação disponível"
-                android:textColor="#708090"
+                android:textColor="#8392A8"
                 android:textSize="14sp"
                 android:visibility="gone" />
         </FrameLayout>

@@ -92,7 +92,7 @@
             android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Play ou Pause"
             android:src="@android:drawable/ic_media_play"
-            app:tint="#4D96FF" />
+            app:tint="#65A5FF" />
 
         <ImageButton
             android:id="@id/exo_ffwd"
@@ -128,8 +128,8 @@
             android:layout_marginStart="12dp"
             android:layout_marginEnd="12dp"
             android:layout_weight="1"
-            app:played_color="#4D96FF"
-            app:scrubber_color="#4D96FF"
+            app:played_color="#65A5FF"
+            app:scrubber_color="#65A5FF"
             app:unplayed_color="#555555" />
 
         <TextView
@@ -137,7 +137,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="00:00"
-            android:textColor="#A0AAB8"
+            android:textColor="#9BAAC0"
             android:textSize="13sp" />
     </LinearLayout>
 

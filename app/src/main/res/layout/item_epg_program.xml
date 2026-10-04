@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
-    app:cardBackgroundColor="#161D26"
+    app:cardBackgroundColor="#121D2D"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">
 
@@ -25,7 +25,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="20:00 - 21:30"
-                android:textColor="#4D96FF"
+                android:textColor="#65A5FF"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -61,7 +61,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textColor="#9EABB8"
+            android:textColor="#9BAAC0"
             android:textSize="12sp"
             android:maxLines="3"
             android:ellipsize="end"

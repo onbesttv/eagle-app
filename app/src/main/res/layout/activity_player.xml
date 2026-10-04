@@ -63,7 +63,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="CANAIS"
-                android:textColor="#4D96FF"
+                android:textColor="#65A5FF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>

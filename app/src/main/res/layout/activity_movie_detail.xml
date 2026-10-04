@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0F14">
+    android:background="@drawable/bg_app_surface">
 
     <!-- BOTÃO VOLTAR ATRÁS -->
     <ImageButton
@@ -37,8 +37,8 @@
             <androidx.cardview.widget.CardView
                 android:layout_width="220dp"
                 android:layout_height="320dp"
-                app:cardBackgroundColor="#141C26"
-                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#121D2D"
+                app:cardCornerRadius="18dp"
                 app:cardElevation="6dp">
 
                 <ImageView
@@ -78,7 +78,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="★ 0.0"
-                        android:textColor="#FFD93D"
+                        android:textColor="#F5C56B"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -88,7 +88,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:text="Ano • Género • Duração"
-                        android:textColor="#708090"
+                        android:textColor="#8392A8"
                         android:textSize="13sp" />
                 </LinearLayout>
 
@@ -97,7 +97,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:text="SINOPSE"
-                    android:textColor="#4D96FF"
+                    android:textColor="#65A5FF"
                     android:textSize="12sp"
                     android:textStyle="bold" />
 
@@ -121,7 +121,7 @@
                         android:id="@+id/btnPlayMovie"
                         android:layout_width="160dp"
                         android:layout_height="48dp"
-                        android:backgroundTint="#4D96FF"
+                        android:backgroundTint="#397DFF"
                         android:text="▶ Ver Filme"
                         android:textColor="#FFFFFF"
                         android:textStyle="bold" />
@@ -131,9 +131,9 @@
                         android:layout_width="180dp"
                         android:layout_height="48dp"
                         android:layout_marginStart="16dp"
-                        android:backgroundTint="#1E2836"
+                        android:backgroundTint="#172338"
                         android:text="☆ Favorito"
-                        android:textColor="#FFD93D"
+                        android:textColor="#F5C56B"
                         android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>

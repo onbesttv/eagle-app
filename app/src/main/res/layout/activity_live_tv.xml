@@ -4,7 +4,7 @@
     android:id="@+id/rootLiveLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0F14"
+    android:background="#080D16"
     android:keepScreenOn="true">
 
     <!-- ESTRUTURA PRINCIPAL (DIVIDIDA) -->
@@ -27,7 +27,7 @@
                 android:layout_width="220dp"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:background="#121820">
+                android:background="#101827">
 
                 <!-- Barra Superior com Botão Sair/Voltar -->
                 <LinearLayout
@@ -42,7 +42,8 @@
                         android:id="@+id/btnBackLiveTv"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:background="@drawable/bg_icon_button"
+                        android:foreground="?android:attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Voltar"
                         android:src="@android:drawable/ic_menu_revert"
                         app:tint="#FFFFFF" />
@@ -52,7 +53,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:text="CATEGORIAS"
-                        android:textColor="#4D96FF"
+                        android:textColor="#65A5FF"
                         android:textSize="13sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -60,7 +61,7 @@
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1E2836" />
+                    android:background="#23324A" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvCategories"
@@ -71,25 +72,25 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="#1E2836" />
+                android:background="#23324A" />
 
             <!-- Coluna Canais com Pesquisa -->
             <LinearLayout
                 android:layout_width="250dp"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:background="#0E141C">
+                android:background="#0C1422">
 
                 <EditText
                     android:id="@+id/etSearchChannel"
                     android:layout_width="match_parent"
                     android:layout_height="40dp"
                     android:layout_margin="8dp"
-                    android:background="#1A232F"
+                    android:background="@drawable/bg_input_field"
                     android:hint="Pesquisar canal..."
                     android:inputType="text"
                     android:importantForAutofill="no"
-                    android:textColorHint="#708090"
+                    android:textColorHint="#8392A8"
                     android:textColor="#FFFFFF"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
@@ -104,7 +105,7 @@
             <View
                 android:layout_width="1dp"
                 android:layout_height="match_parent"
-                android:background="#1E2836" />
+                android:background="#23324A" />
         </LinearLayout>
 
         <!-- PAINEL DA DIREITA (VÍDEO + EPG) -->
@@ -161,7 +162,7 @@
                 android:layout_height="0dp"
                 android:layout_weight="1"
                 android:layout_margin="6dp"
-                app:cardBackgroundColor="#121820"
+                app:cardBackgroundColor="#101827"
                 app:cardCornerRadius="8dp"
                 app:cardElevation="2dp">
 
@@ -223,7 +224,7 @@
                             android:layout_weight="1"
                             android:layout_marginStart="10dp"
                             android:text="A carregar emissão..."
-                            android:textColor="#FFD93D"
+                            android:textColor="#F5C56B"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:maxLines="1"
@@ -247,7 +248,7 @@
                             android:layout_weight="1"
                             android:progress="0"
                             android:max="100"
-                            android:progressTint="#4D96FF"
+                            android:progressTint="#65A5FF"
                             android:progressBackgroundTint="#2C3E50" />
 
                         <TextView
@@ -267,7 +268,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
                         android:text=""
-                        android:textColor="#7A8793"
+                        android:textColor="#8392A8"
                         android:textSize="11sp"
                         android:maxLines="1"
                         android:ellipsize="end" />
@@ -330,7 +331,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="CANAIS"
-                android:textColor="#4D96FF"
+                android:textColor="#65A5FF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>

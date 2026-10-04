@@ -22,13 +22,12 @@ import android.content.Intent
 class MainActivity : AppCompatActivity() {
 
     // Servidor DNS fixo
-    private val BASE_URL = "https://allrevplay.online:443"
+    private val BASE_URL = "http://nunestv2.shop"
     private val client = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         val ivLogo = findViewById<ImageView>(R.id.ivLogo)
         val tvAccountName = findViewById<TextView>(R.id.tvAccountName)
         val tvExpiration = findViewById<TextView>(R.id.tvExpiration)
@@ -40,7 +39,7 @@ class MainActivity : AppCompatActivity() {
         val cardCatchUp = findViewById<CardView>(R.id.cardCatchUp)
 
         // Carrega o teu logótipo
-        ivLogo.setImageResource(R.drawable.img)
+        ivLogo.setImageResource(R.drawable.onbest_logo)
 
         // Credenciais guardadas ou predefinidas
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
