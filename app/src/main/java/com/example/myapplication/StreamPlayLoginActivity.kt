@@ -1,8 +1,9 @@
 package com.example.myapplication
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.method.HideReturnsTransformationMethod
+import android.text.method.PasswordTransformationMethod
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -25,9 +26,13 @@ class StreamPlayLoginActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_AUTO_LOGIN = "auto_login_saved_account"
+        const val EXTRA_SERVICE_ID = "selected_service_id"
     }
 
-    private val baseUrl = "https://allrevplay.online:443"
+    private val selectedService by lazy {
+        intent.getStringExtra(EXTRA_SERVICE_ID) ?: IptvServiceConfig.activeServiceId(this)
+    }
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this, selectedService)
     private val client by lazy {
         OkHttpClient.Builder()
             .callTimeout(25, TimeUnit.SECONDS)
@@ -46,18 +51,34 @@ class StreamPlayLoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        IptvServiceConfig.initialize(this)
         setContentView(R.layout.activity_streamplay_login)
         usernameInput = findViewById(R.id.etServiceUsername)
         passwordInput = findViewById(R.id.etServicePassword)
+        val togglePassword = findViewById<ImageButton>(R.id.btnTogglePassword)
+        togglePassword.setOnClickListener {
+            val cursor = passwordInput.selectionStart
+            val showPassword = passwordInput.transformationMethod is PasswordTransformationMethod
+            passwordInput.transformationMethod = if (showPassword) {
+                HideReturnsTransformationMethod.getInstance()
+            } else {
+                PasswordTransformationMethod.getInstance()
+            }
+            passwordInput.setSelection(cursor.coerceIn(0, passwordInput.text.length))
+            togglePassword.setImageResource(if (showPassword) R.drawable.ic_visibility else R.drawable.ic_visibility_off)
+            togglePassword.contentDescription = if (showPassword) "Ocultar password" else "Mostrar password"
+        }
         statusText = findViewById(R.id.tvServiceLoginStatus)
         progress = findViewById(R.id.pbServiceLogin)
         loginButton = findViewById(R.id.btnServiceLogin)
         autoProgressPanel = findViewById(R.id.autoLoginProgressPanel)
         autoStatusText = findViewById(R.id.tvAutoLoginStatus)
+        findViewById<TextView>(R.id.tvLoginServiceBrand).text = selectedService.uppercase()
+        findViewById<TextView>(R.id.tvAutoLoginServiceBrand).text = selectedService.uppercase()
 
-        val saved = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-        usernameInput.setText(saved.getString("SAVED_USER", ""))
-        passwordInput.setText(saved.getString("SAVED_PASS", ""))
+        IptvServiceConfig.select(this, selectedService)
+        usernameInput.setText(IptvServiceConfig.username(this, selectedService))
+        passwordInput.setText(IptvServiceConfig.password(this, selectedService))
 
         val chooseServiceButton = findViewById<ImageButton>(R.id.btnChooseService)
         chooseServiceButton.setOnClickListener {
@@ -112,11 +133,7 @@ class StreamPlayLoginActivity : AppCompatActivity() {
                     return
                 }
 
-                getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
-                    .putString("SAVED_USER", username)
-                    .putString("SAVED_PASS", password)
-                    .putString("SAVED_SERVICE", "streamplay")
-                    .apply()
+                IptvServiceConfig.saveCredentials(this@StreamPlayLoginActivity, selectedService, username, password)
 
                 runOnUiThread {
                     if (isAutoLogin) autoProgressPanel.visibility = View.GONE

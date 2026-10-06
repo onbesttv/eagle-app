@@ -6,7 +6,7 @@
     android:layout_margin="6dp"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?android:attr/selectableItemBackground"
+    android:foreground="@drawable/fg_series_card_selector"
     app:cardBackgroundColor="#172338"
     app:cardCornerRadius="14dp"
     app:cardElevation="4dp">

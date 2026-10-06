@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Quando o cartão tem Foco (navegação comando Box) -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#2563EB"
+                android:centerColor="#1D4ED8"
+                android:endColor="#0F2B66" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#1D4ED8"
+                android:centerColor="#1E40AF"
+                android:endColor="#0B1D44" />
+        </shape>
+    </item>
+    <!-- Estado normal: vidro fumado escuro -->
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <solid android:color="#E6050B18" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <stroke
+                        android:width="1.3dp"
+                        android:color="#33FFFFFF" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

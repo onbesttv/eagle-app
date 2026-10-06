@@ -46,6 +46,8 @@
                         android:foreground="?android:attr/selectableItemBackgroundBorderless"
                         android:contentDescription="Voltar"
                         android:src="@android:drawable/ic_menu_revert"
+                        android:focusable="false"
+                        android:focusableInTouchMode="false"
                         app:tint="#FFFFFF" />
 
                     <TextView
@@ -136,23 +138,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:clickable="true"
-                    android:focusable="true" />
-
-                <!-- Ícone para abrir grelha no ecrã inteiro -->
-                <ImageView
-                    android:id="@+id/btnToggleChannelOverlay"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
-                    android:layout_alignParentStart="true"
-                    android:layout_alignParentTop="true"
-                    android:layout_margin="16dp"
-                    android:background="#80000000"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="9dp"
-                    android:src="@drawable/ic_channel_list"
-                    android:visibility="gone"
-                    android:contentDescription="Abrir lista rápida" />
+                    android:focusable="false" />
             </RelativeLayout>
 
             <!-- Painel EPG Inferior -->

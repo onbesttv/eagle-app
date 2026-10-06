@@ -1,14 +1,16 @@
 package com.example.myapplication
 
+import android.app.UiModeManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
 import android.util.Base64
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -40,7 +42,7 @@ import java.util.Locale
 
 class LiveTvActivity : AppCompatActivity() {
 
-    private val baseUrl = "https://allrevplay.online:443"
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
 
@@ -48,13 +50,11 @@ class LiveTvActivity : AppCompatActivity() {
     private lateinit var playerView: PlayerView
     private lateinit var rvCategories: RecyclerView
     private lateinit var rvChannels: RecyclerView
-    private lateinit var etSearch: EditText
 
     // Contentores de layout para alternar Fullscreen
     private lateinit var layoutLeftPanels: View
     private lateinit var layoutBottomEpg: View
     private lateinit var viewPlayerClickTarget: View
-    private lateinit var btnToggleChannelOverlay: ImageView
 
     // Gaveta flutuante em modo fullscreen
     private lateinit var layoutChannelOverlay: View
@@ -74,12 +74,31 @@ class LiveTvActivity : AppCompatActivity() {
     private lateinit var tvEpgNextTitle: TextView
 
     private var currentStreamUrl: String? = null
-    private var allChannelsInCat: List<LiveStream> = emptyList()
+    private var currentStreamId: Int = -1
     private var channelAdapter: ChannelAdapter? = null
     private var overlayAdapter: OverlayChannelAdapter? = null
 
     private var user = ""
     private var pass = ""
+
+    @Suppress("DEPRECATION")
+    private fun isTvMode(): Boolean {
+        val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+        if (uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) return true
+        val pm = packageManager
+        if (pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+            pm.hasSystemFeature("amazon.hardware.fire_tv") ||
+            pm.hasSystemFeature("android.hardware.type.television") ||
+            pm.hasSystemFeature(PackageManager.FEATURE_TELEVISION)) {
+            return true
+        }
+        if (!pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)) {
+            return true
+        }
+        return false
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,7 +122,6 @@ class LiveTvActivity : AppCompatActivity() {
         layoutBottomEpg = findViewById(R.id.layoutBottomEpg)
         playerView = findViewById(R.id.miniPlayerView)
         viewPlayerClickTarget = findViewById(R.id.viewPlayerClickTarget)
-        btnToggleChannelOverlay = findViewById(R.id.btnToggleChannelOverlay)
 
         layoutChannelOverlay = findViewById(R.id.layoutChannelOverlay)
         viewOverlayDismissArea = findViewById(R.id.viewOverlayDismissArea)
@@ -111,7 +129,6 @@ class LiveTvActivity : AppCompatActivity() {
 
         rvCategories = findViewById(R.id.rvCategories)
         rvChannels = findViewById(R.id.rvChannels)
-        etSearch = findViewById(R.id.etSearchChannel)
 
         // Inicializar Views EPG
         ivEpgChannelLogo = findViewById(R.id.ivEpgChannelLogo)
@@ -130,7 +147,7 @@ class LiveTvActivity : AppCompatActivity() {
         configurarPlayer()
         carregarCategorias()
 
-        // Toque na TV alterna entre tela cheia e modo normal
+        // Toque na área do player alterna entre ecrã inteiro e modo normal
         viewPlayerClickTarget.setOnClickListener {
             if (layoutChannelOverlay.visibility == View.VISIBLE) {
                 fecharGavetaFullscreen()
@@ -139,32 +156,9 @@ class LiveTvActivity : AppCompatActivity() {
             }
         }
 
-        // Abrir/Fechar gaveta quando em ecrã inteiro
-        btnToggleChannelOverlay.setOnClickListener {
-            if (layoutChannelOverlay.visibility == View.VISIBLE) {
-                fecharGavetaFullscreen()
-            } else {
-                abrirGavetaFullscreen()
-            }
-        }
-
         viewOverlayDismissArea.setOnClickListener {
             fecharGavetaFullscreen()
         }
-
-        etSearch.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                val query = s?.toString()?.trim()?.lowercase() ?: ""
-                val filtrados = if (query.isEmpty()) {
-                    allChannelsInCat
-                } else {
-                    allChannelsInCat.filter { it.name.lowercase().contains(query) }
-                }
-                channelAdapter?.atualizar(filtrados)
-            }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
 
         // Botão físico/gesto de Voltar
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -181,17 +175,46 @@ class LiveTvActivity : AppCompatActivity() {
         })
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val isOkKey = event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                      event.keyCode == KeyEvent.KEYCODE_ENTER ||
+                      event.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
+
+        // Ao estar em ecrã completo na Box, carregar "OK" sai do ecrã completo
+        if (isOkKey && isFullScreen && layoutChannelOverlay.visibility != View.VISIBLE) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                alternarFullscreen()
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
     private fun alternarFullscreen() {
         isFullScreen = !isFullScreen
         if (isFullScreen) {
             layoutLeftPanels.visibility = View.GONE
             layoutBottomEpg.visibility = View.GONE
-            btnToggleChannelOverlay.visibility = View.VISIBLE
         } else {
             fecharGavetaFullscreen()
             layoutLeftPanels.visibility = View.VISIBLE
             layoutBottomEpg.visibility = View.VISIBLE
-            btnToggleChannelOverlay.visibility = View.GONE
+            // Ao sair do canal / ecrã completo, focar de imediato o canal atual na lista
+            focarCanalAtual()
+        }
+    }
+
+    private fun focarCanalAtual() {
+        if (currentStreamId == -1) return
+        val pos = channelAdapter?.selecionarCanalPorId(currentStreamId) ?: -1
+        if (pos >= 0) {
+            rvChannels.post {
+                rvChannels.scrollToPosition(pos)
+                rvChannels.postDelayed({
+                    val vh = rvChannels.findViewHolderForAdapterPosition(pos)
+                    vh?.itemView?.requestFocus()
+                }, 80)
+            }
         }
     }
 
@@ -229,6 +252,7 @@ class LiveTvActivity : AppCompatActivity() {
     }
 
     private fun tocarNoMiniPlayer(canal: LiveStream) {
+        currentStreamId = canal.streamId
         getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit()
             .putInt("last_live_stream_id", canal.streamId).apply()
         val extension = if (getSharedPreferences("app_settings", Context.MODE_PRIVATE)
@@ -390,6 +414,17 @@ class LiveTvActivity : AppCompatActivity() {
                         }
                         if (categorias.isNotEmpty()) {
                             carregarCanaisDaCategoria(categorias[0].categoryId)
+                            rvCategories.postDelayed({
+                                val vh = rvCategories.findViewHolderForAdapterPosition(0)
+                                if (vh != null) {
+                                    vh.itemView.requestFocus()
+                                } else {
+                                    rvCategories.scrollToPosition(0)
+                                    rvCategories.postDelayed({
+                                        rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                    }, 80)
+                                }
+                            }, 100)
                         }
                     }
                 } catch (e: Exception) {
@@ -417,8 +452,6 @@ class LiveTvActivity : AppCompatActivity() {
                 try {
                     val type = object : TypeToken<List<LiveStream>>() {}.type
                     val canais: List<LiveStream> = gson.fromJson(json, type)
-                    allChannelsInCat = canais
-
                     runOnUiThread {
                         channelAdapter = ChannelAdapter(canais) { canal ->
                             tocarNoMiniPlayer(canal)
@@ -436,7 +469,9 @@ class LiveTvActivity : AppCompatActivity() {
                             val lastId = appSettings.getInt("last_live_stream_id", -1)
                             val resumeLast = appSettings.getBoolean("last_live", false)
                             val selected = if (resumeLast) canais.firstOrNull { it.streamId == lastId } else null
-                            tocarNoMiniPlayer(selected ?: canais[0])
+                            val canalInicial = selected ?: canais[0]
+                            channelAdapter?.selecionarCanalPorId(canalInicial.streamId)
+                            tocarNoMiniPlayer(canalInicial)
                         }
                     }
                 } catch (e: Exception) {
@@ -482,7 +517,27 @@ class LiveTvActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val cat = list[position]
             holder.tv.text = cat.categoryName
-            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF23324A.toInt() else 0x00000000)
+
+            val updateCatBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.tv.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF23324A.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+            }
+            updateCatBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateCatBg(hasFocus)
+            }
 
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition
@@ -490,8 +545,8 @@ class LiveTvActivity : AppCompatActivity() {
                 if (selectedPosition != RecyclerView.NO_POSITION) {
                     notifyItemChanged(prev)
                     notifyItemChanged(selectedPosition)
-                    onClick(cat)
                 }
+                onClick(cat)
             }
         }
     }
@@ -535,7 +590,28 @@ class LiveTvActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val canal = list[position]
             holder.tv.text = canal.name
-            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF172338.toInt() else 0x00000000)
+
+            val updateChannelBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.itemView.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF172338.toInt())
+                        setStroke(dp(1), 0xFF354B68.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+            }
+            updateChannelBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateChannelBg(hasFocus)
+            }
 
             if (!canal.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)
@@ -546,13 +622,38 @@ class LiveTvActivity : AppCompatActivity() {
             }
 
             holder.itemView.setOnClickListener {
-                val prev = selectedPosition
-                selectedPosition = holder.bindingAdapterPosition
-                if (selectedPosition != RecyclerView.NO_POSITION) {
-                    notifyItemChanged(prev)
-                    notifyItemChanged(selectedPosition)
+                val clickedPosition = holder.bindingAdapterPosition
+                if (clickedPosition == RecyclerView.NO_POSITION) return@setOnClickListener
+
+                // Se o canal clicado já é o que está aberto / a tocar atualmente:
+                // Expande para ecrã inteiro sem dar "F5" (sem recarregar o stream)
+                if (currentStreamId == canal.streamId) {
+                    if (!isFullScreen) {
+                        alternarFullscreen()
+                    }
+                    return@setOnClickListener
                 }
+
+                // Se for um canal diferente: seleciona e começa a reproduzir no mini-player
+                val prev = selectedPosition
+                selectedPosition = clickedPosition
+                if (prev != RecyclerView.NO_POSITION) {
+                    notifyItemChanged(prev)
+                }
+                notifyItemChanged(selectedPosition)
                 onClick(canal)
+            }
+
+            holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_UP &&
+                    (keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                     keyCode == KeyEvent.KEYCODE_ENTER ||
+                     keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                    holder.itemView.performClick()
+                    true
+                } else {
+                    false
+                }
             }
         }
     }
@@ -591,7 +692,28 @@ class LiveTvActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val canal = list[position]
             holder.tv.text = canal.name
-            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF172338.toInt() else 0x00000000)
+
+            val updateOverlayBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.itemView.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF172338.toInt())
+                        setStroke(dp(1), 0xFF354B68.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+            }
+            updateOverlayBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateOverlayBg(hasFocus)
+            }
 
             if (!canal.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context).load(canal.streamIcon).into(holder.iv)
@@ -600,6 +722,10 @@ class LiveTvActivity : AppCompatActivity() {
             }
 
             holder.itemView.setOnClickListener {
+                if (currentStreamId == canal.streamId) {
+                    fecharGavetaFullscreen()
+                    return@setOnClickListener
+                }
                 val prev = selectedPosition
                 selectedPosition = holder.bindingAdapterPosition
                 if (selectedPosition != RecyclerView.NO_POSITION) {

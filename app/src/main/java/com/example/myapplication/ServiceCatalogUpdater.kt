@@ -22,7 +22,6 @@ data class ServiceRefreshResult(
 }
 
 object ServiceCatalogUpdater {
-    private const val BASE_URL = "https://allrevplay.online:443"
     private val client by lazy {
         OkHttpClient.Builder()
             .callTimeout(2, TimeUnit.MINUTES)
@@ -40,6 +39,7 @@ object ServiceCatalogUpdater {
     )
 
     fun refresh(
+        baseUrl: String,
         username: String,
         password: String,
         onProgress: (String) -> Unit,
@@ -59,7 +59,7 @@ object ServiceCatalogUpdater {
                 }
                 counterKey?.let(onItemStart)
                 onProgress("A atualizar $label (${index + 1}/${endpoints.size})…")
-                val url = "$BASE_URL/player_api.php?username=${Uri.encode(username)}&password=${Uri.encode(password)}&action=$action"
+                val url = "$baseUrl/player_api.php?username=${Uri.encode(username)}&password=${Uri.encode(password)}&action=$action"
                 var returnedCount: Int? = null
                 try {
                     client.newCall(Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build())

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -16,11 +17,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
-import android.widget.ImageButton
 
 class MovieDetailActivity : AppCompatActivity() {
 
-    private val BASE_URL = "https://allrevplay.online:443"
+    private val BASE_URL: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
 
@@ -33,6 +33,8 @@ class MovieDetailActivity : AppCompatActivity() {
     private var pass = ""
 
     private lateinit var btnToggleFav: Button
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,9 +64,37 @@ class MovieDetailActivity : AppCompatActivity() {
         btnToggleFav.setOnClickListener {
             alternarFavorito()
         }
+        btnToggleFav.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
+                v.elevation = dp(8).toFloat()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                v.elevation = 0f
+            }
+        }
 
-        findViewById<ImageButton>(R.id.btnBackMovieDetail)?.setOnClickListener {
-            finish()
+        btnPlay.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
+                v.elevation = dp(8).toFloat()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                v.elevation = 0f
+            }
+        }
+
+        findViewById<ImageButton>(R.id.btnBackMovieDetail)?.apply {
+            setOnClickListener { finish() }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
+                    v.elevation = dp(8).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                    v.elevation = 0f
+                }
+            }
         }
 
         btnPlay.setOnClickListener {

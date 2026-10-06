@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.Context
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,11 +11,11 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
-import com.example.myapplication.R
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.Call
@@ -28,7 +29,7 @@ import java.util.Locale
 
 class EpgActivity : AppCompatActivity() {
 
-    private val baseUrl = "https://allrevplay.online:443"
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
 
@@ -41,6 +42,8 @@ class EpgActivity : AppCompatActivity() {
 
     private var user = ""
     private var pass = ""
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun formatProgramTime(value: String): String {
         return try {
@@ -58,8 +61,17 @@ class EpgActivity : AppCompatActivity() {
         setContentView(R.layout.activity_epg)
 
         // Botão para voltar ao Dashboard / Menu Principal
-        findViewById<ImageButton>(R.id.btnBackEpg)?.setOnClickListener {
-            finish()
+        findViewById<ImageButton>(R.id.btnBackEpg)?.apply {
+            setOnClickListener { finish() }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
+                    v.elevation = dp(8).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                    v.elevation = 0f
+                }
+            }
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
@@ -103,6 +115,17 @@ class EpgActivity : AppCompatActivity() {
                         }
                         if (categorias.isNotEmpty()) {
                             carregarCanais(categorias[0].categoryId)
+                            rvCategories.postDelayed({
+                                val vh = rvCategories.findViewHolderForAdapterPosition(0)
+                                if (vh != null) {
+                                    vh.itemView.requestFocus()
+                                } else {
+                                    rvCategories.scrollToPosition(0)
+                                    rvCategories.postDelayed({
+                                        rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                    }, 80)
+                                }
+                            }, 100)
                         }
                     }
                 } catch (e: Exception) {
@@ -214,7 +237,34 @@ class EpgActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val cat = list[position]
             holder.tv.text = cat.categoryName
-            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF1E2836.toInt() else 0x00000000)
+
+            val updateCatBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.tv.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF23324A.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+                if (hasFocus) {
+                    holder.itemView.animate().scaleX(1.03f).scaleY(1.03f).setDuration(120).start()
+                    holder.itemView.elevation = dp(4).toFloat()
+                } else {
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    holder.itemView.elevation = 0f
+                }
+            }
+            updateCatBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateCatBg(hasFocus)
+            }
 
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition
@@ -251,7 +301,34 @@ class EpgActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val canal = list[position]
             holder.tv.text = canal.name
-            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF1E2836.toInt() else 0x00000000)
+
+            val updateChannelBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.itemView.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF172338.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+                if (hasFocus) {
+                    holder.itemView.animate().scaleX(1.03f).scaleY(1.03f).setDuration(120).start()
+                    holder.itemView.elevation = dp(4).toFloat()
+                } else {
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    holder.itemView.elevation = 0f
+                }
+            }
+            updateChannelBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateChannelBg(hasFocus)
+            }
 
             if (!canal.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context).load(canal.streamIcon).into(holder.iv)
@@ -304,6 +381,24 @@ class EpgActivity : AppCompatActivity() {
                 holder.badgeNow.visibility = View.VISIBLE
             } else {
                 holder.badgeNow.visibility = View.GONE
+            }
+
+            holder.itemView.setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.02f).scaleY(1.02f).setDuration(120).start()
+                    (v as? androidx.cardview.widget.CardView)?.cardElevation = dp(8).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    (v as? androidx.cardview.widget.CardView)?.cardElevation = dp(2).toFloat()
+                }
+            }
+
+            holder.itemView.setOnClickListener {
+                AlertDialog.Builder(this@EpgActivity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle(prog.title.ifEmpty { "Programa" })
+                    .setMessage("${holder.tvTime.text}\n\n${prog.description.ifEmpty { "Sem sinopse disponível." }}")
+                    .setPositiveButton("Fechar", null)
+                    .show()
             }
         }
     }

@@ -8,7 +8,17 @@
         <item name="android:navigationBarColor">#080D16</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:colorAccent">#42D6E8</item>
+        <item name="android:windowBackground">@drawable/bg_launch_splash</item>
+        <item name="android:windowSplashScreenBackground">#061328</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#071429</item>
     </style>
 
     <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
+
+    <style name="Theme.StartupSplash" parent="Theme.MyApplication">
+        <item name="android:windowBackground">#071A2E</item>
+        <item name="android:windowSplashScreenBackground">#071A2E</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#071A2E</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/eagle_badge</item>
+    </style>
 </resources>

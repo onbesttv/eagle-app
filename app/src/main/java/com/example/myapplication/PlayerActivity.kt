@@ -28,7 +28,7 @@ import java.io.IOException
 
 class PlayerActivity : AppCompatActivity() {
 
-    private val baseUrl = "https://allrevplay.online:443"
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
 

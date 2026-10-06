@@ -2,11 +2,13 @@ package com.example.myapplication
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -21,11 +23,10 @@ import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
-import android.widget.ImageButton
 
 class SeriesDetailActivity : AppCompatActivity() {
 
-    private val baseUrl = "https://allrevplay.online:443"
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
 
     private lateinit var rvSeasons: RecyclerView
@@ -37,6 +38,8 @@ class SeriesDetailActivity : AppCompatActivity() {
     private var seriesName: String = ""
     private var user = ""
     private var pass = ""
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +70,15 @@ class SeriesDetailActivity : AppCompatActivity() {
         btnToggleFav.setOnClickListener {
             alternarFavoritoSerie()
         }
+        btnToggleFav.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
+                v.elevation = dp(8).toFloat()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                v.elevation = 0f
+            }
+        }
 
         rvSeasons = findViewById(R.id.rvSeasons)
         rvEpisodes = findViewById(R.id.rvEpisodes)
@@ -76,10 +88,18 @@ class SeriesDetailActivity : AppCompatActivity() {
 
         carregarDetalhesSerie(seriesId)
 
-        findViewById<ImageButton>(R.id.btnBackSeriesDetail)?.setOnClickListener {
-            finish()
+        findViewById<ImageButton>(R.id.btnBackSeriesDetail)?.apply {
+            setOnClickListener { finish() }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
+                    v.elevation = dp(8).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                    v.elevation = 0f
+                }
+            }
         }
-
     }
 
     private fun alternarFavoritoSerie() {
@@ -218,7 +238,34 @@ class SeriesDetailActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = list[position]
             holder.tv.text = item
-            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF1E2836.toInt() else 0x00000000)
+
+            val updateSeasonBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.tv.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF1E2836.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+                if (hasFocus) {
+                    holder.itemView.animate().scaleX(1.03f).scaleY(1.03f).setDuration(120).start()
+                    holder.itemView.elevation = dp(4).toFloat()
+                } else {
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    holder.itemView.elevation = 0f
+                }
+            }
+            updateSeasonBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateSeasonBg(hasFocus)
+            }
 
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition
@@ -253,6 +300,31 @@ class SeriesDetailActivity : AppCompatActivity() {
             val ep = list[position]
             holder.tvNum.text = "EP ${ep.episodeNum ?: (position + 1)}"
             holder.tvTitle.text = ep.title
+
+            val updateEpBg: (Boolean) -> Unit = { hasFocus ->
+                holder.itemView.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+                if (hasFocus) {
+                    holder.itemView.animate().scaleX(1.02f).scaleY(1.02f).setDuration(120).start()
+                    holder.itemView.elevation = dp(4).toFloat()
+                } else {
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    holder.itemView.elevation = 0f
+                }
+            }
+            updateEpBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateEpBg(hasFocus)
+            }
+
             holder.itemView.setOnClickListener { onClick(ep) }
         }
     }

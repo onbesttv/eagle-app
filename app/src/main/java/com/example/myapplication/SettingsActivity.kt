@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -32,10 +33,11 @@ import kotlin.concurrent.thread
 
 class SettingsActivity : AppCompatActivity() {
 
-    private data class SettingItem(val title: String, val icon: Int, val action: () -> Unit)
+    private data class SettingItem(val title: String, val icon: Int, val action: () -> Unit, val enabled: Boolean = true)
+    private var settingsCardIndex = 0
     private val settings by lazy { getSharedPreferences("app_settings", MODE_PRIVATE) }
     private val login by lazy { getSharedPreferences("iptv_login_prefs", MODE_PRIVATE) }
-    private val baseUrl = "https://allrevplay.online:443"
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val http by lazy {
         OkHttpClient.Builder()
             .connectTimeout(8, TimeUnit.SECONDS)
@@ -49,12 +51,12 @@ class SettingsActivity : AppCompatActivity() {
 
         val items = listOf(
             SettingItem("Account", android.R.drawable.ic_menu_myplaces, ::showAccount),
-            SettingItem("Player Settings", android.R.drawable.ic_menu_crop, ::showPlayerSettings),
+            SettingItem("Player Settings", android.R.drawable.ic_menu_crop, ::showPlayerSettings, enabled = false),
             SettingItem("Player", android.R.drawable.ic_media_play, ::showPlayer),
             SettingItem("Stream Type", android.R.drawable.ic_menu_slideshow, ::showStreamType),
-            SettingItem("Speed Test", android.R.drawable.ic_menu_compass, ::showSpeedTest),
+            SettingItem("Atualizações", R.drawable.ic_system_update, { AppUpdateManager.checkForUpdates(this, manual = true) }, enabled = true),
             SettingItem("Language", android.R.drawable.ic_menu_sort_alphabetically, ::showLanguage),
-            SettingItem("Other Settings", android.R.drawable.ic_menu_manage, ::showOtherSettings),
+            SettingItem("Other Settings", android.R.drawable.ic_menu_manage, ::showOtherSettings, enabled = false),
             SettingItem("Terminar sessão", android.R.drawable.ic_lock_power_off, ::logout)
         )
 
@@ -76,44 +78,72 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun createSettingCard(item: SettingItem): CardView {
+        val accentColors = intArrayOf(
+            0xFF62D7FF.toInt(), 0xFF9BA8FF.toInt(), 0xFF6BE6C2.toInt(), 0xFF73BFFF.toInt(),
+            0xFFFFC76B.toInt(), 0xFFB49BFF.toInt(), 0xFF65D7E8.toInt(), 0xFFFF7B83.toInt()
+        )
+        val accent = accentColors[settingsCardIndex++ % accentColors.size]
         val card = CardView(this).apply {
             radius = dp(20).toFloat()
-            cardElevation = dp(5).toFloat()
-            setCardBackgroundColor(0xFF121D2D.toInt())
-            isClickable = true
-            isFocusable = true
-            foreground = getDrawable(android.R.drawable.list_selector_background)
+            cardElevation = dp(7).toFloat()
+            setCardBackgroundColor(Color.TRANSPARENT)
+            isClickable = item.enabled
+            isFocusable = item.enabled
+            isEnabled = item.enabled
+            alpha = if (item.enabled) 1f else 0.42f
+            if (item.enabled) {
+                foreground = getDrawable(R.drawable.fg_settings_card_selector)
+                setOnFocusChangeListener { v, hasFocus ->
+                    if (hasFocus) {
+                        v.animate().scaleX(1.05f).scaleY(1.05f).setDuration(140).start()
+                        v.elevation = dp(12).toFloat()
+                    } else {
+                        v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                        v.elevation = dp(7).toFloat()
+                    }
+                }
+            }
             contentDescription = item.title
-            setOnClickListener { item.action() }
+            setOnClickListener { if (item.enabled) item.action() }
         }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(6), dp(8), dp(6), dp(8))
+            setPadding(dp(8), dp(10), dp(8), dp(10))
+            background = getDrawable(R.drawable.bg_dashboard_card)
+        }
+        val iconPlate = android.widget.FrameLayout(this).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor((accent and 0x00FFFFFF) or 0x24000000)
+                setStroke(dp(1), (accent and 0x00FFFFFF) or 0x66000000)
+            }
         }
         val icon = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(dp(52), dp(52))
+            layoutParams = android.widget.FrameLayout.LayoutParams(dp(42), dp(42), Gravity.CENTER)
             setImageResource(item.icon)
-            setColorFilter(0xFF65A5FF.toInt())
+            setColorFilter(accent)
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
+        iconPlate.addView(icon)
         val title = TextView(this).apply {
             text = item.title
             setTextColor(Color.WHITE)
-            textSize = 14f
-            letterSpacing = 0.01f
+            textSize = 13f
+            letterSpacing = 0.02f
             gravity = Gravity.CENTER
             maxLines = 2
-            setPadding(0, dp(8), 0, 0)
+            setPadding(0, dp(9), 0, 0)
+            setTypeface(null, android.graphics.Typeface.BOLD)
         }
-        content.addView(icon)
+        content.addView(iconPlate, LinearLayout.LayoutParams(dp(58), dp(58)))
         content.addView(title, LinearLayout.LayoutParams(-1, -2))
         card.addView(content)
         return card
     }
 
     private fun logout() {
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle("Terminar sessão")
             .setMessage("Queres voltar ao ecrã de login? Os teus dados ficam guardados.")
             .setNegativeButton("CANCELAR", null)
@@ -122,7 +152,9 @@ class SettingsActivity : AppCompatActivity() {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             }
-            .show()
+            .create()
+        dialog.show()
+        styleSettingsDialog(dialog)
     }
 
     private fun showAccount() {
@@ -302,30 +334,24 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showPlayer() {
         val current = settings.getString("player_global", "EXO")
-        AlertDialog.Builder(this)
-            .setTitle("Selecione Player para definir o tamanho da tela")
-            .setSingleChoiceItems(arrayOf("VLC PLAYER", "EXO PLAYER"), if (current == "VLC") 0 else 1) { dialog, which ->
-                val player = if (which == 0) "VLC" else "EXO"
-                settings.edit().putString("player_global", player).apply()
-                dialog.dismiss()
-                Toast.makeText(this, "${if (player == "VLC") "VLC" else "EXO"} Player selecionado", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        showModernChoiceDialog(
+            "PLAYER",
+            arrayOf("VLC PLAYER", "EXO PLAYER"),
+            if (current == "VLC") 0 else 1
+        ) { which ->
+            val player = if (which == 0) "VLC" else "EXO"
+            settings.edit().putString("player_global", player).apply()
+            Toast.makeText(this, "$player Player selecionado", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showStreamType() {
         val options = arrayOf("MPEGTS", "HLS")
         val selected = if (settings.getString("stream_type", "MPEGTS") == "HLS") 1 else 0
-        AlertDialog.Builder(this)
-            .setTitle("Selecione Stream Type")
-            .setSingleChoiceItems(options, selected) { dialog, which ->
-                settings.edit().putString("stream_type", options[which]).apply()
-                dialog.dismiss()
-                Toast.makeText(this, "${options[which]} selecionado", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        showModernChoiceDialog("STREAM TYPE", options, selected) { which ->
+            settings.edit().putString("stream_type", options[which]).apply()
+            Toast.makeText(this, "${options[which]} selecionado", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showSpeedTest() {
@@ -414,15 +440,10 @@ class SettingsActivity : AppCompatActivity() {
         val tags = arrayOf("en-US", "ar", "bn", "zh", "fr", "de", "hi")
         val current = AppCompatDelegate.getApplicationLocales().toLanguageTags()
         val selected = tags.indexOfFirst { current.startsWith(it.substringBefore('-'), true) }.coerceAtLeast(0)
-        AlertDialog.Builder(this)
-            .setTitle("SELECT LANGUAGE")
-            .setSingleChoiceItems(languages, selected) { dialog, which ->
-                settings.edit().putString("language", tags[which]).apply()
-                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tags[which]))
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        showModernChoiceDialog("SELECT LANGUAGE", languages, selected) { which ->
+            settings.edit().putString("language", tags[which]).apply()
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tags[which]))
+        }
     }
 
     private fun showOtherSettings() {
@@ -510,15 +531,97 @@ class SettingsActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun chooseValue(title: String, values: Array<String>, current: String?, onChosen: (String) -> Unit) {
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setSingleChoiceItems(values, values.indexOf(current).coerceAtLeast(0)) { dialog, which ->
-                onChosen(values[which])
-                dialog.dismiss()
+    private fun showModernChoiceDialog(
+        title: String,
+        options: Array<String>,
+        selectedIndex: Int,
+        onChosen: (Int) -> Unit
+    ) {
+        val panel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(20), dp(22), dp(14))
+            background = getDrawable(R.drawable.bg_auth_panel)
+        }
+        val heading = TextView(this).apply {
+            text = title
+            textSize = 16f
+            letterSpacing = 0.18f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, dp(7))
+        }
+        panel.addView(heading, LinearLayout.LayoutParams(-1, -2))
+        val subtitle = TextView(this).apply {
+            text = "SELECIONA UMA OPÇÃO"
+            textSize = 11f
+            letterSpacing = 0.12f
+            gravity = Gravity.CENTER
+            setTextColor(0xFF91A8BB.toInt())
+            setPadding(0, 0, 0, dp(16))
+        }
+        panel.addView(subtitle, LinearLayout.LayoutParams(-1, -2))
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(panel)
+            .setNegativeButton("CANCELAR", null)
+            .create()
+
+        options.forEachIndexed { index, option ->
+            val selected = index == selectedIndex
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(16), 0, dp(14), 0)
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat()
+                    setColor(if (selected) 0x3342D6E8 else 0x22202C3A)
+                    setStroke(dp(1), if (selected) 0xFF42D6E8.toInt() else 0x554B6378)
+                }
+                isClickable = true
+                isFocusable = true
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+            val label = TextView(this).apply {
+                text = option
+                textSize = 14f
+                letterSpacing = 0.04f
+                setTextColor(if (selected) 0xFFECFCFF.toInt() else 0xFFD2DDE7.toInt())
+            }
+            row.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
+            val marker = TextView(this).apply {
+                text = if (selected) "✓" else "○"
+                textSize = if (selected) 17f else 19f
+                gravity = Gravity.CENTER
+                setTextColor(if (selected) 0xFF42D6E8.toInt() else 0xFF8192A3.toInt())
+            }
+            row.addView(marker, LinearLayout.LayoutParams(dp(28), dp(28)))
+            row.setOnClickListener {
+                dialog.dismiss()
+                onChosen(index)
+            }
+            val params = LinearLayout.LayoutParams(-1, dp(50))
+            params.bottomMargin = dp(8)
+            panel.addView(row, params)
+        }
+
+        dialog.show()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.68f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(0xFF42D6E8.toInt())
+    }
+
+    private fun styleSettingsDialog(dialog: AlertDialog) {
+        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_auth_panel)
+        dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.68f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.findViewById<TextView>(android.R.id.message)?.setTextColor(0xFFD2DDE7.toInt())
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(0xFF42D6E8.toInt())
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(0xFF91A8BB.toInt())
+    }
+
+    private fun chooseValue(title: String, values: Array<String>, current: String?, onChosen: (String) -> Unit) {
+        showModernChoiceDialog(title.uppercase(), values, values.indexOf(current).coerceAtLeast(0)) { which ->
+            onChosen(values[which])
+        }
     }
 
     private fun showServiceStatus(valueView: TextView) {

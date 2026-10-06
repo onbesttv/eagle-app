@@ -37,7 +37,7 @@ import java.util.Locale
 
 class CatchUpActivity : AppCompatActivity() {
 
-    private val baseUrl = "https://allrevplay.online:443"
+    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
 
@@ -103,8 +103,20 @@ class CatchUpActivity : AppCompatActivity() {
                             emptyMessage.text = "O serviço não indicou canais com Catch Up disponível."
                             emptyMessage.visibility = View.VISIBLE
                         } else {
-                            emptyMessage.text = "Seleciona um canal para ver os programas arquivados."
+                            emptyMessage.visibility = View.GONE
                             rvChannels.adapter = ChannelAdapter(comArquivo) { selecionarCanal(it) }
+                            selecionarCanal(comArquivo[0])
+                            rvChannels.postDelayed({
+                                val vh = rvChannels.findViewHolderForAdapterPosition(0)
+                                if (vh != null) {
+                                    vh.itemView.requestFocus()
+                                } else {
+                                    rvChannels.scrollToPosition(0)
+                                    rvChannels.postDelayed({
+                                        rvChannels.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                    }, 80)
+                                }
+                            }, 100)
                         }
                     }
                 } catch (_: Exception) {
@@ -318,7 +330,27 @@ class CatchUpActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: ChannelHolder, position: Int) {
             val channel = channels[position]
             holder.name.text = channel.name
-            holder.itemView.setBackgroundColor(if (position == selectedPosition) 0xFF23324A.toInt() else Color.TRANSPARENT)
+
+            val updateBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.itemView.background = android.graphics.drawable.GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF23324A.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(android.graphics.Color.TRANSPARENT)
+                    }
+                }
+            }
+            updateBg(holder.itemView.isFocused)
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateBg(hasFocus)
+            }
+
             if (channel.streamIcon.isNullOrBlank()) holder.logo.setImageResource(R.mipmap.ic_launcher)
             else Glide.with(holder.itemView.context).load(channel.streamIcon).into(holder.logo)
             holder.itemView.setOnClickListener {
@@ -343,6 +375,20 @@ class CatchUpActivity : AppCompatActivity() {
                 cardElevation = dp(2).toFloat()
                 setCardBackgroundColor(0xFF121D2D.toInt())
                 useCompatPadding = true
+                isFocusable = true
+                isClickable = true
+                setOnFocusChangeListener { v, hasFocus ->
+                    val cv = v as CardView
+                    if (hasFocus) {
+                        cv.setCardBackgroundColor(0xFF2A4365.toInt())
+                        cv.elevation = dp(6).toFloat()
+                        cv.animate().scaleX(1.02f).scaleY(1.02f).setDuration(100).start()
+                    } else {
+                        cv.setCardBackgroundColor(0xFF121D2D.toInt())
+                        cv.elevation = dp(2).toFloat()
+                        cv.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+                    }
+                }
             }
             val row = LinearLayout(parent.context).apply {
                 orientation = LinearLayout.HORIZONTAL

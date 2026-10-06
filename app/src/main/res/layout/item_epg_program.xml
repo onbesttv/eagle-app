@@ -4,6 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="4dp"
+    android:focusable="true"
+    android:clickable="true"
+    android:foreground="@drawable/fg_epg_program_selector"
     app:cardBackgroundColor="#121D2D"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp">

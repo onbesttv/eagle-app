@@ -2,6 +2,8 @@ package com.example.myapplication
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -31,7 +33,7 @@ import java.io.IOException
 
 class MoviesActivity : AppCompatActivity() {
 
-    private val BASE_URL = "https://allrevplay.online:443"
+    private val BASE_URL: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
 
@@ -51,13 +53,24 @@ class MoviesActivity : AppCompatActivity() {
     // 0 = Padrão, 1 = Nome (A-Z), 2 = Mais Recentes, 3 = Melhor Avaliação
     private var currentSortMode = 0
 
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_movies)
 
         // Botão para sair da atividade e regressar ao menu principal
-        findViewById<ImageButton>(R.id.btnBackMovies)?.setOnClickListener {
-            finish()
+        findViewById<ImageButton>(R.id.btnBackMovies)?.apply {
+            setOnClickListener { finish() }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
+                    v.elevation = dp(8).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                    v.elevation = 0f
+                }
+            }
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
@@ -84,6 +97,15 @@ class MoviesActivity : AppCompatActivity() {
 
         btnSortOrder.setOnClickListener {
             abrirDialogoOrdenacao()
+        }
+        btnSortOrder.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
+                v.elevation = dp(8).toFloat()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                v.elevation = 0f
+            }
         }
     }
 
@@ -127,6 +149,17 @@ class MoviesActivity : AppCompatActivity() {
                         } else {
                             tratarSelecaoCategoria("FAVORITES")
                         }
+                        rvCategories.postDelayed({
+                            val vh = rvCategories.findViewHolderForAdapterPosition(initialPos)
+                            if (vh != null) {
+                                vh.itemView.requestFocus()
+                            } else {
+                                rvCategories.scrollToPosition(initialPos)
+                                rvCategories.postDelayed({
+                                    rvCategories.findViewHolderForAdapterPosition(initialPos)?.itemView?.requestFocus()
+                                }, 80)
+                            }
+                        }, 100)
                     }
                 } catch (e: Exception) {
                     runOnUiThread {
@@ -367,7 +400,33 @@ class MoviesActivity : AppCompatActivity() {
                 holder.tv.setTextColor(0xFFFFFFFF.toInt())
             }
 
-            holder.tv.setBackgroundColor(if (position == selectedPosition) 0xFF23324A.toInt() else 0x00000000)
+            val updateCatBg: (Boolean) -> Unit = { hasFocus ->
+                val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                holder.tv.background = GradientDrawable().apply {
+                    if (hasFocus) {
+                        setColor(0xFF2A4365.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else if (currentSelected) {
+                        setColor(0xFF23324A.toInt())
+                        cornerRadius = dp(8).toFloat()
+                    } else {
+                        setColor(0x00000000)
+                    }
+                }
+                if (hasFocus) {
+                    holder.itemView.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
+                    holder.itemView.elevation = dp(4).toFloat()
+                } else {
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    holder.itemView.elevation = 0f
+                }
+            }
+            updateCatBg(holder.itemView.isFocused)
+
+            holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                updateCatBg(hasFocus)
+            }
 
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition
@@ -424,6 +483,16 @@ class MoviesActivity : AppCompatActivity() {
                     .into(holder.ivPoster)
             } else {
                 holder.ivPoster.setImageResource(R.mipmap.ic_launcher)
+            }
+
+            holder.itemView.setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.07f).scaleY(1.07f).setDuration(140).start()
+                    (v as? androidx.cardview.widget.CardView)?.cardElevation = dp(12).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                    (v as? androidx.cardview.widget.CardView)?.cardElevation = dp(2).toFloat()
+                }
             }
 
             holder.itemView.setOnClickListener { onClick(movie) }

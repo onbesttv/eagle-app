@@ -4,6 +4,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:background="@drawable/bg_app_surface">
 
     <!-- COLUNA 1: Categorias com Botão Voltar -->
@@ -11,6 +13,8 @@
         android:layout_width="220dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:background="#101827">
 
         <!-- Barra Superior com Seta de Voltar -->
@@ -30,6 +34,8 @@
                 android:foreground="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Voltar"
                 android:src="@android:drawable/ic_menu_revert"
+                android:focusable="false"
+                android:focusableInTouchMode="false"
                 app:tint="#FFFFFF" />
 
             <TextView
@@ -50,7 +56,9 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvEpgCategories"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false" />
     </LinearLayout>
 
     <View
@@ -63,6 +71,8 @@
         android:layout_width="230dp"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:background="#0C1422">
 
         <TextView
@@ -84,7 +94,9 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvEpgChannels"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false" />
     </LinearLayout>
 
     <View
@@ -99,6 +111,8 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:background="#080D16"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:padding="12dp">
 
         <TextView
@@ -114,12 +128,16 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="8dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvEpgPrograms"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:clipToPadding="false" />
 
             <ProgressBar
                 android:id="@+id/pbEpgLoading"

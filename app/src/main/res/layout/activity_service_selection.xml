@@ -5,14 +5,17 @@
     android:layout_height="match_parent"
     android:background="#08090E">
 
-    <com.example.myapplication.CinematicBackdropView
+    <ImageView
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_app_futuristic" />
 
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#30030810" />
+        android:background="#37020914" />
 
     <LinearLayout
         android:id="@+id/serviceChoices"
@@ -59,9 +62,11 @@
                 android:paddingEnd="18dp">
 
                 <ImageView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
-                    android:src="@drawable/ic_streamplay_mark"
+                    android:layout_width="36dp"
+                    android:layout_height="28dp"
+                    android:contentDescription="Televisão"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_service_tv"
                     app:tint="#FFFFFF" />
 
                 <TextView
@@ -70,14 +75,17 @@
                     android:layout_marginStart="14dp"
                     android:layout_weight="1"
                     android:letterSpacing="0.07"
-                    android:text="STREAMPLAY TOP"
+                    android:text="BEST"
                     android:textColor="#FFFFFF"
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                    android:id="@+id/tvBestCheck"
+                    android:layout_width="36dp"
+                    android:layout_height="28dp"
+                    android:contentDescription="Televisão"
+                    android:scaleType="fitCenter"
                     android:background="@drawable/bg_icon_button"
                     android:gravity="center"
                     android:text="✓"
@@ -92,22 +100,49 @@
             android:layout_width="match_parent"
             android:layout_height="62dp"
             android:layout_marginTop="10dp"
-            android:alpha="0.58"
-            android:clickable="false"
-            android:focusable="false"
-            app:cardBackgroundColor="#20242B"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground"
+            app:cardBackgroundColor="#252B34"
             app:cardCornerRadius="9dp"
             app:cardElevation="0dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
-                android:paddingStart="20dp"
-                android:paddingEnd="20dp"
-                android:text="OUTRO SERVIÇO     ·     EM BREVE"
-                android:textColor="#C0C6D0"
-                android:textSize="14sp" />
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp">
+
+                <ImageView
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@drawable/ic_service_tv"
+                    app:tint="#FFFFFF" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:letterSpacing="0.07"
+                    android:text="BEST2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvBest2Check"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:background="@drawable/bg_icon_button"
+                    android:gravity="center"
+                    android:text="✓"
+                    android:textColor="#42D6E8"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </androidx.cardview.widget.CardView>
 
         <Button
@@ -132,15 +167,18 @@
         android:visibility="gone">
 
         <ImageView
-            android:layout_width="82dp"
-            android:layout_height="82dp"
-            android:src="@drawable/ic_streamplay_mark"
+            android:layout_width="88dp"
+            android:layout_height="88dp"
+            android:contentDescription="Televisão"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_service_tv"
             app:tint="#FFFFFF" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="-2dp"
+            android:id="@+id/tvStartupServiceBrand"
             android:letterSpacing="0.28"
             android:text="STREAMPLAY"
             android:textColor="#FFFFFF"

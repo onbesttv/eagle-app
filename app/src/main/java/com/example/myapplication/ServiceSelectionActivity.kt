@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 
@@ -16,34 +17,37 @@ class ServiceSelectionActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_service_selection)
-        val saved = getSharedPreferences("iptv_login_prefs", MODE_PRIVATE)
-        // Remove the temporary test login so the user can restore their previous account.
-        if (saved.getString("SAVED_USER", "") == "889248") {
-            saved.edit()
-                .remove("SAVED_USER")
-                .remove("SAVED_PASS")
-                .remove("SAVED_SERVICE")
-                .remove("NUNESTV2_TEST_ACCOUNT_APPLIED")
-                .apply()
-        }
-        val savedUser = saved.getString("SAVED_USER", "").orEmpty()
-        val savedPass = saved.getString("SAVED_PASS", "").orEmpty()
-        val savedService = saved.getString("SAVED_SERVICE", "").orEmpty()
+        IptvServiceConfig.initialize(this)
+        var selectedService = IptvServiceConfig.activeServiceId(this)
         val manualSelection = intent.getBooleanExtra(EXTRA_MANUAL_SELECTION, false)
-        if (!manualSelection && (savedService == "streamplay" || savedService.isBlank()) && savedUser.isNotBlank() && savedPass.isNotBlank()) {
-            if (savedService.isBlank()) saved.edit().putString("SAVED_SERVICE", "streamplay").apply()
+        val savedUser = IptvServiceConfig.username(this, selectedService)
+        val savedPass = IptvServiceConfig.password(this, selectedService)
+        if (!manualSelection && savedUser.isNotBlank() && savedPass.isNotBlank()) {
             findViewById<LinearLayout>(R.id.serviceChoices).visibility = View.GONE
             findViewById<LinearLayout>(R.id.autoLoginPanel).visibility = View.VISIBLE
             findViewById<ProgressBar>(R.id.pbServiceSelection).visibility = View.VISIBLE
-            startActivity(Intent(this, StreamPlayLoginActivity::class.java).putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true))
+            findViewById<TextView>(R.id.tvStartupServiceBrand).text = selectedService.uppercase()
+            startActivity(Intent(this, StreamPlayLoginActivity::class.java)
+                .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
+                .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, selectedService))
             return
         }
-        val openLogin = {
-            startActivity(Intent(this, StreamPlayLoginActivity::class.java))
+
+        val bestCheck = findViewById<TextView>(R.id.tvBestCheck)
+        val best2Check = findViewById<TextView>(R.id.tvBest2Check)
+        fun updateSelection(service: String) {
+            selectedService = service
+            bestCheck.visibility = if (service == IptvServiceConfig.BEST) View.VISIBLE else View.INVISIBLE
+            best2Check.visibility = if (service == IptvServiceConfig.BEST2) View.VISIBLE else View.INVISIBLE
         }
-        findViewById<CardView>(R.id.cardStreamPlay).setOnClickListener { openLogin() }
-        findViewById<android.widget.Button>(R.id.btnSelectServiceEnter).setOnClickListener { openLogin() }
-        // O segundo serviço fica visível, mas desativado até ser configurado.
-        findViewById<CardView>(R.id.cardOtherService).isEnabled = false
+        updateSelection(selectedService)
+        findViewById<CardView>(R.id.cardStreamPlay).setOnClickListener { updateSelection(IptvServiceConfig.BEST) }
+        findViewById<CardView>(R.id.cardOtherService).setOnClickListener { updateSelection(IptvServiceConfig.BEST2) }
+        findViewById<android.widget.Button>(R.id.btnSelectServiceEnter).setOnClickListener {
+            IptvServiceConfig.select(this, selectedService)
+            startActivity(Intent(this, StreamPlayLoginActivity::class.java)
+                .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, selectedService)
+                .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, false))
+        }
     }
 }

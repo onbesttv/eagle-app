@@ -67,6 +67,7 @@ object CatalogRefreshDialog {
         dialog.setOnDismissListener { spin.cancel() }
 
         ServiceCatalogUpdater.refresh(
+            IptvServiceConfig.baseUrl(activity),
             username,
             password,
             onProgress = { message -> activity.runOnUiThread {

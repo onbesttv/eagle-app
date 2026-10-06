@@ -4,6 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="6dp"
+    android:focusable="true"
+    android:clickable="true"
+    android:foreground="@drawable/fg_movie_card_selector"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp"
     app:cardBackgroundColor="#121D2D">

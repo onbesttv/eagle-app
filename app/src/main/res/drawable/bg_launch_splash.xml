@@ -1,0 +1,8 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <bitmap android:src="@drawable/bg_startup_blur" android:gravity="fill" />
+    </item>
+    <item android:width="320dp" android:height="320dp" android:gravity="center">
+        <bitmap android:src="@drawable/eagle_badge" android:gravity="fill" />
+    </item>
+</layer-list>
