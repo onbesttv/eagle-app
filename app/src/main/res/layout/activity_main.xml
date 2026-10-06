@@ -85,6 +85,7 @@
             android:layout_margin="8dp"
             android:clickable="true"
             android:focusable="true"
+            android:focusedByDefault="true"
             android:nextFocusDown="@+id/cardCatchUp"
             android:foreground="@drawable/fg_home_card_selector"
             app:cardCornerRadius="16dp"
@@ -92,6 +93,7 @@
             app:cardMaxElevation="0dp"
             app:cardPreventCornerOverlap="false"
             app:cardBackgroundColor="@android:color/transparent">
+            <requestFocus />
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

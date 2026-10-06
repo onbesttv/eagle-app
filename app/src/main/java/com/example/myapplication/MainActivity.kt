@@ -74,6 +74,26 @@ class MainActivity : AppCompatActivity() {
         btnUpdateService.setOnClickListener { button ->
             atualizarCatalogo(button as ImageButton, savedUser, savedPass)
         }
+
+        // 1. Foco inicial direto no LIVE TV ao abrir a aplicação
+        cardLiveTv.post {
+            cardLiveTv.requestFocus()
+        }
+
+        // 2. Verificar se existe atualização disponível no GitHub;
+        // Se houver, mostra automaticamente o aviso com o botão de atualizar
+        AppUpdateManager.checkForUpdates(this, manual = false)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Garante que ao regressar ao ecrã inicial o foco volta para o LIVE TV caso estivesse no botão de definições
+        val cardLiveTv = findViewById<CardView>(R.id.cardLiveTv)
+        cardLiveTv?.post {
+            if (currentFocus == null || currentFocus?.id == R.id.btnSettings) {
+                cardLiveTv.requestFocus()
+            }
+        }
     }
 
     private fun atualizarCatalogo(button: ImageButton, user: String, pass: String) {
