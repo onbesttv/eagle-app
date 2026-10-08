@@ -95,31 +95,6 @@ class VodPlayerActivity : AppCompatActivity() {
         btnSubs?.setOnClickListener {
             abrirDialogoLegendas()
         }
-
-        // 4. Botão Proporção de Ecrã (Ajustar / 16:9 / Zoom)
-        val btnAspect = playerView.findViewById<ImageButton>(R.id.btnAspectRatio)
-        btnAspect?.setOnClickListener {
-            alternarProporcaoEcra()
-        }
-    }
-
-    private var currentResizeModeIndex = 0
-    private val resizeModes = intArrayOf(
-        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
-        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL,
-        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-    )
-    private val resizeModeNames = arrayOf(
-        "Proporção: Ajustar (Original)",
-        "Proporção: Preencher Ecrã (16:9)",
-        "Proporção: Zoom (Sem Barras Pretas)"
-    )
-
-    private fun alternarProporcaoEcra() {
-        currentResizeModeIndex = (currentResizeModeIndex + 1) % resizeModes.size
-        val mode = resizeModes[currentResizeModeIndex]
-        playerView.resizeMode = mode
-        Toast.makeText(this, resizeModeNames[currentResizeModeIndex], Toast.LENGTH_SHORT).show()
     }
 
     private fun configurarPlayer() {

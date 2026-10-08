@@ -108,7 +108,18 @@ class MovieDetailActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        btnPlay.post {
+            btnPlay.requestFocus()
+        }
+
         carregarInfoApi()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        findViewById<Button>(R.id.btnPlayMovie)?.postDelayed({
+            findViewById<Button>(R.id.btnPlayMovie)?.requestFocus()
+        }, 80)
     }
 
     private fun carregarInfoApi() {

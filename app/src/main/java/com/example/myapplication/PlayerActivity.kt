@@ -99,38 +99,6 @@ class PlayerActivity : AppCompatActivity() {
         viewOverlayDismissArea.visibility = View.GONE
     }
 
-    private var currentResizeModeIndex = 0
-    private val resizeModes = intArrayOf(
-        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT,
-        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL,
-        androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-    )
-    private val resizeModeNames = arrayOf(
-        "Proporção: Ajustar (Original)",
-        "Proporção: Preencher Ecrã (16:9)",
-        "Proporção: Zoom (Sem Barras Pretas)"
-    )
-
-    private fun alternarProporcaoEcra() {
-        currentResizeModeIndex = (currentResizeModeIndex + 1) % resizeModes.size
-        val mode = resizeModes[currentResizeModeIndex]
-        playerView.resizeMode = mode
-        android.widget.Toast.makeText(this, resizeModeNames[currentResizeModeIndex], android.widget.Toast.LENGTH_SHORT).show()
-    }
-
-    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
-        val isAspectKey = event.keyCode == android.view.KeyEvent.KEYCODE_PROG_YELLOW ||
-                          event.keyCode == android.view.KeyEvent.KEYCODE_PROG_GREEN ||
-                          event.keyCode == android.view.KeyEvent.KEYCODE_MENU
-        if (isAspectKey) {
-            if (event.action == android.view.KeyEvent.ACTION_UP) {
-                alternarProporcaoEcra()
-            }
-            return true
-        }
-        return super.dispatchKeyEvent(event)
-    }
-
     private fun configurarPlayer() {
         val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
         player = p
