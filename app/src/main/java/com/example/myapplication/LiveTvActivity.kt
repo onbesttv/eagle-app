@@ -102,6 +102,7 @@ class LiveTvActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setFormat(android.graphics.PixelFormat.RGBA_8888)
         setContentView(R.layout.activity_live_tv)
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)

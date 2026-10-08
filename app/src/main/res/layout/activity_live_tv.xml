@@ -130,6 +130,8 @@
                     android:id="@+id/miniPlayerView"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    app:surface_type="surface_view"
+                    app:resize_mode="fit"
                     app:use_controller="false" />
 
                 <!-- Toque para alternar ecrã inteiro / normal -->
