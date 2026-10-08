@@ -100,28 +100,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun configurarPlayer() {
-        val okHttpClient = OkHttpClient.Builder()
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .addInterceptor { chain ->
-                val req = chain.request().newBuilder()
-                    .header("User-Agent", "IPTVSmartersPro/3.1.5")
-                    .build()
-                chain.proceed(req)
-            }
-            .build()
-
-        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
-        val mediaSourceFactory = DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
-
-        player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .build()
-
+        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
+        player = p
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
-
-        playerView.player = player
     }
 
     private fun tocarStream(url: String) {
