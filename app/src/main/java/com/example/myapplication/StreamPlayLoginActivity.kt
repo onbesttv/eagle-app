@@ -92,10 +92,26 @@ class StreamPlayLoginActivity : AppCompatActivity() {
             chooseServiceButton.visibility = View.GONE
             autoProgressPanel.visibility = View.VISIBLE
         }
+        if (!isAutoLogin || usernameInput.text.isBlank() || passwordInput.text.isBlank()) {
+            usernameInput.post {
+                usernameInput.requestFocus()
+                usernameInput.setSelection(usernameInput.text.length)
+            }
+        }
         loginButton.setOnClickListener { login() }
         if (isAutoLogin &&
             usernameInput.text.isNotBlank() && passwordInput.text.isNotBlank()) {
             login()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!isAutoLogin || usernameInput.text.isBlank() || passwordInput.text.isBlank()) {
+            usernameInput.postDelayed({
+                usernameInput.requestFocus()
+                usernameInput.setSelection(usernameInput.text.length)
+            }, 80)
         }
     }
 

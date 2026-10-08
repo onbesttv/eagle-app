@@ -17,18 +17,6 @@
         android:layout_height="match_parent"
         android:background="#37020914" />
 
-    <ImageButton
-        android:id="@+id/btnChooseService"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="18dp"
-        android:background="@drawable/bg_icon_button"
-        android:contentDescription="Escolher serviço"
-        android:padding="12dp"
-        android:src="@drawable/ic_settings"
-        app:tint="#FFFFFF" />
-
     <androidx.cardview.widget.CardView
         android:id="@+id/cardServiceLogin"
         android:layout_width="450dp"
@@ -84,7 +72,14 @@
                 android:singleLine="true"
                 android:textColor="#20242B"
                 android:textColorHint="#697586"
-                android:textSize="15sp" />
+                android:textSize="15sp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:focusedByDefault="true"
+                android:nextFocusDown="@+id/etServicePassword"
+                android:nextFocusUp="@+id/etServiceUsername">
+                <requestFocus />
+            </EditText>
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -106,7 +101,11 @@
                 android:singleLine="true"
                 android:textColor="#20242B"
                 android:textColorHint="#697586"
-                android:textSize="15sp" />
+                android:textSize="15sp"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusUp="@+id/etServiceUsername"
+                android:nextFocusDown="@+id/btnServiceLogin" />
 
             <ImageButton
                 android:id="@+id/btnTogglePassword"
@@ -148,7 +147,10 @@
                 android:letterSpacing="0.14"
                 android:text="ENTRAR"
                 android:textColor="#FFFFFF"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:focusable="true"
+                android:nextFocusUp="@+id/etServicePassword"
+                android:nextFocusDown="@+id/btnChooseService" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -197,4 +199,18 @@
             android:textColor="#FFFFFF"
             android:textSize="15sp" />
     </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnChooseService"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="18dp"
+        android:background="@drawable/bg_icon_button"
+        android:contentDescription="Escolher serviço"
+        android:padding="12dp"
+        android:src="@drawable/ic_settings"
+        android:focusable="true"
+        android:nextFocusUp="@+id/btnServiceLogin"
+        app:tint="#FFFFFF" />
 </FrameLayout>

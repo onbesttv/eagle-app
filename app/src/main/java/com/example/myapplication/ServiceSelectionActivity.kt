@@ -33,8 +33,8 @@ class ServiceSelectionActivity : AppCompatActivity() {
             return
         }
 
-        val cardStreamPlay = findViewById<CardView>(R.id.cardStreamPlay)
-        val cardOtherService = findViewById<CardView>(R.id.cardOtherService)
+        val cardStreamPlay = findViewById<View>(R.id.cardStreamPlay)
+        val cardOtherService = findViewById<View>(R.id.cardOtherService)
         val bestCheck = findViewById<TextView>(R.id.tvBestCheck)
         val best2Check = findViewById<TextView>(R.id.tvBest2Check)
 
