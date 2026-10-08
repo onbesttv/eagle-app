@@ -19,12 +19,18 @@ object IptvServiceConfig {
 
     fun initialize(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+        // Limpar credenciais de teste antigas caso ainda existam no dispositivo
+        if (prefs.getString(BEST2_USER, "") == "889248" && prefs.getString(BEST2_PASS, "") == "7772") {
+            prefs.edit().remove(BEST2_USER).remove(BEST2_PASS).apply()
+        }
+
         if (!prefs.getBoolean(KEY_INITIALIZED, false)) {
             val legacyUser = prefs.getString("SAVED_USER", "").orEmpty()
             val legacyPass = prefs.getString("SAVED_PASS", "").orEmpty()
             val legacyService = prefs.getString("SAVED_SERVICE", "").orEmpty()
-            val migrateToBest2 = legacyService == BEST2 || legacyUser == "889248"
-            if (legacyUser.isNotBlank() && legacyPass.isNotBlank()) {
+            val migrateToBest2 = legacyService == BEST2
+            if (legacyUser.isNotBlank() && legacyPass.isNotBlank() && legacyUser != "889248") {
                 if (migrateToBest2) {
                     prefs.edit().putString(BEST2_USER, legacyUser).putString(BEST2_PASS, legacyPass).apply()
                 } else {
@@ -32,10 +38,6 @@ object IptvServiceConfig {
                 }
             }
 
-            // These test credentials were explicitly supplied for the BEST2 service.
-            if (prefs.getString(BEST2_USER, "").isNullOrBlank()) {
-                prefs.edit().putString(BEST2_USER, "889248").putString(BEST2_PASS, "7772").apply()
-            }
             val initialService = if (migrateToBest2 && legacyUser.isNotBlank()) BEST2 else BEST
             prefs.edit()
                 .putString(KEY_ACTIVE, prefs.getString(KEY_ACTIVE, initialService) ?: initialService)
