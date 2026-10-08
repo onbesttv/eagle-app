@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Fundo de alta definição escuro com gradiente azul espacial -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#060A12"
+                android:centerColor="#0B1322"
+                android:endColor="#0F1F38" />
+            <corners android:radius="12dp" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#3342D6E8" />
+        </shape>
+    </item>
+
+    <!-- Logótipo Eagle com a Águia e o Nome estilizado centrado -->
+    <item
+        android:gravity="center"
+        android:top="16dp"
+        android:bottom="16dp"
+        android:left="24dp"
+        android:right="24dp">
+        <bitmap
+            android:src="@drawable/eagle_wordmark"
+            android:gravity="center" />
+    </item>
+</layer-list>
