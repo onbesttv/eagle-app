@@ -1,6 +1,8 @@
 package com.example.myapplication
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.Typeface
 import androidx.media3.common.C
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -9,7 +11,9 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
+import androidx.media3.ui.SubtitleView
 import okhttp3.OkHttpClient
 
 object ExoPlayerHelper {
@@ -32,15 +36,18 @@ object ExoPlayerHelper {
         val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory)
 
-        // 1. Forçar maior bitrate e melhor resolução suportada
+        // 1. Forçar a melhor faixa de vídeo disponível sem degradação
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
                     .setForceHighestSupportedBitrate(true)
+                    .setAllowVideoMixedMimeTypeAdaptiveness(true)
+                    .setAllowVideoNonSeamlessAdaptiveness(true)
+                    .setExceedRendererCapabilitiesIfNecessary(true)
             )
         }
 
-        // 2. Aceleração de hardware e fallback de descodificação
+        // 2. Aceleração de hardware com fallback automático de descodificadores
         val renderersFactory = DefaultRenderersFactory(context).apply {
             setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             setEnableDecoderFallback(true)
@@ -66,9 +73,27 @@ object ExoPlayerHelper {
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
             }
 
-        playerView?.let {
-            it.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-            it.player = player
+        playerView?.let { pv ->
+            pv.resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            pv.player = player
+
+            // 4. Renderização nítida de legendas (estilo Cinema / Netflix)
+            // Resolve texto distorcido, borrado ou pixelizado em televisores
+            pv.subtitleView?.apply {
+                val captionStyle = CaptionStyleCompat(
+                    Color.WHITE,                          // Letra: Branco puro de alto contraste
+                    Color.TRANSPARENT,                    // Fundo: Sem caixa cinzenta a tapar
+                    Color.TRANSPARENT,                    // Janela: Transparente
+                    CaptionStyleCompat.EDGE_TYPE_OUTLINE, // Contorno preto sólido anti-aliasing
+                    Color.BLACK,                          // Cor do contorno
+                    Typeface.DEFAULT_BOLD                 // Tipografia sólida e legível
+                )
+                setStyle(captionStyle)
+                setApplyEmbeddedStyles(false)             // Sobrescreve fontes distorcidas da stream
+                setApplyEmbeddedFontSizes(false)          // Força tamanho proporcional nítido na TV
+                setFractionalTextSize(SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * 1.25f)
+                setBottomPaddingFraction(0.08f)
+            }
         }
 
         return Pair(player, trackSelector)
