@@ -68,7 +68,10 @@
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvCategories"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
+                    android:layout_height="match_parent"
+                    android:descendantFocusability="afterDescendants"
+                    android:focusable="false"
+                    android:overScrollMode="never" />
             </LinearLayout>
 
             <View
@@ -101,7 +104,10 @@
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvChannels"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
+                    android:layout_height="match_parent"
+                    android:descendantFocusability="afterDescendants"
+                    android:focusable="false"
+                    android:overScrollMode="never" />
             </LinearLayout>
 
             <View
@@ -327,7 +333,10 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvOverlayChannels"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:descendantFocusability="afterDescendants"
+            android:focusable="false"
+            android:overScrollMode="never" />
     </LinearLayout>
 
 </RelativeLayout>
