@@ -35,7 +35,6 @@ class ServiceSelectionActivity : AppCompatActivity() {
 
         val cardStreamPlay = findViewById<CardView>(R.id.cardStreamPlay)
         val cardOtherService = findViewById<CardView>(R.id.cardOtherService)
-        val btnSelectServiceEnter = findViewById<android.widget.Button>(R.id.btnSelectServiceEnter)
         val bestCheck = findViewById<TextView>(R.id.tvBestCheck)
         val best2Check = findViewById<TextView>(R.id.tvBest2Check)
 
@@ -61,10 +60,9 @@ class ServiceSelectionActivity : AppCompatActivity() {
 
         cardStreamPlay.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST) }
         cardOtherService.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST2) }
-        btnSelectServiceEnter.setOnClickListener { entrarNoServico(selectedService) }
 
         // Animação suave de navegação com comando da TV
-        val interactiveCards = listOf(cardStreamPlay, cardOtherService, btnSelectServiceEnter)
+        val interactiveCards = listOf(cardStreamPlay, cardOtherService)
         interactiveCards.forEach { view ->
             view.setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {

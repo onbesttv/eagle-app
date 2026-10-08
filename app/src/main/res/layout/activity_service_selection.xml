@@ -45,12 +45,12 @@
         <androidx.cardview.widget.CardView
             android:id="@+id/cardStreamPlay"
             android:layout_width="match_parent"
-            android:layout_height="62dp"
+            android:layout_height="64dp"
             android:clickable="true"
             android:focusable="true"
-            android:foreground="@drawable/bg_button_selector"
-            app:cardBackgroundColor="#252B34"
-            app:cardCornerRadius="9dp"
+            android:foreground="@drawable/bg_card_service_selector"
+            app:cardBackgroundColor="#162232"
+            app:cardCornerRadius="12dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -58,8 +58,8 @@
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="18dp"
-                android:paddingEnd="18dp">
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
 
                 <ImageView
                     android:layout_width="36dp"
@@ -72,25 +72,23 @@
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
+                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
-                    android:letterSpacing="0.07"
+                    android:letterSpacing="0.08"
                     android:text="BEST"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvBestCheck"
-                    android:layout_width="36dp"
-                    android:layout_height="28dp"
-                    android:contentDescription="Televisão"
-                    android:scaleType="fitCenter"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:background="@drawable/bg_icon_button"
                     android:gravity="center"
                     android:text="✓"
                     android:textColor="#42D6E8"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -98,13 +96,13 @@
         <androidx.cardview.widget.CardView
             android:id="@+id/cardOtherService"
             android:layout_width="match_parent"
-            android:layout_height="62dp"
-            android:layout_marginTop="10dp"
+            android:layout_height="64dp"
+            android:layout_marginTop="14dp"
             android:clickable="true"
             android:focusable="true"
-            android:foreground="@drawable/bg_button_selector"
-            app:cardBackgroundColor="#252B34"
-            app:cardCornerRadius="9dp"
+            android:foreground="@drawable/bg_card_service_selector"
+            app:cardBackgroundColor="#162232"
+            app:cardCornerRadius="12dp"
             app:cardElevation="0dp">
 
             <LinearLayout
@@ -112,49 +110,40 @@
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="18dp"
-                android:paddingEnd="18dp">
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
 
                 <ImageView
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                    android:layout_width="36dp"
+                    android:layout_height="28dp"
+                    android:contentDescription="Televisão"
+                    android:scaleType="fitCenter"
                     android:src="@drawable/ic_service_tv"
                     app:tint="#FFFFFF" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
+                    android:layout_marginStart="16dp"
                     android:layout_weight="1"
-                    android:letterSpacing="0.07"
+                    android:letterSpacing="0.08"
                     android:text="BEST2"
                     android:textColor="#FFFFFF"
-                    android:textSize="15sp"
+                    android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tvBest2Check"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:background="@drawable/bg_icon_button"
                     android:gravity="center"
                     android:text="✓"
                     android:textColor="#42D6E8"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-
-        <Button
-            android:id="@+id/btnSelectServiceEnter"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:layout_marginTop="18dp"
-            android:background="@drawable/bg_auth_action"
-            android:letterSpacing="0.12"
-            android:text="ENTRAR"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold" />
     </LinearLayout>
 
     <LinearLayout
