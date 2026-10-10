@@ -501,7 +501,8 @@ class LiveTvActivity : BaseActivity() {
         override fun onInterceptFocusSearch(focused: View, direction: Int): View? {
             val count = itemCount
             if (count > 0) {
-                val pos = getPosition(focused)
+                val child = findContainingItemView(focused) ?: focused
+                val pos = getPosition(child)
                 if (direction == View.FOCUS_DOWN && pos >= count - 1) {
                     // Já está no último item da lista: mantém o foco no item atual sem escapar
                     return focused
@@ -575,6 +576,16 @@ class LiveTvActivity : BaseActivity() {
                 updateCatBg(hasFocus)
             }
 
+            holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    val currentPos = holder.bindingAdapterPosition
+                    if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
+                        return@setOnKeyListener true
+                    }
+                }
+                false
+            }
+
             holder.itemView.setOnClickListener {
                 val prev = selectedPosition
                 selectedPosition = holder.bindingAdapterPosition
@@ -608,6 +619,7 @@ class LiveTvActivity : BaseActivity() {
 
         fun atualizar(novaLista: List<LiveStream>) {
             list = novaLista
+            (rvChannels as? TvRecyclerView)?.resetPendingFocus()
             notifyDataSetChanged()
         }
 
@@ -652,6 +664,7 @@ class LiveTvActivity : BaseActivity() {
             if (!canal.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)
                     .load(canal.streamIcon)
+                    .dontAnimate()
                     .into(holder.iv)
             } else {
                 holder.iv.setImageResource(R.mipmap.ic_launcher)
@@ -681,6 +694,12 @@ class LiveTvActivity : BaseActivity() {
             }
 
             holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    val currentPos = holder.bindingAdapterPosition
+                    if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
+                        return@setOnKeyListener true
+                    }
+                }
                 if (event.action == KeyEvent.ACTION_UP &&
                     (keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
                      keyCode == KeyEvent.KEYCODE_ENTER ||
@@ -752,9 +771,27 @@ class LiveTvActivity : BaseActivity() {
             }
 
             if (!canal.streamIcon.isNullOrEmpty()) {
-                Glide.with(holder.itemView.context).load(canal.streamIcon).into(holder.iv)
+                Glide.with(holder.itemView.context).load(canal.streamIcon).dontAnimate().into(holder.iv)
             } else {
                 holder.iv.setImageResource(R.mipmap.ic_launcher)
+            }
+
+            holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    val currentPos = holder.bindingAdapterPosition
+                    if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
+                        return@setOnKeyListener true
+                    }
+                }
+                if (event.action == KeyEvent.ACTION_UP &&
+                    (keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
+                     keyCode == KeyEvent.KEYCODE_ENTER ||
+                     keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+                    holder.itemView.performClick()
+                    true
+                } else {
+                    false
+                }
             }
 
             holder.itemView.setOnClickListener {

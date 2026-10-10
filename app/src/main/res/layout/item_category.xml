@@ -16,5 +16,6 @@
     android:textStyle="bold"
     android:focusable="true"
     android:clickable="true"
+    android:nextFocusRight="@id/rvChannels"
     android:maxLines="1"
     android:ellipsize="end" />

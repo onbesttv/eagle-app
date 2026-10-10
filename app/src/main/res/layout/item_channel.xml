@@ -11,7 +11,8 @@
     android:paddingStart="12dp"
     android:paddingEnd="12dp"
     android:focusable="true"
-    android:clickable="true">
+    android:clickable="true"
+    android:nextFocusLeft="@id/rvCategories">
 
     <ImageView
         android:id="@+id/ivChannelLogo"

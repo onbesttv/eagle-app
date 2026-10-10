@@ -65,12 +65,13 @@
                     android:layout_height="1dp"
                     android:background="#23324A" />
 
-                <androidx.recyclerview.widget.RecyclerView
+                <com.example.myapplication.TvRecyclerView
                     android:id="@+id/rvCategories"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:descendantFocusability="afterDescendants"
                     android:focusable="false"
+                    android:nextFocusRight="@id/rvChannels"
                     android:overScrollMode="never" />
             </LinearLayout>
 
@@ -99,14 +100,18 @@
                     android:textColor="#FFFFFF"
                     android:paddingStart="12dp"
                     android:paddingEnd="12dp"
-                    android:textSize="12sp" />
+                    android:textSize="12sp"
+                    android:nextFocusDown="@id/rvChannels"
+                    android:nextFocusLeft="@id/rvCategories" />
 
-                <androidx.recyclerview.widget.RecyclerView
+                <com.example.myapplication.TvRecyclerView
                     android:id="@+id/rvChannels"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:descendantFocusability="afterDescendants"
                     android:focusable="false"
+                    android:nextFocusLeft="@id/rvCategories"
+                    android:nextFocusUp="@id/etSearchChannel"
                     android:overScrollMode="never" />
             </LinearLayout>
 
@@ -330,7 +335,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
+        <com.example.myapplication.TvRecyclerView
             android:id="@+id/rvOverlayChannels"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
