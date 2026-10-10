@@ -31,7 +31,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-class MoviesActivity : AppCompatActivity() {
+class MoviesActivity : BaseActivity() {
 
     private val BASE_URL: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
@@ -135,7 +135,7 @@ class MoviesActivity : AppCompatActivity() {
                     val categoriasRemotas: List<VodCategory> = gson.fromJson(json, type)
 
                     val categoriasCompletas = mutableListOf<VodCategory>()
-                    categoriasCompletas.add(VodCategory("FAVORITES", "★ FAVORITOS", 0))
+                    categoriasCompletas.add(VodCategory("FAVORITES", getString(R.string.category_favorites), 0))
                     categoriasCompletas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
                     categoriasCompletas.addAll(categoriasRemotas)
 
@@ -328,12 +328,17 @@ class MoviesActivity : AppCompatActivity() {
     }
 
     private fun abrirDialogoOrdenacao() {
-        val opcoes = arrayOf("Padrão", "Nome (A-Z)", "Mais Recentes", "Melhor Classificação (Rating)")
+        val opcoes = arrayOf(
+            getString(R.string.sort_default).replace(Regex("^[^:]+:\\s*"), ""),
+            getString(R.string.sort_name),
+            getString(R.string.sort_recent),
+            getString(R.string.sort_rating)
+        )
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("Ordenar filmes por:")
+            .setTitle(getString(R.string.sort_dialog_title))
             .setSingleChoiceItems(opcoes, currentSortMode) { dialog, which ->
                 currentSortMode = which
-                btnSortOrder.text = "Ordenar: ${opcoes[which]}"
+                btnSortOrder.text = getString(R.string.sort_prefix, opcoes[which])
                 aplicarFiltroEOrdenacao()
                 dialog.dismiss()
             }

@@ -35,7 +35,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class CatchUpActivity : AppCompatActivity() {
+class CatchUpActivity : BaseActivity() {
 
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()

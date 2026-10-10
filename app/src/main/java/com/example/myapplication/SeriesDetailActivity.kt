@@ -24,7 +24,7 @@ import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
 
-class SeriesDetailActivity : AppCompatActivity() {
+class SeriesDetailActivity : BaseActivity() {
 
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
@@ -124,7 +124,7 @@ class SeriesDetailActivity : AppCompatActivity() {
         val favIds = favPrefs.getStringSet("fav_ids", emptySet()) ?: emptySet()
         val isFav = favIds.contains(seriesId.toString())
 
-        btnToggleFav.text = if (isFav) "★ Remover Favorito" else "☆ Adicionar Favorito"
+        btnToggleFav.text = if (isFav) getString(R.string.remove_favorite_series) else getString(R.string.add_favorite_series)
     }
 
     private fun carregarDetalhesSerie(seriesId: Int) {
@@ -158,14 +158,14 @@ class SeriesDetailActivity : AppCompatActivity() {
                                 EpisodeItem(
                                     id = ep.optString("id"),
                                     episodeNum = ep.opt("episode_num"),
-                                    title = ep.optString("title", "Episódio ${i + 1}"),
+                                    title = ep.optString("title", getString(R.string.episode_prefix, "${i + 1}")),
                                     containerExtension = ep.optString("container_extension", "mp4"),
                                     season = ep.optInt("season", seasonKey.toIntOrNull() ?: 1),
                                     plot = ep.optString("plot")
                                 )
                             )
                         }
-                        mapTemporadas["Temporada $seasonKey"] = listaEp
+                        mapTemporadas[getString(R.string.season_prefix, seasonKey)] = listaEp
                     }
 
                     seasonsMap = mapTemporadas

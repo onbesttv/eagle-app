@@ -1,0 +1,81 @@
+<resources>
+    <string name="app_name">Eagle</string>
+
+    <!-- Main Dashboard -->
+    <string name="live_tv">TV EN DIRECTO</string>
+    <string name="tv_guide">GUÍA TV</string>
+    <string name="movies">PELÍCULAS</string>
+    <string name="series">SERIES</string>
+    <string name="catch_up">GRABACIONES</string>
+    <string name="settings">AJUSTES</string>
+    <string name="settings_subtitle">PERSONALIZA TU EXPERIENCIA</string>
+    <string name="refresh_content">Actualizar contenidos</string>
+
+    <!-- Settings Activity -->
+    <string name="settings_account">Cuenta</string>
+    <string name="settings_player_settings">Ajustes del Reproductor</string>
+    <string name="settings_player">Reproductor</string>
+    <string name="settings_stream_type">Tipo de Stream</string>
+    <string name="settings_updates">Actualizaciones</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_other">Otros Ajustes</string>
+    <string name="settings_logout">Cerrar sesión</string>
+    <string name="logout_confirm_message">¿Quieres volver a la pantalla de inicio de sesión? Tus datos quedarán guardados.</string>
+    <string name="btn_exit">SALIR</string>
+    <string name="btn_cancel">CANCELAR</string>
+    <string name="btn_close">CERRAR</string>
+    <string name="select_language_title">SELECCIONAR IDIOMA</string>
+    <string name="select_option_subtitle">SELECCIONA UNA OPCIÓN</string>
+    <string name="option_disabled_by_admin">Esta opción está bloqueada y configurada automáticamente.</string>
+
+    <!-- Movies Screen -->
+    <string name="movies_title">Películas</string>
+    <string name="search_movie">Buscar película...</string>
+    <string name="sort_default">Ordenar: Predeterminado</string>
+    <string name="sort_name">Nombre (A-Z)</string>
+    <string name="sort_recent">Más Recientes</string>
+    <string name="sort_rating">Mejor Calificación</string>
+    <string name="sort_dialog_title">Ordenar películas por:</string>
+    <string name="sort_prefix">Ordenar: %s</string>
+    <string name="watch_movie">▶ Ver Película</string>
+    <string name="fav_add">☆ Favorito</string>
+    <string name="fav_remove">★ Quitar Favorito</string>
+    <string name="synopsis_loading">Cargando sinopsis...</string>
+    <string name="no_synopsis">Sin sinopsis disponible.</string>
+
+    <!-- Series Screen -->
+    <string name="series_title">Series</string>
+    <string name="search_series">Buscar serie...</string>
+    <string name="seasons_title">TEMPORADAS</string>
+    <string name="episodes_title">EPISODIOS</string>
+    <string name="season_prefix">Temporada %s</string>
+    <string name="episode_prefix">Episodio %s</string>
+    <string name="add_favorite_series">☆ Añadir Favorito</string>
+    <string name="remove_favorite_series">★ Quitar Favorito</string>
+
+    <!-- Live TV Screen -->
+    <string name="categories_title">CATEGORÍAS</string>
+    <string name="search_channel">Buscar canal...</string>
+    <string name="channels_title">CANALES</string>
+    <string name="next_program">A Continuación: %s</string>
+    <string name="searching_guide">Buscando guía de programación...</string>
+    <string name="no_schedule_available">Sin información de programación disponible</string>
+    <string name="schedule_unavailable">Programación no disponible</string>
+
+    <!-- Catch Up Screen -->
+    <string name="archive_channels_title">CANALES CON ARCHIVO</string>
+    <string name="past_programs_title">PROGRAMAS ANTERIORES</string>
+    <string name="play_recording">Reproducir Grabación</string>
+
+    <!-- Catalog Refresh -->
+    <string name="catalog_refresh_title">ACTUALIZAR CONTENIDOS</string>
+    <string name="catalog_refresh_channels">CANALES</string>
+    <string name="catalog_refresh_movies">PELÍCULAS</string>
+    <string name="catalog_refresh_series">SERIES</string>
+    <string name="catalog_refresh_waiting">En espera</string>
+    <string name="catalog_refreshing">Actualizando contenidos</string>
+    <string name="catalog_refresh_contacting">Contactando con el servicio…</string>
+
+    <!-- General -->
+    <string name="category_favorites">★ FAVORITOS</string>
+</resources>

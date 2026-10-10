@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 
-class ServiceSelectionActivity : AppCompatActivity() {
+class ServiceSelectionActivity : BaseActivity() {
     companion object {
         const val EXTRA_MANUAL_SELECTION = "manual_service_selection"
     }

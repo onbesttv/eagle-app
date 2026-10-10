@@ -18,7 +18,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-class MovieDetailActivity : AppCompatActivity() {
+class MovieDetailActivity : BaseActivity() {
 
     private val BASE_URL: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
@@ -136,7 +136,7 @@ class MovieDetailActivity : AppCompatActivity() {
                     val info = infoResp.info
 
                     runOnUiThread {
-                        val plot = info?.plot?.ifEmpty { null } ?: info?.description ?: "Sem sinopse disponível."
+                        val plot = info?.plot?.ifEmpty { null } ?: info?.description ?: getString(R.string.no_synopsis)
                         findViewById<TextView>(R.id.tvDetailPlot).text = plot
 
                         val rating = info?.rating ?: "0.0"
@@ -176,6 +176,6 @@ class MovieDetailActivity : AppCompatActivity() {
         val favIds = favPrefs.getStringSet("fav_ids", emptySet()) ?: emptySet()
         val isFav = favIds.contains(streamId.toString())
 
-        btnToggleFav.text = if (isFav) "★ Remover Favorito" else "☆ Adicionar Favorito"
+        btnToggleFav.text = if (isFav) getString(R.string.fav_remove) else getString(R.string.fav_add)
     }
 }

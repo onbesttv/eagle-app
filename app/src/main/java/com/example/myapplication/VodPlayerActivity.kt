@@ -25,7 +25,7 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.SubtitleView
 import okhttp3.OkHttpClient
 
-class VodPlayerActivity : AppCompatActivity() {
+class VodPlayerActivity : BaseActivity() {
 
     private lateinit var playerView: PlayerView
     private var player: ExoPlayer? = null

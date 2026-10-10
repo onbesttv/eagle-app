@@ -3,11 +3,12 @@ package com.example.myapplication
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.ImageButton
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import android.content.Intent
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +88,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Atualiza os títulos caso o idioma tenha sido alterado nas Definições
+        findViewById<TextView>(R.id.tvLiveTvTitle)?.text = getString(R.string.live_tv)
+        findViewById<TextView>(R.id.tvEpgTitle)?.text = getString(R.string.tv_guide)
+        findViewById<TextView>(R.id.tvMoviesTitle)?.text = getString(R.string.movies)
+        findViewById<TextView>(R.id.tvSeriesTitle)?.text = getString(R.string.series)
+        findViewById<TextView>(R.id.tvCatchUpTitle)?.text = getString(R.string.catch_up)
+
         // Garante que ao regressar ao ecrã inicial o foco volta para o LIVE TV caso estivesse no botão de definições
         val cardLiveTv = findViewById<CardView>(R.id.cardLiveTv)
         cardLiveTv?.post {

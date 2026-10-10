@@ -71,7 +71,7 @@
             android:layout_height="50dp"
             android:gravity="center_vertical"
             android:paddingStart="16dp"
-            android:text="TEMPORADAS"
+            android:text="@string/seasons_title"
             android:textColor="#65A5FF"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -100,7 +100,7 @@
             android:layout_height="50dp"
             android:gravity="center_vertical"
             android:paddingStart="16dp"
-            android:text="EPISÓDIOS"
+            android:text="@string/episodes_title"
             android:textColor="#F5C56B"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -120,7 +120,7 @@
         android:layout_gravity="top|end"
         android:layout_margin="12dp"
         android:backgroundTint="#254675"
-        android:text="☆ Adicionar Favorito"
+        android:text="@string/add_favorite_series"
         android:textColor="#F5C56B"
         android:textStyle="bold" />
 

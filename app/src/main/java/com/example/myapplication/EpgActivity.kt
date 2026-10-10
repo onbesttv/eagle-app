@@ -27,7 +27,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class EpgActivity : AppCompatActivity() {
+class EpgActivity : BaseActivity() {
 
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()

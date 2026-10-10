@@ -28,7 +28,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-class SeriesActivity : AppCompatActivity() {
+class SeriesActivity : BaseActivity() {
 
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
@@ -114,7 +114,7 @@ class SeriesActivity : AppCompatActivity() {
                     val categoriasRemotas: List<SeriesCategory> = gson.fromJson(json, type)
 
                     val categoriasCompletas = mutableListOf<SeriesCategory>()
-                    categoriasCompletas.add(SeriesCategory("FAVORITES", "★ FAVORITOS"))
+                    categoriasCompletas.add(SeriesCategory("FAVORITES", getString(R.string.category_favorites)))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {

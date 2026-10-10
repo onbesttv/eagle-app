@@ -1,0 +1,81 @@
+<resources>
+    <string name="app_name">Eagle</string>
+
+    <!-- Main Dashboard -->
+    <string name="live_tv">LIVE TV</string>
+    <string name="tv_guide">TV GUIDE</string>
+    <string name="movies">MOVIES</string>
+    <string name="series">SERIES</string>
+    <string name="catch_up">CATCH UP</string>
+    <string name="settings">SETTINGS</string>
+    <string name="settings_subtitle">CUSTOMIZE YOUR EXPERIENCE</string>
+    <string name="refresh_content">Refresh content</string>
+
+    <!-- Settings Activity -->
+    <string name="settings_account">Account</string>
+    <string name="settings_player_settings">Player Settings</string>
+    <string name="settings_player">Player</string>
+    <string name="settings_stream_type">Stream Type</string>
+    <string name="settings_updates">Updates</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_other">Other Settings</string>
+    <string name="settings_logout">Log out</string>
+    <string name="logout_confirm_message">Do you want to log out? Your credentials will remain saved.</string>
+    <string name="btn_exit">LOGOUT</string>
+    <string name="btn_cancel">CANCEL</string>
+    <string name="btn_close">CLOSE</string>
+    <string name="select_language_title">SELECT LANGUAGE</string>
+    <string name="select_option_subtitle">SELECT AN OPTION</string>
+    <string name="option_disabled_by_admin">This option is locked and managed automatically.</string>
+
+    <!-- Movies Screen -->
+    <string name="movies_title">Movies</string>
+    <string name="search_movie">Search movie...</string>
+    <string name="sort_default">Sort: Default</string>
+    <string name="sort_name">Name (A-Z)</string>
+    <string name="sort_recent">Recently Added</string>
+    <string name="sort_rating">Top Rated</string>
+    <string name="sort_dialog_title">Sort movies by:</string>
+    <string name="sort_prefix">Sort: %s</string>
+    <string name="watch_movie">▶ Watch Movie</string>
+    <string name="fav_add">☆ Favorite</string>
+    <string name="fav_remove">★ Remove Favorite</string>
+    <string name="synopsis_loading">Loading synopsis...</string>
+    <string name="no_synopsis">No synopsis available.</string>
+
+    <!-- Series Screen -->
+    <string name="series_title">Series</string>
+    <string name="search_series">Search series...</string>
+    <string name="seasons_title">SEASONS</string>
+    <string name="episodes_title">EPISODES</string>
+    <string name="season_prefix">Season %s</string>
+    <string name="episode_prefix">Episode %s</string>
+    <string name="add_favorite_series">☆ Add Favorite</string>
+    <string name="remove_favorite_series">★ Remove Favorite</string>
+
+    <!-- Live TV Screen -->
+    <string name="categories_title">CATEGORIES</string>
+    <string name="search_channel">Search channel...</string>
+    <string name="channels_title">CHANNELS</string>
+    <string name="next_program">Next: %s</string>
+    <string name="searching_guide">Searching TV guide...</string>
+    <string name="no_schedule_available">No guide information available</string>
+    <string name="schedule_unavailable">Schedule unavailable</string>
+
+    <!-- Catch Up Screen -->
+    <string name="archive_channels_title">CHANNELS WITH ARCHIVE</string>
+    <string name="past_programs_title">PAST PROGRAMS</string>
+    <string name="play_recording">Play Recording</string>
+
+    <!-- Catalog Refresh -->
+    <string name="catalog_refresh_title">REFRESH CONTENT</string>
+    <string name="catalog_refresh_channels">CHANNELS</string>
+    <string name="catalog_refresh_movies">MOVIES</string>
+    <string name="catalog_refresh_series">SERIES</string>
+    <string name="catalog_refresh_waiting">Waiting</string>
+    <string name="catalog_refreshing">Updating content</string>
+    <string name="catalog_refresh_contacting">Contacting service…</string>
+
+    <!-- General -->
+    <string name="category_favorites">★ FAVORITES</string>
+</resources>

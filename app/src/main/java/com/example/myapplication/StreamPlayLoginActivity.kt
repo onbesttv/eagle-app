@@ -22,7 +22,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
-class StreamPlayLoginActivity : AppCompatActivity() {
+class StreamPlayLoginActivity : BaseActivity() {
 
     companion object {
         const val EXTRA_AUTO_LOGIN = "auto_login_saved_account"

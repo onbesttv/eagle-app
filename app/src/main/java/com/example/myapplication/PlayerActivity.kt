@@ -26,7 +26,7 @@ import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
 
-class PlayerActivity : AppCompatActivity() {
+class PlayerActivity : BaseActivity() {
 
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()

@@ -31,7 +31,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-class SettingsActivity : AppCompatActivity() {
+class SettingsActivity : BaseActivity() {
 
     private data class SettingItem(val title: String, val icon: Int, val action: () -> Unit, val enabled: Boolean = true)
     private var settingsCardIndex = 0
@@ -50,14 +50,14 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
 
         val items = listOf(
-            SettingItem("Account", android.R.drawable.ic_menu_myplaces, ::showAccount),
-            SettingItem("Player Settings", android.R.drawable.ic_menu_crop, ::showPlayerSettings, enabled = false),
-            SettingItem("Player", android.R.drawable.ic_media_play, ::showPlayer),
-            SettingItem("Stream Type", android.R.drawable.ic_menu_slideshow, ::showStreamType),
-            SettingItem("Atualizações", R.drawable.ic_system_update, { AppUpdateManager.checkForUpdates(this, manual = true) }, enabled = true),
-            SettingItem("Language", android.R.drawable.ic_menu_sort_alphabetically, ::showLanguage),
-            SettingItem("Other Settings", android.R.drawable.ic_menu_manage, ::showOtherSettings, enabled = false),
-            SettingItem("Terminar sessão", android.R.drawable.ic_lock_power_off, ::logout)
+            SettingItem(getString(R.string.settings_account), android.R.drawable.ic_menu_myplaces, ::showAccount),
+            SettingItem(getString(R.string.settings_player_settings), android.R.drawable.ic_menu_crop, ::showPlayerSettings, enabled = false),
+            SettingItem(getString(R.string.settings_player), android.R.drawable.ic_media_play, ::showPlayer, enabled = false),
+            SettingItem(getString(R.string.settings_stream_type), android.R.drawable.ic_menu_slideshow, ::showStreamType, enabled = false),
+            SettingItem(getString(R.string.settings_updates), R.drawable.ic_system_update, { AppUpdateManager.checkForUpdates(this, manual = true) }, enabled = true),
+            SettingItem(getString(R.string.settings_language), android.R.drawable.ic_menu_sort_alphabetically, ::showLanguage),
+            SettingItem(getString(R.string.settings_other), android.R.drawable.ic_menu_manage, ::showOtherSettings, enabled = false),
+            SettingItem(getString(R.string.settings_logout), android.R.drawable.ic_lock_power_off, ::logout)
         )
 
         val grid = findViewById<GridLayout>(R.id.settingsGrid)
@@ -87,24 +87,28 @@ class SettingsActivity : AppCompatActivity() {
             radius = dp(20).toFloat()
             cardElevation = dp(7).toFloat()
             setCardBackgroundColor(Color.TRANSPARENT)
-            isClickable = item.enabled
-            isFocusable = item.enabled
-            isEnabled = item.enabled
-            alpha = if (item.enabled) 1f else 0.42f
-            if (item.enabled) {
-                foreground = getDrawable(R.drawable.fg_settings_card_selector)
-                setOnFocusChangeListener { v, hasFocus ->
-                    if (hasFocus) {
-                        v.animate().scaleX(1.05f).scaleY(1.05f).setDuration(140).start()
-                        v.elevation = dp(12).toFloat()
-                    } else {
-                        v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                        v.elevation = dp(7).toFloat()
-                    }
+            isClickable = true
+            isFocusable = true
+            isEnabled = true
+            alpha = if (item.enabled) 1f else 0.45f
+            foreground = getDrawable(R.drawable.fg_settings_card_selector)
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.05f).scaleY(1.05f).setDuration(140).start()
+                    v.elevation = dp(12).toFloat()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                    v.elevation = dp(7).toFloat()
                 }
             }
             contentDescription = item.title
-            setOnClickListener { if (item.enabled) item.action() }
+            setOnClickListener {
+                if (item.enabled) {
+                    item.action()
+                } else {
+                    Toast.makeText(this@SettingsActivity, getString(R.string.option_disabled_by_admin), Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -144,10 +148,10 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun logout() {
         val dialog = AlertDialog.Builder(this)
-            .setTitle("Terminar sessão")
-            .setMessage("Queres voltar ao ecrã de login? Os teus dados ficam guardados.")
-            .setNegativeButton("CANCELAR", null)
-            .setPositiveButton("SAIR") { _, _ ->
+            .setTitle(getString(R.string.settings_logout))
+            .setMessage(getString(R.string.logout_confirm_message))
+            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .setPositiveButton(getString(R.string.btn_exit)) { _, _ ->
                 startActivity(Intent(this, StreamPlayLoginActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
@@ -155,6 +159,13 @@ class SettingsActivity : AppCompatActivity() {
             .create()
         dialog.show()
         styleSettingsDialog(dialog)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { btnExit ->
+            btnExit.isFocusable = true
+            btnExit.isFocusableInTouchMode = true
+            btnExit.post {
+                btnExit.requestFocus()
+            }
+        }
     }
 
     private fun showAccount() {
@@ -436,13 +447,13 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun showLanguage() {
-        val languages = arrayOf("English (US)", "العربية (AR)", "বাংলা (BN)", "中文 (ZH)", "Français (FR)", "Deutsch (DE)", "हिन्दी (HI)")
-        val tags = arrayOf("en-US", "ar", "bn", "zh", "fr", "de", "hi")
-        val current = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-        val selected = tags.indexOfFirst { current.startsWith(it.substringBefore('-'), true) }.coerceAtLeast(0)
-        showModernChoiceDialog("SELECT LANGUAGE", languages, selected) { which ->
-            settings.edit().putString("language", tags[which]).apply()
-            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(tags[which]))
+        val languages = arrayOf("Português", "Español", "English", "Français")
+        val tags = arrayOf("pt", "es", "en", "fr")
+        val currentTag = LocaleHelper.getSelectedLanguage(this)
+        val selected = tags.indexOfFirst { it.equals(currentTag, ignoreCase = true) || currentTag.startsWith(it, ignoreCase = true) }.coerceAtLeast(0)
+        showModernChoiceDialog(getString(R.string.select_language_title), languages, selected) { which ->
+            LocaleHelper.setLocale(this, tags[which])
+            recreate()
         }
     }
 
@@ -553,7 +564,7 @@ class SettingsActivity : AppCompatActivity() {
         }
         panel.addView(heading, LinearLayout.LayoutParams(-1, -2))
         val subtitle = TextView(this).apply {
-            text = "SELECIONA UMA OPÇÃO"
+            text = getString(R.string.select_option_subtitle)
             textSize = 11f
             letterSpacing = 0.12f
             gravity = Gravity.CENTER
@@ -564,58 +575,138 @@ class SettingsActivity : AppCompatActivity() {
 
         val dialog = AlertDialog.Builder(this)
             .setView(panel)
-            .setNegativeButton("CANCELAR", null)
+            .setNegativeButton(getString(R.string.btn_cancel), null)
             .create()
 
+        var initialFocusedRow: View? = null
+
         options.forEachIndexed { index, option ->
-            val selected = index == selectedIndex
+            val isCurrentSelection = index == selectedIndex
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(16), 0, dp(14), 0)
-                background = GradientDrawable().apply {
-                    cornerRadius = dp(12).toFloat()
-                    setColor(if (selected) 0x3342D6E8 else 0x22202C3A)
-                    setStroke(dp(1), if (selected) 0xFF42D6E8.toInt() else 0x554B6378)
-                }
                 isClickable = true
                 isFocusable = true
+                isFocusableInTouchMode = false
             }
+
+            fun updateRowAppearance(hasFocus: Boolean) {
+                row.background = GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat()
+                    if (hasFocus) {
+                        setColor(0x5542D6E8.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                    } else if (isCurrentSelection) {
+                        setColor(0x3342D6E8.toInt())
+                        setStroke(dp(1), 0xFF42D6E8.toInt())
+                    } else {
+                        setColor(0x22202C3A.toInt())
+                        setStroke(dp(1), 0x554B6378.toInt())
+                    }
+                }
+            }
+
+            updateRowAppearance(false)
+
+            row.setOnFocusChangeListener { _, hasFocus ->
+                updateRowAppearance(hasFocus)
+                if (hasFocus) {
+                    row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(100).start()
+                } else {
+                    row.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+                }
+            }
+
             val label = TextView(this).apply {
                 text = option
                 textSize = 14f
                 letterSpacing = 0.04f
-                setTextColor(if (selected) 0xFFECFCFF.toInt() else 0xFFD2DDE7.toInt())
+                setTextColor(if (isCurrentSelection) 0xFFECFCFF.toInt() else 0xFFD2DDE7.toInt())
             }
             row.addView(label, LinearLayout.LayoutParams(0, -2, 1f))
+
             val marker = TextView(this).apply {
-                text = if (selected) "✓" else "○"
-                textSize = if (selected) 17f else 19f
+                text = if (isCurrentSelection) "✓" else "○"
+                textSize = if (isCurrentSelection) 17f else 19f
                 gravity = Gravity.CENTER
-                setTextColor(if (selected) 0xFF42D6E8.toInt() else 0xFF8192A3.toInt())
+                setTextColor(if (isCurrentSelection) 0xFF42D6E8.toInt() else 0xFF8192A3.toInt())
             }
             row.addView(marker, LinearLayout.LayoutParams(dp(28), dp(28)))
+
             row.setOnClickListener {
                 dialog.dismiss()
                 onChosen(index)
             }
+
+            row.setOnKeyListener { _, keyCode, event ->
+                if ((keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER || keyCode == android.view.KeyEvent.KEYCODE_ENTER || keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER) && event.action == android.view.KeyEvent.ACTION_UP) {
+                    row.performClick()
+                    true
+                } else {
+                    false
+                }
+            }
+
             val params = LinearLayout.LayoutParams(-1, dp(50))
             params.bottomMargin = dp(8)
             panel.addView(row, params)
+
+            if (isCurrentSelection || (initialFocusedRow == null && index == 0)) {
+                initialFocusedRow = row
+            }
         }
 
         dialog.show()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.68f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(0xFF42D6E8.toInt())
+        val cancelBtn = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+        cancelBtn?.setTextColor(0xFF42D6E8.toInt())
+        cancelBtn?.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                cancelBtn.setTextColor(Color.WHITE)
+                cancelBtn.background = GradientDrawable().apply {
+                    cornerRadius = dp(8).toFloat()
+                    setColor(0x5542D6E8.toInt())
+                    setStroke(dp(2), 0xFF42D6E8.toInt())
+                }
+            } else {
+                cancelBtn.setTextColor(0xFF42D6E8.toInt())
+                cancelBtn.background = null
+            }
+        }
+
+        initialFocusedRow?.post {
+            initialFocusedRow.requestFocus()
+        }
     }
 
     private fun styleSettingsDialog(dialog: AlertDialog) {
         dialog.window?.setBackgroundDrawableResource(R.drawable.bg_auth_panel)
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.68f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.findViewById<TextView>(android.R.id.message)?.setTextColor(0xFFD2DDE7.toInt())
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(0xFF42D6E8.toInt())
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(0xFF91A8BB.toInt())
+        val btnPos = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        val btnNeg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+        btnPos?.setTextColor(0xFF42D6E8.toInt())
+        btnNeg?.setTextColor(0xFF91A8BB.toInt())
+
+        val setupButtonFocus = { btn: Button, defaultColor: Int ->
+            btn.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    btn.setTextColor(Color.WHITE)
+                    btn.background = GradientDrawable().apply {
+                        cornerRadius = dp(8).toFloat()
+                        setColor(0x5542D6E8.toInt())
+                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                    }
+                } else {
+                    btn.setTextColor(defaultColor)
+                    btn.background = null
+                }
+            }
+        }
+        btnPos?.let { setupButtonFocus(it, 0xFF42D6E8.toInt()) }
+        btnNeg?.let { setupButtonFocus(it, 0xFF91A8BB.toInt()) }
     }
 
     private fun chooseValue(title: String, values: Array<String>, current: String?, onChosen: (String) -> Unit) {
