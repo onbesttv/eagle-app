@@ -493,19 +493,17 @@ class LiveTvActivity : BaseActivity() {
 
     /**
      * LayoutManager otimizado para navegação Android TV com D-pad / comando remoto.
-     * Evita que o foco/cursor salte lateralmente para as categorias enquanto se navega
-     * nos canais para baixo ou para cima.
+     * Permite scroll suave contínuo em toda a lista e impede que o foco salte
+     * lateralmente para as pastas quando se navega para baixo até ao fim da lista.
      */
     inner class TvChannelLayoutManager(context: Context) : LinearLayoutManager(context) {
 
         override fun onInterceptFocusSearch(focused: View, direction: Int): View? {
             val count = itemCount
-            if (count == 0) return super.onInterceptFocusSearch(focused, direction)
-            val pos = getPosition(focused)
-
-            if (direction == View.FOCUS_DOWN) {
-                if (pos >= count - 1) {
-                    // No último item: mantém o foco sem escapar
+            if (count > 0) {
+                val pos = getPosition(focused)
+                if (direction == View.FOCUS_DOWN && pos >= count - 1) {
+                    // Já está no último item da lista: mantém o foco no item atual sem escapar
                     return focused
                 }
             }
@@ -518,24 +516,18 @@ class LiveTvActivity : BaseActivity() {
             recycler: RecyclerView.Recycler,
             state: RecyclerView.State
         ): View? {
-            val fromPos = getPosition(focused)
-            val count = itemCount
-
-            if (focusDirection == View.FOCUS_DOWN) {
-                if (fromPos < count - 1) {
-                    val nextPos = fromPos + 1
-                    scrollToPosition(nextPos)
-                    return findViewByPosition(nextPos) ?: focused
-                }
-                return focused
-            } else if (focusDirection == View.FOCUS_UP) {
-                if (fromPos > 0) {
-                    val prevPos = fromPos - 1
-                    scrollToPosition(prevPos)
-                    return findViewByPosition(prevPos) ?: focused
-                }
+            val nextView = super.onFocusSearchFailed(focused, focusDirection, recycler, state)
+            if (nextView != null) {
+                return nextView
             }
-            return super.onFocusSearchFailed(focused, focusDirection, recycler, state)
+
+            // Se o LinearLayoutManager não encontrou mais nenhum item ao fazer scroll para baixo (chegou ao fim):
+            // NUNCA deixar o foco escapar para a lista de categorias ao lado! Mantém o foco no item atual.
+            if (focusDirection == View.FOCUS_DOWN) {
+                return focused
+            }
+
+            return null
         }
     }
 
@@ -546,14 +538,6 @@ class LiveTvActivity : BaseActivity() {
     ) : RecyclerView.Adapter<CategoryAdapter.ViewHolder>() {
 
         private var selectedPosition = 0
-
-        init {
-            setHasStableIds(true)
-        }
-
-        override fun getItemId(position: Int): Long {
-            return if (position in list.indices) list[position].categoryId.hashCode().toLong() else RecyclerView.NO_ID
-        }
 
         inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val tv: TextView = v.findViewById(R.id.tvCategoryTitle)
@@ -610,14 +594,6 @@ class LiveTvActivity : BaseActivity() {
     ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
 
         private var selectedPosition = 0
-
-        init {
-            setHasStableIds(true)
-        }
-
-        override fun getItemId(position: Int): Long {
-            return if (position in list.indices) list[position].streamId.toLong() else RecyclerView.NO_ID
-        }
 
         fun selecionarCanalPorId(streamId: Int): Int {
             val index = list.indexOfFirst { it.streamId == streamId }
@@ -725,14 +701,6 @@ class LiveTvActivity : BaseActivity() {
     ) : RecyclerView.Adapter<OverlayChannelAdapter.ViewHolder>() {
 
         private var selectedPosition = 0
-
-        init {
-            setHasStableIds(true)
-        }
-
-        override fun getItemId(position: Int): Long {
-            return if (position in list.indices) list[position].streamId.toLong() else RecyclerView.NO_ID
-        }
 
         fun selecionarCanalPorId(streamId: Int): Int {
             val index = list.indexOfFirst { it.streamId == streamId }
