@@ -160,12 +160,35 @@ class MoviesActivity : BaseActivity() {
                                 }, 80)
                             }
                         }, 100)
+                        carregarContadoresFilmes()
                     }
                 } catch (e: Exception) {
                     runOnUiThread {
                         Toast.makeText(this@MoviesActivity, "Erro no formato de categorias", Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        })
+    }
+
+    private fun carregarContadoresFilmes() {
+        val url = "$BASE_URL/player_api.php?username=$user&password=$pass&action=get_vod_streams"
+        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                val json = response.body?.string() ?: return
+                try {
+                    val type = object : TypeToken<List<VodStream>>() {}.type
+                    val filmes: List<VodStream> = gson.fromJson(json, type)
+                    allMoviesCache.clear()
+                    allMoviesCache.addAll(filmes)
+                    val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
+                    runOnUiThread {
+                        rvCategories.adapter?.notifyDataSetChanged()
+                    }
+                } catch (_: Exception) {}
             }
         })
     }
@@ -286,6 +309,8 @@ class MoviesActivity : BaseActivity() {
 
                     runOnUiThread {
                         allMoviesInCat = filmes
+                        CategoryCountHelper.saveVodCounts(this@MoviesActivity, mapOf(catId to filmes.size))
+                        rvCategories.adapter?.notifyDataSetChanged()
                         filmes.forEach { f ->
                             if (allMoviesCache.none { it.streamId == f.streamId }) {
                                 allMoviesCache.add(f)
@@ -397,7 +422,18 @@ class MoviesActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val cat = list[position]
-            holder.tv.text = cat.categoryName
+            val count = when (cat.categoryId) {
+                "FAVORITES" -> {
+                    val favPrefs = holder.itemView.context.getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
+                    favPrefs.getStringSet("fav_ids", emptySet())?.size ?: 0
+                }
+                "RESUME" -> {
+                    val resumePrefs = holder.itemView.context.getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
+                    resumePrefs.all.keys.count { it.startsWith("pos_") && (resumePrefs.all[it] as? Long ?: 0L) > 10000L }
+                }
+                else -> CategoryCountHelper.getVodCount(holder.itemView.context, cat.categoryId)
+            }
+            holder.tv.text = if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
 
             if (cat.categoryId == "FAVORITES" || cat.categoryId == "RESUME") {
                 holder.tv.setTextColor(0xFFF5C56B.toInt())

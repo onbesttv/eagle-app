@@ -138,12 +138,35 @@ class SeriesActivity : BaseActivity() {
                                 }, 80)
                             }
                         }, 100)
+                        carregarContadoresSeries()
                     }
                 } catch (e: Exception) {
                     runOnUiThread {
                         Toast.makeText(this@SeriesActivity, "Erro no formato de categorias", Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        })
+    }
+
+    private fun carregarContadoresSeries() {
+        val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
+        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                val json = response.body?.string() ?: return
+                try {
+                    val type = object : TypeToken<List<SeriesItem>>() {}.type
+                    val series: List<SeriesItem> = gson.fromJson(json, type)
+                    allSeriesCache.clear()
+                    allSeriesCache.addAll(series)
+                    val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
+                    runOnUiThread {
+                        rvCategories.adapter?.notifyDataSetChanged()
+                    }
+                } catch (_: Exception) {}
             }
         })
     }
@@ -216,6 +239,8 @@ class SeriesActivity : BaseActivity() {
 
                     runOnUiThread {
                         allSeriesInCat = series
+                        CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, mapOf(catId to series.size))
+                        rvCategories.adapter?.notifyDataSetChanged()
                         series.forEach { s ->
                             if (allSeriesCache.none { it.seriesId == s.seriesId }) {
                                 allSeriesCache.add(s)
@@ -301,7 +326,14 @@ class SeriesActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val cat = list[position]
-            holder.tv.text = cat.categoryName
+            val count = when (cat.categoryId) {
+                "FAVORITES" -> {
+                    val favPrefs = holder.itemView.context.getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
+                    favPrefs.getStringSet("fav_ids", emptySet())?.size ?: 0
+                }
+                else -> CategoryCountHelper.getSeriesCount(holder.itemView.context, cat.categoryId)
+            }
+            holder.tv.text = if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
 
             if (cat.categoryId == "FAVORITES") {
                 holder.tv.setTextColor(0xFFF5C56B.toInt())

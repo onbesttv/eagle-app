@@ -52,6 +52,8 @@ data class VodStream(
     val rating: String? = null,
     val rating_5based: Double? = null,
     val added: String? = null,
+    @com.google.gson.annotations.SerializedName("category_id")
+    val categoryId: String? = null,
     @com.google.gson.annotations.SerializedName("container_extension")
     val containerExtension: String? = null
 )

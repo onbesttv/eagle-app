@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.method.HideReturnsTransformationMethod
@@ -173,6 +174,11 @@ class StreamPlayLoginActivity : BaseActivity() {
         }
 
         val expiration = info.optString("exp_date")
+        if (expiration.isNotBlank() && expiration != "null") {
+            getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                .putString("ACCOUNT_EXP_DATE", expiration)
+                .apply()
+        }
         val expirationTimestamp = expiration.toLongOrNull()
         if (expirationTimestamp != null && expirationTimestamp != 0L) {
             val expiryMillis = if (expirationTimestamp > 100_000_000_000L) expirationTimestamp else expirationTimestamp * 1000L

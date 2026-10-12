@@ -422,12 +422,33 @@ class LiveTvActivity : BaseActivity() {
                                 }
                             }, 100)
                         }
+                        carregarContadoresLive()
                     }
                 } catch (e: Exception) {
                     runOnUiThread {
                         Toast.makeText(this@LiveTvActivity, "Erro no formato de categorias", Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
+        })
+    }
+
+    private fun carregarContadoresLive() {
+        val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_streams"
+        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                val json = response.body?.string() ?: return
+                try {
+                    val type = object : TypeToken<List<LiveStream>>() {}.type
+                    val streams: List<LiveStream> = gson.fromJson(json, type)
+                    val counts = streams.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, counts)
+                    runOnUiThread {
+                        rvCategories.adapter?.notifyDataSetChanged()
+                    }
+                } catch (_: Exception) {}
             }
         })
     }
@@ -449,6 +470,9 @@ class LiveTvActivity : BaseActivity() {
                     val type = object : TypeToken<List<LiveStream>>() {}.type
                     val canais: List<LiveStream> = gson.fromJson(json, type)
                     runOnUiThread {
+                        CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, mapOf(catId to canais.size))
+                        rvCategories.adapter?.notifyDataSetChanged()
+
                         channelAdapter = ChannelAdapter(canais) { canal ->
                             tocarNoMiniPlayer(canal)
                         }
@@ -553,7 +577,8 @@ class LiveTvActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val cat = list[position]
-            holder.tv.text = cat.categoryName
+            val count = CategoryCountHelper.getLiveCount(holder.itemView.context, cat.categoryId)
+            holder.tv.text = if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
 
             val updateCatBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
