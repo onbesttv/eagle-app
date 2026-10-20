@@ -18,6 +18,7 @@ class ServiceSelectionActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_service_selection)
         IptvServiceConfig.initialize(this)
+        AppUpdateManager.checkForUpdates(this, manual = false)
         var selectedService = IptvServiceConfig.activeServiceId(this)
         val manualSelection = intent.getBooleanExtra(EXTRA_MANUAL_SELECTION, false)
         val savedUser = IptvServiceConfig.username(this, selectedService)
