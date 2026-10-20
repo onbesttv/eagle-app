@@ -11,7 +11,7 @@ object IptvServiceConfig {
     private const val KEY_ACTIVE = "ACTIVE_SERVICE"
     private const val KEY_INITIALIZED = "MULTI_SERVICE_V1"
     private const val BEST_URL = "https://allrevplay.online:443"
-    private const val BEST2_URL = "https://gd.tugabest.xyz:8080"
+    private const val BEST2_URL = "https://thebestplay.site"
     private const val BEST_USER = "BEST_USER"
     private const val BEST_PASS = "BEST_PASS"
     private const val BEST2_USER = "BEST2_USER"
