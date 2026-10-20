@@ -11,7 +11,7 @@ object IptvServiceConfig {
     private const val KEY_ACTIVE = "ACTIVE_SERVICE"
     private const val KEY_INITIALIZED = "MULTI_SERVICE_V1"
     private const val BEST_URL = "https://allrevplay.online:443"
-    private const val BEST2_URL = "http://gd.tugabest.xyz:8080"
+    private const val BEST2_URL = "https://gd.tugabest.xyz:8080"
     private const val BEST_USER = "BEST_USER"
     private const val BEST_PASS = "BEST_PASS"
     private const val BEST2_USER = "BEST2_USER"
@@ -55,7 +55,7 @@ object IptvServiceConfig {
     }
 
     fun baseUrl(context: Context, serviceId: String = activeServiceId(context)): String =
-        if (serviceId == BEST2) BEST2_URL else BEST_URL
+        (if (serviceId == BEST2) BEST2_URL else BEST_URL).trimEnd('/')
 
     fun username(context: Context, serviceId: String = activeServiceId(context)): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
