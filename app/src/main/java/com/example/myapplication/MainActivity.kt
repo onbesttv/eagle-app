@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.widget.ImageView
 import android.widget.ImageButton
@@ -53,9 +54,14 @@ class MainActivity : BaseActivity() {
 
         val btnSettings = findViewById<ImageButton>(R.id.btnSettings)
         val btnUpdateService = findViewById<ImageButton>(R.id.btnUpdateService)
+        val btnVpn = findViewById<ImageButton>(R.id.btnVpn)
+
+        btnVpn.setOnClickListener {
+            startActivity(Intent(this, VpnActivity::class.java))
+        }
 
         // Destaque visual e sombra ao navegar com comando da Box
-        val interactiveViews = listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnSettings, btnUpdateService)
+        val interactiveViews = listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnVpn, btnUpdateService, btnSettings)
         interactiveViews.forEach { view ->
             view.setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
@@ -95,6 +101,11 @@ class MainActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvMoviesTitle)?.text = getString(R.string.movies)
         findViewById<TextView>(R.id.tvSeriesTitle)?.text = getString(R.string.series)
         findViewById<TextView>(R.id.tvCatchUpTitle)?.text = getString(R.string.catch_up)
+
+        // Atualiza ícone da VPN conforme o estado de proteção
+        val isVpnConnected = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED
+        val btnVpn = findViewById<ImageButton>(R.id.btnVpn)
+        btnVpn?.imageTintList = ColorStateList.valueOf(if (isVpnConnected) 0xFF48BB78.toInt() else 0xFFFFFFFF.toInt())
 
         // Garante que ao regressar ao ecrã inicial o foco volta para o LIVE TV caso estivesse no botão de definições
         val cardLiveTv = findViewById<CardView>(R.id.cardLiveTv)

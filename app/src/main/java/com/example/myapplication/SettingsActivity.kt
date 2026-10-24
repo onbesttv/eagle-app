@@ -51,12 +51,12 @@ class SettingsActivity : BaseActivity() {
 
         val items = listOf(
             SettingItem(getString(R.string.settings_account), android.R.drawable.ic_menu_myplaces, ::showAccount),
+            SettingItem("PIA VPN", R.drawable.ic_vpn, { startActivity(Intent(this, VpnActivity::class.java)) }, enabled = true),
             SettingItem(getString(R.string.settings_player_settings), android.R.drawable.ic_menu_crop, ::showPlayerSettings, enabled = false),
             SettingItem(getString(R.string.settings_player), android.R.drawable.ic_media_play, ::showPlayer, enabled = false),
             SettingItem(getString(R.string.settings_stream_type), android.R.drawable.ic_menu_slideshow, ::showStreamType, enabled = false),
             SettingItem(getString(R.string.settings_updates), R.drawable.ic_system_update, { AppUpdateManager.checkForUpdates(this, manual = true) }, enabled = true),
             SettingItem(getString(R.string.settings_language), android.R.drawable.ic_menu_sort_alphabetically, ::showLanguage),
-            SettingItem(getString(R.string.settings_other), android.R.drawable.ic_menu_manage, ::showOtherSettings, enabled = false),
             SettingItem(getString(R.string.settings_logout), android.R.drawable.ic_lock_power_off, ::logout)
         )
 

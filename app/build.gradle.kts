@@ -10,8 +10,8 @@ android {
         applicationId = "com.example.myapplication"
         minSdk = 26
         targetSdk = 35
-        versionCode = 28
-        versionName = "3.3"
+        versionCode = 29
+        versionName = "3.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -59,6 +59,9 @@ dependencies {
     // Coroutines & Lifecycle
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+
+    // WireGuard Tunnel
+    implementation("com.wireguard.android:tunnel:1.0.20230706")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
