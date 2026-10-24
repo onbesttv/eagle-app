@@ -48,7 +48,7 @@ Write-Host "[3/6] eagle.apk atualizado com sucesso ($apkSizeMB MB)" -ForegroundC
 
 # 4. Git commit e push
 Write-Host "[4/6] A atualizar Git e enviar para origin/main e $tag..." -ForegroundColor Yellow
-git add app/build.gradle.kts eagle.apk
+git add -A
 $status = git status --porcelain
 if ($status) {
     git commit -m "Publicacao ${tag}: $Notes"
@@ -78,6 +78,7 @@ Write-Host "[6/6] A publicar no GitHub Releases..." -ForegroundColor Yellow
 $headers = @{
     "Authorization" = "token $token"
     "Accept"        = "application/vnd.github.v3+json"
+    "User-Agent"    = "EagleApp-Publisher"
 }
 
 $repoOwner = "onbesttv"
@@ -86,11 +87,7 @@ $repoName = "eagle-app"
 # Verificar se a release ja existe
 $release = $null
 try {
-    $relJson = curl.exe -s -H "Authorization: token $token" "https://api.github.com/repos/$repoOwner/$repoName/releases/tags/$tag"
-    $parsed = $relJson | ConvertFrom-Json
-    if ($parsed.id) {
-        $release = $parsed
-    }
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/tags/$tag" -Headers $headers -Method Get
 } catch {}
 
 if (-not $release) {
@@ -104,8 +101,7 @@ if (-not $release) {
         prerelease = $false
     } | ConvertTo-Json
 
-    $createResp = curl.exe -s -X POST -H "Authorization: token $token" -H "Content-Type: application/json" -d $payload "https://api.github.com/repos/$repoOwner/$repoName/releases"
-    $release = $createResp | ConvertFrom-Json
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases" -Headers $headers -Method Post -Body $payload -ContentType "application/json"
 }
 
 if (-not $release.id) {
@@ -117,14 +113,14 @@ if ($release.assets) {
     $oldAsset = $release.assets | Where-Object { $_.name -eq "eagle.apk" }
     if ($oldAsset) {
         Write-Host "  -> A substituir eagle.apk anterior (ID $($oldAsset.id))..." -ForegroundColor Gray
-        curl.exe -s -X DELETE -H "Authorization: token $token" "https://api.github.com/repos/$repoOwner/$repoName/releases/assets/$($oldAsset.id)" | Out-Null
+        curl.exe -s -X DELETE -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" "https://api.github.com/repos/$repoOwner/$repoName/releases/assets/$($oldAsset.id)" | Out-Null
     }
 }
 
 # Upload do eagle.apk
 Write-Host "  -> A enviar ficheiro eagle.apk para a Release..." -ForegroundColor Gray
 $uploadUrl = "https://uploads.github.com/repos/$repoOwner/$repoName/releases/$($release.id)/assets?name=eagle.apk"
-$uploadResp = curl.exe -s -X POST -H "Authorization: token $token" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@eagle.apk" $uploadUrl | ConvertFrom-Json
+$uploadResp = curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@eagle.apk" $uploadUrl | ConvertFrom-Json
 
 if ($uploadResp.id) {
     Write-Host "`n============================================================" -ForegroundColor Green

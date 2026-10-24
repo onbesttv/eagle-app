@@ -333,6 +333,7 @@ object PiaVpnManager {
         }
 
         thread {
+            val defaults = PiaRegion.defaultRegions()
             try {
                 val req = Request.Builder()
                     .url("https://serverlist.piaservers.net/vpninfo/servers/v6")
@@ -345,59 +346,45 @@ object PiaVpnManager {
                     val root = JSONObject(cleanJson)
                     val regionsArray = root.optJSONArray("regions")
                     if (regionsArray != null) {
-                        val parsed = mutableListOf<PiaRegion>()
+                        val serverMap = mutableMapOf<String, Pair<String, String>>()
                         for (i in 0 until regionsArray.length()) {
                             val r = regionsArray.getJSONObject(i)
+                            val id = r.optString("id")
                             val servers = r.optJSONObject("servers")
                             val wgArr = servers?.optJSONArray("wg")
                             if (wgArr != null && wgArr.length() > 0) {
                                 val wgObj = wgArr.getJSONObject(0)
                                 val ip = wgObj.optString("ip")
                                 val cn = wgObj.optString("cn")
-                                val country = r.optString("country")
-                                val name = r.optString("name")
-                                val id = r.optString("id")
-                                val isSo = id.contains("streaming") || id.endsWith("-so") || name.contains("Streaming", ignoreCase = true)
                                 if (ip.isNotBlank()) {
-                                    parsed.add(
-                                        PiaRegion(
-                                            id = id,
-                                            name = name,
-                                            countryCode = country,
-                                            flagEmoji = PiaRegion.flagForCountry(country),
-                                            serverIp = ip,
-                                            hostname = r.optString("dns", cn),
-                                            isStreamingOptimized = isSo
-                                        )
-                                    )
+                                    serverMap[id] = Pair(ip, r.optString("dns", cn))
                                 }
                             }
                         }
-                        if (parsed.isNotEmpty()) {
-                            // Coloca Portugal e países de topo no início
-                            val ordered = mutableListOf<PiaRegion>()
-                            val topIds = listOf("pt", "pt-so", "spain", "es-valencia", "france", "uk", "uk_manchester", "nl_netherlands-so", "nl_amsterdam", "de-frankfurt", "de_berlin", "swiss", "italy", "us-newjersey", "br")
-                            topIds.forEach { tid ->
-                                parsed.find { it.id == tid }?.let { ordered.add(it) }
+
+                        // Atualiza os IPs dos 8 países principais com dados em tempo real
+                        val filtered = defaults.map { def ->
+                            val live = serverMap[def.id]
+                            if (live != null) {
+                                def.copy(serverIp = live.first, hostname = live.second)
+                            } else {
+                                def
                             }
-                            parsed.forEach { p ->
-                                if (ordered.none { it.id == p.id }) ordered.add(p)
-                            }
-                            regionsCache.clear()
-                            regionsCache.addAll(ordered)
-                            mainHandler.post { callback(regionsCache) }
-                            return@thread
                         }
+
+                        regionsCache.clear()
+                        regionsCache.addAll(filtered)
+                        mainHandler.post { callback(regionsCache) }
+                        return@thread
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
 
-            // Fallback para lista pré-definida
-            if (regionsCache.isEmpty()) {
-                regionsCache.addAll(PiaRegion.defaultRegions())
-            }
+            // Fallback para os 8 países pré-definidos
+            regionsCache.clear()
+            regionsCache.addAll(defaults)
             mainHandler.post { callback(regionsCache) }
         }
     }
