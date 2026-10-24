@@ -161,7 +161,7 @@ object PiaVpnManager {
                 }
 
                 // Passo 1: Obter Token da PIA
-                updateState(VpnStatus.CONNECTING, "A autenticar na PIA VPN…")
+                updateState(VpnStatus.CONNECTING, "A autenticar…")
                 val token = getOrFetchToken(username, password)
 
                 // Passo 2: Gerar chaves WireGuard
@@ -185,7 +185,7 @@ object PiaVpnManager {
 
                 val json = JSONObject(respBody)
                 if (json.optString("status") != "OK") {
-                    val msg = json.optString("message", "Falha na resposta do servidor PIA")
+                    val msg = json.optString("message", "Falha na resposta do servidor")
                     throw IllegalStateException(msg)
                 }
 

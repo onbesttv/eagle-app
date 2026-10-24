@@ -73,7 +73,7 @@
         android:layout_marginEnd="6dp"
         android:background="@drawable/bg_icon_button"
         android:focusable="true"
-        android:contentDescription="PIA VPN"
+        android:contentDescription="VPN"
         android:padding="10dp"
         android:src="@drawable/ic_vpn"
         app:tint="#FFFFFF"

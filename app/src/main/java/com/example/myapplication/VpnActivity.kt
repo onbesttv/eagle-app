@@ -243,7 +243,7 @@ class VpnActivity : BaseActivity() {
                 ivVpnShield.imageTintList = ColorStateList.valueOf(0xFF48BB78.toInt())
                 tvVpnStatus.text = "LIGADO • PROTEGIDO"
                 tvVpnStatus.setTextColor(0xFF48BB78.toInt())
-                tvVpnStatusSub.text = "A tua ligação está encriptada pela PIA VPN"
+                tvVpnStatusSub.text = "A tua ligação está encriptada e protegida"
                 tvVpnIp.text = PiaVpnManager.getProtectedIp() ?: "Ativo"
                 tvVpnIp.setTextColor(0xFF42D6E8.toInt())
 
@@ -297,9 +297,9 @@ class VpnActivity : BaseActivity() {
             }
             PiaVpnManager.VpnStatus.ERROR -> {
                 ivVpnShield.imageTintList = ColorStateList.valueOf(0xFFE53E3E.toInt())
-                tvVpnStatus.text = "ERRO DE AUTENTICAÇÃO PIA"
+                tvVpnStatus.text = "ERRO DE AUTENTICAÇÃO"
                 tvVpnStatus.setTextColor(0xFFE53E3E.toInt())
-                val detail = message ?: "Servidor PIA rejeitou as credenciais (utilizador/password incorretos ou conta inativa)."
+                val detail = message ?: "Servidor rejeitou as credenciais (utilizador/password incorretos ou conta inativa)."
                 tvVpnStatusSub.text = detail
                 tvVpnIp.text = "Acesso Negado"
 
@@ -323,12 +323,10 @@ class VpnActivity : BaseActivity() {
 
         val username = PiaVpnConfig.getUsername(this)
         AlertDialog.Builder(this)
-            .setTitle("Falha na Ligação PIA VPN")
+            .setTitle("Falha na Ligação VPN")
             .setMessage(
-                "A conta configurada ($username) foi rejeitada pelos servidores da Private Internet Access (Acesso Negado).\n\n" +
-                "• Motivo: Os utilizadores oficiais da PIA têm a letra 'p' seguida de 7 dígitos numéricos (exemplo: p1234567).\n" +
-                "• A conta atual '$username' tem apenas ${username.removePrefix("p").length} dígitos ou a palavra-passe expirou.\n\n" +
-                "Para ligar com sucesso, é necessário inserir uma conta PIA ativa com os 7 dígitos corretos."
+                "A conta configurada ($username) foi rejeitada pelo servidor (Acesso Negado).\n\n" +
+                "Por favor confirma os dados de acesso ou se a subscrição se encontra ativa."
             )
             .setPositiveButton("Compreendi") { dialog, _ ->
                 dialog.dismiss()
@@ -355,7 +353,7 @@ class VpnActivity : BaseActivity() {
         }
 
         val etUser = EditText(this).apply {
-            hint = "Utilizador PIA (ex: p1234567)"
+            hint = "Utilizador"
             setText(PiaVpnConfig.getUsername(this@VpnActivity))
             setTextColor(Color.WHITE)
             setHintTextColor(0xFF718096.toInt())
@@ -369,7 +367,7 @@ class VpnActivity : BaseActivity() {
         }
 
         val etPass = EditText(this).apply {
-            hint = "Palavra-passe PIA"
+            hint = "Palavra-passe"
             setText(PiaVpnConfig.getPassword(this@VpnActivity))
             setTextColor(Color.WHITE)
             setHintTextColor(0xFF718096.toInt())
@@ -391,7 +389,7 @@ class VpnActivity : BaseActivity() {
         container.addView(etPass)
 
         AlertDialog.Builder(this)
-            .setTitle("Configurar Credenciais PIA VPN")
+            .setTitle("Configurar Credenciais VPN")
             .setView(container)
             .setPositiveButton("Guardar e Ligar") { dialog, _ ->
                 val u = etUser.text.toString().trim()
