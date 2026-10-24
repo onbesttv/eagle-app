@@ -34,6 +34,9 @@ import java.util.concurrent.TimeUnit
 
 object AppUpdateManager {
 
+    private const val UPDATE_PREFS = "app_update_prefs"
+    private const val KEY_UPDATE_IN_PROGRESS_TAG = "update_in_progress_tag"
+
     private val httpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -103,7 +106,11 @@ object AppUpdateManager {
                 is ReleaseResult.Success -> {
                     val release = result.release
                     if (isNewerVersion(release.tagName, currentVersion)) {
-                        showUpdateAvailableDialog(activity, release)
+                        val updatePrefs = activity.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE)
+                        val updateAlreadyStarted = updatePrefs.getString(KEY_UPDATE_IN_PROGRESS_TAG, null) == release.tagName
+                        if (manual || !updateAlreadyStarted) {
+                            showUpdateAvailableDialog(activity, release)
+                        }
                     } else if (manual) {
                         showUpToDateDialog(activity, currentVersion)
                     }
@@ -421,7 +428,7 @@ object AppUpdateManager {
             dialog.dismiss()
 
             if (success) {
-                promptInstallApk(activity, targetApk)
+                promptInstallApk(activity, targetApk, release.tagName)
             } else {
                 Toast.makeText(activity, "Falha ao descarregar a atualização. Tenta novamente.", Toast.LENGTH_LONG).show()
             }
@@ -488,7 +495,7 @@ object AppUpdateManager {
     /**
      * Inicia a instalação do APK através do PackageInstaller do Android.
      */
-    fun promptInstallApk(activity: AppCompatActivity, apkFile: File) {
+    fun promptInstallApk(activity: AppCompatActivity, apkFile: File, releaseTag: String? = null) {
         if (!apkFile.exists() || apkFile.length() <= 0) {
             Toast.makeText(activity, "Ficheiro APK não encontrado para instalação.", Toast.LENGTH_SHORT).show()
             return
@@ -533,6 +540,13 @@ object AppUpdateManager {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
+            // O instalador pode terminar o processo da app. Gravar sincronamente antes
+            // de o abrir evita repetir o mesmo aviso se o APK ainda arrancar com a versão antiga.
+            if (!releaseTag.isNullOrBlank()) {
+                activity.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE).edit()
+                    .putString(KEY_UPDATE_IN_PROGRESS_TAG, releaseTag)
+                    .commit()
+            }
             activity.startActivity(installIntent)
         } catch (e: Exception) {
             Toast.makeText(activity, "Erro ao abrir o instalador: ${e.localizedMessage}", Toast.LENGTH_LONG).show()

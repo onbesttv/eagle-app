@@ -75,6 +75,7 @@ class LiveTvActivity : BaseActivity() {
 
     private var currentStreamUrl: String? = null
     private var currentStreamId: Int = -1
+    private var categoryLoadRequestId = 0
     private var channelAdapter: ChannelAdapter? = null
     private var overlayAdapter: OverlayChannelAdapter? = null
 
@@ -110,8 +111,10 @@ class LiveTvActivity : BaseActivity() {
         pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         // 1. Botão de voltar ao Dashboard principal (canto superior esquerdo)
-        findViewById<ImageButton>(R.id.btnBackLiveTv)?.setOnClickListener {
-            finish()
+        findViewById<ImageButton>(R.id.btnBackLiveTv)?.apply {
+            setOnClickListener { finish() }
+            isFocusable = false
+            isFocusableInTouchMode = false
         }
 
         // 2. Botão para fechar a lista flutuante em Fullscreen
@@ -188,6 +191,12 @@ class LiveTvActivity : BaseActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT &&
+            !isFullScreen && (rvChannels.hasFocus() || rvCategories.hasFocus())) {
+            focarPastaSelecionada()
+            return true
+        }
+
         val isOkKey = event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
                       event.keyCode == KeyEvent.KEYCODE_ENTER ||
                       event.keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER
@@ -406,21 +415,12 @@ class LiveTvActivity : BaseActivity() {
 
                     runOnUiThread {
                         rvCategories.adapter = CategoryAdapter(categorias) { categoria ->
-                            carregarCanaisDaCategoria(categoria.categoryId)
+                            carregarCanaisDaCategoria(categoria.categoryId, iniciarReproducao = false)
+                            focarPastaSelecionada()
                         }
                         if (categorias.isNotEmpty()) {
-                            carregarCanaisDaCategoria(categorias[0].categoryId)
-                            rvCategories.postDelayed({
-                                val vh = rvCategories.findViewHolderForAdapterPosition(0)
-                                if (vh != null) {
-                                    vh.itemView.requestFocus()
-                                } else {
-                                    rvCategories.scrollToPosition(0)
-                                    rvCategories.postDelayed({
-                                        rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
-                                    }, 80)
-                                }
-                            }, 100)
+                            carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                            rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
                         }
                         carregarContadoresLive()
                     }
@@ -446,14 +446,31 @@ class LiveTvActivity : BaseActivity() {
                     val counts = streams.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
                     CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, counts)
                     runOnUiThread {
-                        rvCategories.adapter?.notifyDataSetChanged()
+                        (rvCategories.adapter as? CategoryAdapter)?.atualizarTextosVisiveis()
                     }
                 } catch (_: Exception) {}
             }
         })
     }
 
-    private fun carregarCanaisDaCategoria(catId: String) {
+    private fun focarPastaSelecionada() {
+        val categoryAdapter = rvCategories.adapter as? CategoryAdapter ?: return
+        val position = categoryAdapter.posicaoSelecionada()
+        if (position == RecyclerView.NO_POSITION) return
+
+        rvCategories.post {
+            rvCategories.scrollToPosition(position)
+            rvCategories.post {
+                val item = rvCategories.findViewHolderForAdapterPosition(position)?.itemView
+                if (item != null && !item.hasFocus()) {
+                    item.requestFocus()
+                }
+            }
+        }
+    }
+
+    private fun carregarCanaisDaCategoria(catId: String, iniciarReproducao: Boolean = false) {
+        val requestId = ++categoryLoadRequestId
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_streams&category_id=$catId"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
 
@@ -470,8 +487,9 @@ class LiveTvActivity : BaseActivity() {
                     val type = object : TypeToken<List<LiveStream>>() {}.type
                     val canais: List<LiveStream> = gson.fromJson(json, type)
                     runOnUiThread {
+                        if (requestId != categoryLoadRequestId) return@runOnUiThread
                         CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, mapOf(catId to canais.size))
-                        rvCategories.adapter?.notifyDataSetChanged()
+                        (rvCategories.adapter as? CategoryAdapter)?.atualizarTextoVisivel(catId)
 
                         channelAdapter = ChannelAdapter(canais) { canal ->
                             tocarNoMiniPlayer(canal)
@@ -484,7 +502,7 @@ class LiveTvActivity : BaseActivity() {
                         }
                         rvOverlayChannels.adapter = overlayAdapter
 
-                        if (canais.isNotEmpty()) {
+                        if (iniciarReproducao && currentStreamId == -1 && canais.isNotEmpty()) {
                             val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
                             val lastId = appSettings.getInt("last_live_stream_id", -1)
                             val resumeLast = appSettings.getBoolean("last_live", false)
@@ -564,25 +582,33 @@ class LiveTvActivity : BaseActivity() {
 
         private var selectedPosition = 0
 
+        fun posicaoSelecionada(): Int = selectedPosition
+
+        fun atualizarTextoVisivel(categoryId: String) {
+            val position = list.indexOfFirst { it.categoryId == categoryId }
+            if (position < 0) return
+            val holder = rvCategories.findViewHolderForAdapterPosition(position) as? ViewHolder ?: return
+            holder.tv.text = textoCategoria(list[position])
+        }
+
+        fun atualizarTextosVisiveis() {
+            for (position in 0 until itemCount) {
+                val holder = rvCategories.findViewHolderForAdapterPosition(position) as? ViewHolder ?: continue
+                holder.tv.text = textoCategoria(list[position])
+            }
+        }
+
+        private fun textoCategoria(category: LiveCategory): String {
+            val count = CategoryCountHelper.getLiveCount(rvCategories.context, category.categoryId)
+            return if (count > 0) "${category.categoryName} ($count)" else category.categoryName
+        }
+
         inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val tv: TextView = v.findViewById(R.id.tvCategoryTitle)
-        }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_category, parent, false)
-            return ViewHolder(v)
-        }
-
-        override fun getItemCount() = list.size
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val cat = list[position]
-            val count = CategoryCountHelper.getLiveCount(holder.itemView.context, cat.categoryId)
-            holder.tv.text = if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
-
-            val updateCatBg: (Boolean) -> Unit = { hasFocus ->
-                val currentSelected = holder.bindingAdapterPosition == selectedPosition
-                holder.tv.background = GradientDrawable().apply {
+            fun atualizarDestaque(hasFocus: Boolean = itemView.hasFocus()) {
+                val currentSelected = bindingAdapterPosition == selectedPosition
+                tv.background = GradientDrawable().apply {
                     if (hasFocus) {
                         setColor(0xFF2A4365.toInt())
                         setStroke(dp(2), 0xFF42D6E8.toInt())
@@ -595,13 +621,34 @@ class LiveTvActivity : BaseActivity() {
                     }
                 }
             }
-            updateCatBg(holder.itemView.isFocused)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_category, parent, false)
+            return ViewHolder(v)
+        }
+
+        override fun getItemCount() = list.size
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val cat = list[position]
+            holder.tv.text = textoCategoria(cat)
+            holder.atualizarDestaque()
 
             holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-                updateCatBg(hasFocus)
+                holder.atualizarDestaque(hasFocus)
             }
 
             holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    return@setOnKeyListener true
+                }
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    val currentPos = holder.bindingAdapterPosition
+                    if (currentPos == 0) {
+                        return@setOnKeyListener true
+                    }
+                }
                 if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                     val currentPos = holder.bindingAdapterPosition
                     if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
@@ -615,8 +662,8 @@ class LiveTvActivity : BaseActivity() {
                 val prev = selectedPosition
                 selectedPosition = holder.bindingAdapterPosition
                 if (selectedPosition != RecyclerView.NO_POSITION) {
-                    notifyItemChanged(prev)
-                    notifyItemChanged(selectedPosition)
+                    (rvCategories.findViewHolderForAdapterPosition(prev) as? ViewHolder)?.atualizarDestaque()
+                    (rvCategories.findViewHolderForAdapterPosition(selectedPosition) as? ViewHolder)?.atualizarDestaque()
                 }
                 onClick(cat)
             }
@@ -629,7 +676,7 @@ class LiveTvActivity : BaseActivity() {
         private val onClick: (LiveStream) -> Unit
     ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
 
-        private var selectedPosition = 0
+        private var selectedPosition = RecyclerView.NO_POSITION
 
         fun selecionarCanalPorId(streamId: Int): Int {
             val index = list.indexOfFirst { it.streamId == streamId }
@@ -719,6 +766,19 @@ class LiveTvActivity : BaseActivity() {
             }
 
             holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    val categoryAdapter = rvCategories.adapter as? CategoryAdapter
+                    val categoryPosition = categoryAdapter?.posicaoSelecionada() ?: RecyclerView.NO_POSITION
+                    if (categoryPosition >= 0) {
+                        rvCategories.post {
+                            rvCategories.scrollToPosition(categoryPosition)
+                            rvCategories.postDelayed({
+                                rvCategories.findViewHolderForAdapterPosition(categoryPosition)?.itemView?.requestFocus()
+                            }, 60)
+                        }
+                    }
+                    return@setOnKeyListener true
+                }
                 if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                     val currentPos = holder.bindingAdapterPosition
                     if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {

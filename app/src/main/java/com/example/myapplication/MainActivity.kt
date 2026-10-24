@@ -76,16 +76,14 @@ class MainActivity : BaseActivity() {
             atualizarCatalogo(button as ImageButton, savedUser, savedPass)
         }
 
-        // 1. Foco inicial direto no LIVE TV ao abrir a aplicação
+        // Foco inicial direto no LIVE TV ao abrir a aplicação; a home já está visível
+        // quando começa a verificação automática de atualizações.
         cardLiveTv.post {
             cardLiveTv.requestFocus()
+            AppUpdateManager.checkForUpdates(this, manual = false)
         }
 
-        // 2. Verificar se existe atualização disponível no GitHub;
-        // Se houver, mostra automaticamente o aviso com o botão de atualizar
-        AppUpdateManager.checkForUpdates(this, manual = false)
-
-        // 3. Verificar expiração da subscrição/linha (alerta se faltarem 5 dias ou menos)
+        // Verificar expiração da subscrição/linha (alerta se faltarem 5 dias ou menos)
         AccountExpirationAlert.checkAndShow(this)
     }
 

@@ -7,6 +7,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -62,15 +63,8 @@ class MoviesActivity : BaseActivity() {
         // Botão para sair da atividade e regressar ao menu principal
         findViewById<ImageButton>(R.id.btnBackMovies)?.apply {
             setOnClickListener { finish() }
-            setOnFocusChangeListener { v, hasFocus ->
-                if (hasFocus) {
-                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
-                    v.elevation = dp(8).toFloat()
-                } else {
-                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                    v.elevation = 0f
-                }
-            }
+            isFocusable = false
+            isFocusableInTouchMode = false
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
@@ -186,11 +180,27 @@ class MoviesActivity : BaseActivity() {
                     val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
                     CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
                     runOnUiThread {
-                        rvCategories.adapter?.notifyDataSetChanged()
+                        (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
                     }
                 } catch (_: Exception) {}
             }
         })
+    }
+
+    private fun focarPastaSelecionada() {
+        val categoryAdapter = rvCategories.adapter as? MovieCategoryAdapter ?: return
+        val position = categoryAdapter.posicaoSelecionada()
+        if (position == RecyclerView.NO_POSITION) return
+
+        rvCategories.post {
+            rvCategories.scrollToPosition(position)
+            rvCategories.post {
+                val item = rvCategories.findViewHolderForAdapterPosition(position)?.itemView
+                if (item != null && !item.hasFocus()) {
+                    item.requestFocus()
+                }
+            }
+        }
     }
 
     private fun tratarSelecaoCategoria(catId: String) {
@@ -200,6 +210,7 @@ class MoviesActivity : BaseActivity() {
             "RESUME" -> carregarContinuarAVer()
             else -> carregarFilmesDaCategoria(catId)
         }
+        focarPastaSelecionada()
     }
 
     private fun carregarFavoritos() {
@@ -310,7 +321,7 @@ class MoviesActivity : BaseActivity() {
                     runOnUiThread {
                         allMoviesInCat = filmes
                         CategoryCountHelper.saveVodCounts(this@MoviesActivity, mapOf(catId to filmes.size))
-                        rvCategories.adapter?.notifyDataSetChanged()
+                        (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextoVisivel(catId)
                         filmes.forEach { f ->
                             if (allMoviesCache.none { it.streamId == f.streamId }) {
                                 allMoviesCache.add(f)
@@ -409,41 +420,43 @@ class MoviesActivity : BaseActivity() {
         private val onClick: (VodCategory) -> Unit
     ) : RecyclerView.Adapter<MovieCategoryAdapter.ViewHolder>() {
 
-        inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
-            val tv: TextView = v.findViewById(R.id.tvCategoryTitle)
+        fun posicaoSelecionada(): Int = selectedPosition
+
+        fun atualizarTextoVisivel(categoryId: String) {
+            val position = list.indexOfFirst { it.categoryId == categoryId }
+            if (position < 0) return
+            val holder = rvCategories.findViewHolderForAdapterPosition(position) as? ViewHolder ?: return
+            holder.tv.text = textoCategoria(list[position])
         }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_category, parent, false)
-            return ViewHolder(v)
+        fun atualizarTextosVisiveis() {
+            for (position in 0 until itemCount) {
+                val holder = rvCategories.findViewHolderForAdapterPosition(position) as? ViewHolder ?: continue
+                holder.tv.text = textoCategoria(list[position])
+            }
         }
 
-        override fun getItemCount() = list.size
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val cat = list[position]
+        private fun textoCategoria(cat: VodCategory): String {
             val count = when (cat.categoryId) {
                 "FAVORITES" -> {
-                    val favPrefs = holder.itemView.context.getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
+                    val favPrefs = rvCategories.context.getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
                     favPrefs.getStringSet("fav_ids", emptySet())?.size ?: 0
                 }
                 "RESUME" -> {
-                    val resumePrefs = holder.itemView.context.getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
+                    val resumePrefs = rvCategories.context.getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
                     resumePrefs.all.keys.count { it.startsWith("pos_") && (resumePrefs.all[it] as? Long ?: 0L) > 10000L }
                 }
-                else -> CategoryCountHelper.getVodCount(holder.itemView.context, cat.categoryId)
+                else -> CategoryCountHelper.getVodCount(rvCategories.context, cat.categoryId)
             }
-            holder.tv.text = if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
+            return if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
+        }
 
-            if (cat.categoryId == "FAVORITES" || cat.categoryId == "RESUME") {
-                holder.tv.setTextColor(0xFFF5C56B.toInt())
-            } else {
-                holder.tv.setTextColor(0xFFFFFFFF.toInt())
-            }
+        inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val tv: TextView = v.findViewById(R.id.tvCategoryTitle)
 
-            val updateCatBg: (Boolean) -> Unit = { hasFocus ->
-                val currentSelected = holder.bindingAdapterPosition == selectedPosition
-                holder.tv.background = GradientDrawable().apply {
+            fun atualizarDestaque(hasFocus: Boolean = itemView.hasFocus()) {
+                val currentSelected = bindingAdapterPosition == selectedPosition
+                tv.background = GradientDrawable().apply {
                     if (hasFocus) {
                         setColor(0xFF2A4365.toInt())
                         setStroke(dp(2), 0xFF42D6E8.toInt())
@@ -456,27 +469,67 @@ class MoviesActivity : BaseActivity() {
                     }
                 }
                 if (hasFocus) {
-                    holder.itemView.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
-                    holder.itemView.elevation = dp(4).toFloat()
+                    itemView.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
+                    itemView.elevation = dp(4).toFloat()
                 } else {
-                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
-                    holder.itemView.elevation = 0f
+                    itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    itemView.elevation = 0f
                 }
             }
-            updateCatBg(holder.itemView.isFocused)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_category, parent, false)
+            return ViewHolder(v)
+        }
+
+        override fun getItemCount() = list.size
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val cat = list[position]
+            holder.tv.text = textoCategoria(cat)
+
+            if (cat.categoryId == "FAVORITES" || cat.categoryId == "RESUME") {
+                holder.tv.setTextColor(0xFFF5C56B.toInt())
+            } else {
+                holder.tv.setTextColor(0xFFFFFFFF.toInt())
+            }
+
+            holder.atualizarDestaque()
 
             holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
-                updateCatBg(hasFocus)
+                holder.atualizarDestaque(hasFocus)
+            }
+
+            holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    return@setOnKeyListener true
+                }
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    val currentPos = holder.bindingAdapterPosition
+                    if (currentPos == 0) {
+                        return@setOnKeyListener true
+                    }
+                }
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    val currentPos = holder.bindingAdapterPosition
+                    if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
+                        return@setOnKeyListener true
+                    }
+                }
+                false
             }
 
             holder.itemView.setOnClickListener {
+                val clickedPos = holder.bindingAdapterPosition
+                if (clickedPos == RecyclerView.NO_POSITION) return@setOnClickListener
                 val prev = selectedPosition
-                selectedPosition = holder.bindingAdapterPosition
-                if (selectedPosition != RecyclerView.NO_POSITION) {
-                    notifyItemChanged(prev)
-                    notifyItemChanged(selectedPosition)
-                    onClick(cat)
+                selectedPosition = clickedPos
+                if (prev != RecyclerView.NO_POSITION && prev != clickedPos) {
+                    (rvCategories.findViewHolderForAdapterPosition(prev) as? ViewHolder)?.atualizarDestaque()
                 }
+                holder.atualizarDestaque(true)
+                onClick(cat)
             }
         }
     }

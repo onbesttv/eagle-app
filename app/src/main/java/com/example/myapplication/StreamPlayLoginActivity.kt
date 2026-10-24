@@ -53,7 +53,6 @@ class StreamPlayLoginActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         IptvServiceConfig.initialize(this)
-        AppUpdateManager.checkForUpdates(this, manual = false)
         setContentView(R.layout.activity_streamplay_login)
         usernameInput = findViewById(R.id.etServiceUsername)
         passwordInput = findViewById(R.id.etServicePassword)
