@@ -171,34 +171,66 @@ class CatchUpActivity : BaseActivity() {
                 text = "$label\n${SimpleDateFormat("dd/MM", Locale.getDefault()).format(date.time)}"
                 textSize = 12f
                 gravity = Gravity.CENTER
-                setPadding(dp(14), dp(5), dp(14), dp(5))
+                setPadding(dp(16), dp(6), dp(16), dp(6))
                 isClickable = true
                 isFocusable = true
+                outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
+                tag = key
+                setOnFocusChangeListener { v, hasFocus ->
+                    updateDayButtonStyle(v as TextView, hasFocus)
+                }
                 setOnClickListener {
                     selectedDate = key
                     updateDayButtons()
                     showProgramsForSelectedDay()
                 }
-                tag = key
             }
             dayContainer.addView(button, LinearLayout.LayoutParams(-2, dp(44)).apply {
-                marginEnd = dp(7)
+                marginEnd = dp(8)
             })
         }
         selectedDate = SimpleDateFormat("yyyyMMdd", Locale.US).format(today.time)
         updateDayButtons()
     }
 
+    private fun updateDayButtonStyle(button: TextView, hasFocus: Boolean) {
+        val selected = button.tag == selectedDate
+        button.background = GradientDrawable().apply {
+            when {
+                hasFocus -> {
+                    setColor(0xFF2A4365.toInt())
+                    setStroke(dp(2), 0xFF42D6E8.toInt())
+                    cornerRadius = dp(9).toFloat()
+                }
+                selected -> {
+                    setColor(0xFF23324A.toInt())
+                    setStroke(dp(2), 0xFF3182CE.toInt())
+                    cornerRadius = dp(9).toFloat()
+                }
+                else -> {
+                    setColor(0xFF172338.toInt())
+                    setStroke(dp(1), 0xFF2B3D59.toInt())
+                    cornerRadius = dp(9).toFloat()
+                }
+            }
+        }
+        if (hasFocus) {
+            button.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
+            button.elevation = dp(8).toFloat()
+            button.setTextColor(Color.WHITE)
+            button.setTypeface(null, Typeface.BOLD)
+        } else {
+            button.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+            button.elevation = if (selected) dp(2).toFloat() else 0f
+            button.setTextColor(if (selected) Color.WHITE else 0xFF9BAAC0.toInt())
+            button.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+        }
+    }
+
     private fun updateDayButtons() {
         for (index in 0 until dayContainer.childCount) {
             val button = dayContainer.getChildAt(index) as TextView
-            val selected = button.tag == selectedDate
-            button.background = GradientDrawable().apply {
-                setColor(if (selected) 0xFF254675.toInt() else 0xFF172338.toInt())
-                cornerRadius = dp(9).toFloat()
-                if (!selected) setStroke(dp(1), 0xFF2B3D59.toInt())
-            }
-            button.setTextColor(Color.WHITE)
+            updateDayButtonStyle(button, button.hasFocus())
         }
     }
 
@@ -318,7 +350,7 @@ class CatchUpActivity : BaseActivity() {
         private val channels: List<LiveStream>,
         private val onClick: (LiveStream) -> Unit
     ) : RecyclerView.Adapter<ChannelAdapter.ChannelHolder>() {
-        private var selectedPosition = RecyclerView.NO_POSITION
+        private var selectedPosition = 0
         inner class ChannelHolder(view: View) : RecyclerView.ViewHolder(view) {
             val name: TextView = view.findViewById(R.id.tvChannelName)
             val logo: ImageView = view.findViewById(R.id.ivChannelLogo)

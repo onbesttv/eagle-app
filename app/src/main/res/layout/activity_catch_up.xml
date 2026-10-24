@@ -73,6 +73,8 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:orientation="vertical">
 
         <TextView
@@ -94,7 +96,9 @@
 
         <HorizontalScrollView
             android:layout_width="match_parent"
-            android:layout_height="54dp"
+            android:layout_height="58dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:fillViewport="false"
             android:scrollbars="none">
 
@@ -102,10 +106,12 @@
                 android:id="@+id/layoutCatchUpDays"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp" />
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp" />
         </HorizontalScrollView>
 
         <View
