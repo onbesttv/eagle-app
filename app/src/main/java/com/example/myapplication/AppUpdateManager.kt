@@ -1,5 +1,7 @@
 package com.example.myapplication
 
+import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -7,6 +9,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
@@ -36,6 +39,10 @@ object AppUpdateManager {
 
     private const val UPDATE_PREFS = "app_update_prefs"
     private const val KEY_UPDATE_IN_PROGRESS_TAG = "update_in_progress_tag"
+
+    private var isLifecycleRegistered = false
+    private var pendingReleaseForPermission: ReleaseInfo? = null
+    private var pendingApkForInstall: Pair<File, String?>? = null
 
     private val httpClient by lazy {
         OkHttpClient.Builder()
@@ -85,6 +92,7 @@ object AppUpdateManager {
      */
     fun checkForUpdates(activity: AppCompatActivity, manual: Boolean = false) {
         if (activity.isFinishing || activity.isDestroyed) return
+        ensureLifecycleListener(activity)
 
         var loadingDialog: AlertDialog? = null
         if (manual) {
@@ -306,11 +314,112 @@ object AppUpdateManager {
         styleDialogWindow(dialog, activity)
     }
 
+    private fun ensureLifecycleListener(activity: AppCompatActivity) {
+        if (isLifecycleRegistered) return
+        isLifecycleRegistered = true
+        activity.application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityResumed(act: Activity) {
+                if (act !is AppCompatActivity || act.isFinishing || act.isDestroyed) return
+
+                val pendingInstall = pendingApkForInstall
+                if (pendingInstall != null) {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || act.packageManager.canRequestPackageInstalls()) {
+                        val file = pendingInstall.first
+                        val tag = pendingInstall.second
+                        pendingApkForInstall = null
+                        if (file.exists() && file.length() > 0) {
+                            promptInstallApk(act, file, tag)
+                            return
+                        }
+                    }
+                }
+
+                val pendingRelease = pendingReleaseForPermission
+                if (pendingRelease != null) {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || act.packageManager.canRequestPackageInstalls()) {
+                        pendingReleaseForPermission = null
+                        startDownloadAndInstall(act, pendingRelease)
+                    }
+                }
+            }
+
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {}
+        })
+    }
+
+    private fun getTargetApkFile(context: Context, release: ReleaseInfo): File {
+        val destinationDir = File(context.cacheDir, "updates")
+        if (!destinationDir.exists()) destinationDir.mkdirs()
+        return File(destinationDir, "eagle-${release.tagName}.apk")
+    }
+
+    private fun isApkAlreadyDownloaded(context: Context, release: ReleaseInfo): Boolean {
+        val targetApk = getTargetApkFile(context, release)
+        return targetApk.exists() && targetApk.length() > 0 &&
+                (release.apkSizeBytes <= 0 || targetApk.length() == release.apkSizeBytes)
+    }
+
+    private fun cleanOldUpdates(context: Context, currentTag: String) {
+        try {
+            val destinationDir = File(context.cacheDir, "updates")
+            if (destinationDir.exists() && destinationDir.isDirectory) {
+                destinationDir.listFiles()?.forEach { file ->
+                    if (file.name != "eagle-$currentTag.apk") {
+                        file.delete()
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun showUnknownSourcesPermissionDialog(activity: AppCompatActivity, release: ReleaseInfo) {
+        val panel = createDialogContainer(activity)
+        val title = createDialogHeader(activity, "AUTORIZAÇÃO NECESSÁRIA")
+        panel.addView(title)
+
+        val message = TextView(activity).apply {
+            text = "Para atualizar a aplicação, é necessário autorizar a instalação de atualizações por esta app nas Definições do sistema.\n\nApós ativar 'Permitir desta fonte', regressa à app para concluir."
+            setTextColor(0xFFD2DDE7.toInt())
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setPadding(0, dp(activity, 8), 0, dp(activity, 18))
+        }
+        panel.addView(message)
+
+        val dialog = AlertDialog.Builder(activity)
+            .setView(panel)
+            .setNegativeButton("CANCELAR", null)
+            .setPositiveButton("DEFINIÇÕES") { _, _ ->
+                pendingReleaseForPermission = release
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = Uri.parse("package:${activity.packageName}")
+                    }
+                    activity.startActivity(intent)
+                } catch (_: Exception) {
+                    val intent = Intent(Settings.ACTION_SECURITY_SETTINGS)
+                    activity.startActivity(intent)
+                }
+            }
+            .create()
+
+        dialog.show()
+        styleDialogWindow(dialog, activity)
+    }
+
     private fun showUpdateAvailableDialog(activity: AppCompatActivity, release: ReleaseInfo) {
+        ensureLifecycleListener(activity)
         val panel = createDialogContainer(activity)
 
         val title = createDialogHeader(activity, "NOVA ATUALIZAÇÃO DISPONÍVEL!")
         panel.addView(title)
+
+        val isDownloaded = isApkAlreadyDownloaded(activity, release)
 
         val versionText = TextView(activity).apply {
             text = "Nova Versão: ${release.tagName}"
@@ -322,10 +431,12 @@ object AppUpdateManager {
         }
         panel.addView(versionText)
 
+        val positiveBtnText = if (isDownloaded) "INSTALAR AGORA" else "ATUALIZAR AGORA"
+
         val dialog = AlertDialog.Builder(activity)
             .setView(panel)
             .setNegativeButton("MAIS TARDE", null)
-            .setPositiveButton("ATUALIZAR AGORA") { _, _ ->
+            .setPositiveButton(positiveBtnText) { _, _ ->
                 startDownloadAndInstall(activity, release)
             }
             .create()
@@ -335,7 +446,28 @@ object AppUpdateManager {
     }
 
     private fun startDownloadAndInstall(activity: AppCompatActivity, release: ReleaseInfo) {
-        // Mostra o diálogo de progresso de download
+        ensureLifecycleListener(activity)
+
+        // 1. Verificar permissão de instalação de fontes desconhecidas no Android 8.0+ ANTES de descarregar
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!activity.packageManager.canRequestPackageInstalls()) {
+                showUnknownSourcesPermissionDialog(activity, release)
+                return
+            }
+        }
+
+        val targetApk = getTargetApkFile(activity, release)
+
+        // 2. Se o ficheiro já foi descarregado com sucesso anteriormente, instala diretamente sem voltar a descarregar!
+        if (isApkAlreadyDownloaded(activity, release)) {
+            promptInstallApk(activity, targetApk, release.tagName)
+            return
+        }
+
+        // Limpar ficheiros antigos de atualizações anteriores para libertar espaço
+        cleanOldUpdates(activity, release.tagName)
+
+        // 3. Mostra o diálogo de progresso de download
         val panel = createDialogContainer(activity)
         val title = createDialogHeader(activity, "A DESCARREGAR ATUALIZAÇÃO")
         panel.addView(title)
@@ -381,11 +513,12 @@ object AppUpdateManager {
         downloadJob = activity.lifecycleScope.launch {
             val destinationDir = File(activity.cacheDir, "updates")
             if (!destinationDir.exists()) destinationDir.mkdirs()
-            val targetApk = File(destinationDir, release.apkFileName.ifBlank { "app-update.apk" })
+            val tempApk = File(destinationDir, "eagle-${release.tagName}.apk.tmp")
 
             val success = withContext(Dispatchers.IO) {
                 downloadFile(
                     url = release.apkDownloadUrl,
+                    tempFile = tempApk,
                     targetFile = targetApk,
                     expectedSize = release.apkSizeBytes,
                     onProgress = { downloadedBytes, totalBytes, percent ->
@@ -418,13 +551,13 @@ object AppUpdateManager {
 
     private fun downloadFile(
         url: String,
+        tempFile: File,
         targetFile: File,
         expectedSize: Long,
         onProgress: (downloadedBytes: Long, totalBytes: Long, percent: Int) -> Unit
     ): Boolean {
-        if (targetFile.exists()) {
-            targetFile.delete()
-        }
+        if (tempFile.exists()) tempFile.delete()
+        if (targetFile.exists()) targetFile.delete()
 
         var inputStream: InputStream? = null
         var outputStream: FileOutputStream? = null
@@ -442,9 +575,9 @@ object AppUpdateManager {
             val contentLength = if (body.contentLength() > 0) body.contentLength() else expectedSize
 
             inputStream = body.byteStream()
-            outputStream = FileOutputStream(targetFile)
+            outputStream = FileOutputStream(tempFile)
 
-            val buffer = ByteArray(32 * 1024)
+            val buffer = ByteArray(64 * 1024)
             var totalRead = 0L
             var lastUpdate = 0L
 
@@ -462,9 +595,28 @@ object AppUpdateManager {
                 }
             }
             outputStream.flush()
+            outputStream.close()
+            outputStream = null
+
+            // Se conhecemos o tamanho esperado e não recebemos tudo, o download foi interrompido
+            if (contentLength > 0 && totalRead < contentLength) {
+                if (tempFile.exists()) tempFile.delete()
+                return false
+            }
+
             onProgress(totalRead, contentLength, 100)
-            return true
+
+            // Renomeia o temporário para o ficheiro final do APK
+            if (targetFile.exists()) targetFile.delete()
+            val renamed = tempFile.renameTo(targetFile)
+            if (!renamed) {
+                tempFile.copyTo(targetFile, overwrite = true)
+                tempFile.delete()
+            }
+
+            return targetFile.exists() && targetFile.length() > 0
         } catch (e: Exception) {
+            if (tempFile.exists()) tempFile.delete()
             if (targetFile.exists()) targetFile.delete()
             return false
         } finally {
@@ -485,6 +637,7 @@ object AppUpdateManager {
         // No Android 8.0+ (Oreo), precisamos de verificar se a app tem permissão para instalar APKs
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             if (!activity.packageManager.canRequestPackageInstalls()) {
+                pendingApkForInstall = Pair(apkFile, releaseTag)
                 val dialog = AlertDialog.Builder(activity)
                     .setTitle("Autorização Necessária")
                     .setMessage("Para atualizar automaticamente, é necessário autorizar a instalação de atualizações por esta aplicação nas Definições do sistema.")
@@ -519,6 +672,14 @@ object AppUpdateManager {
                 setDataAndType(uri, "application/vnd.android.package-archive")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+
+            // Conceder permissão explícita de leitura a todos os componentes instaladores de pacotes
+            val resInfoList = activity.packageManager.queryIntentActivities(installIntent, PackageManager.MATCH_DEFAULT_ONLY)
+            for (resolveInfo in resInfoList) {
+                val pkgName = resolveInfo.activityInfo.packageName
+                activity.grantUriPermission(pkgName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
 
             // O instalador pode terminar o processo da app. Gravar sincronamente antes
