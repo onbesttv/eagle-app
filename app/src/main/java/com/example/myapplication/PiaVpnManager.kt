@@ -257,6 +257,11 @@ object PiaVpnManager {
         }
     }
 
+    fun resetCachedToken() {
+        cachedToken = null
+        cachedTokenExpiry = 0L
+    }
+
     private fun getOrFetchToken(user: String, pass: String): String {
         val now = System.currentTimeMillis()
         if (!cachedToken.isNullOrBlank() && now < cachedTokenExpiry) {
@@ -301,14 +306,16 @@ object PiaVpnManager {
 
         if (!res2.isSuccessful) {
             val errJson = try { JSONObject(body2) } catch (_: Exception) { null }
-            val errMsg = errJson?.optString("message") ?: "Credenciais incorretas ou conta expirada"
-            throw IllegalStateException("Autenticação PIA falhou: $errMsg")
+            val errMsg = errJson?.optString("message") ?: if (res2.code == 401) "Acesso Negado (401)" else "HTTP ${res2.code}"
+            resetCachedToken()
+            throw IllegalStateException("Acesso Negado na PIA VPN ($errMsg). A conta '$user' foi rejeitada pelos servidores oficiais da PIA. Os utilizadores requerem a letra 'p' seguida de 7 dígitos (ex: p1234567).")
         }
 
         val json2 = JSONObject(body2)
         if (json2.optString("status") == "ERROR") {
             val msg = json2.optString("message", "Credenciais incorretas")
-            throw IllegalStateException("Autenticação PIA falhou: $msg")
+            resetCachedToken()
+            throw IllegalStateException("Autenticação PIA falhou: $msg. Confirma os dados da subscrição.")
         }
 
         val token = json2.getString("token")
@@ -326,7 +333,7 @@ object PiaVpnManager {
         thread {
             try {
                 val req = Request.Builder()
-                    .url("https://serverlist.piaservers.net/vpninfo/servers/v4")
+                    .url("https://serverlist.piaservers.net/vpninfo/servers/v6")
                     .build()
                 val res = httpClient.newCall(req).execute()
                 val body = res.body?.string().orEmpty()
@@ -348,7 +355,7 @@ object PiaVpnManager {
                                 val country = r.optString("country")
                                 val name = r.optString("name")
                                 val id = r.optString("id")
-                                val isSo = id.contains("streaming") || name.contains("Streaming", ignoreCase = true)
+                                val isSo = id.contains("streaming") || id.endsWith("-so") || name.contains("Streaming", ignoreCase = true)
                                 if (ip.isNotBlank()) {
                                     parsed.add(
                                         PiaRegion(
@@ -367,7 +374,7 @@ object PiaVpnManager {
                         if (parsed.isNotEmpty()) {
                             // Coloca Portugal e países de topo no início
                             val ordered = mutableListOf<PiaRegion>()
-                            val topIds = listOf("pt", "spain", "es-valencia", "france", "uk", "uk_manchester", "nl_netherlands-so", "nl_amsterdam", "de-frankfurt", "de_berlin", "swiss", "italy", "us-newjersey", "br")
+                            val topIds = listOf("pt", "pt-so", "spain", "es-valencia", "france", "uk", "uk_manchester", "nl_netherlands-so", "nl_amsterdam", "de-frankfurt", "de_berlin", "swiss", "italy", "us-newjersey", "br")
                             topIds.forEach { tid ->
                                 parsed.find { it.id == tid }?.let { ordered.add(it) }
                             }

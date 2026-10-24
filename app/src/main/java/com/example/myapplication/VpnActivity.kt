@@ -87,6 +87,18 @@ class VpnActivity : BaseActivity() {
             alternarVpn()
         }
 
+        // Atalho de administração (manter premido OK no botão de ligar ou clicar no escudo em erro)
+        btnToggleVpn.setOnLongClickListener {
+            mostrarDialogoCredenciaisOculto()
+            true
+        }
+
+        ivVpnShield.setOnClickListener {
+            if (PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.ERROR) {
+                mostrarDialogoCredenciaisOculto()
+            }
+        }
+
         // Foco dos botões no comando TV
         configurarFoco(btnBackVpn, 1.08f)
         configurarFoco(btnToggleVpn, 1.04f)
@@ -265,15 +277,11 @@ class VpnActivity : BaseActivity() {
             }
             PiaVpnManager.VpnStatus.ERROR -> {
                 ivVpnShield.imageTintList = ColorStateList.valueOf(0xFFE53E3E.toInt())
-                tvVpnStatus.text = "ERRO DE LIGAÇÃO"
+                tvVpnStatus.text = "ERRO DE AUTENTICAÇÃO PIA"
                 tvVpnStatus.setTextColor(0xFFE53E3E.toInt())
-                val detail = message ?: "Falha ao ligar aos servidores da PIA"
-                tvVpnStatusSub.text = if (detail.contains("Autenticação", ignoreCase = true) || detail.contains("auth", ignoreCase = true)) {
-                    "Conta PIA VPN inválida ou expirada. Confirma o utilizador e a palavra-passe com o fornecedor."
-                } else {
-                    detail
-                }
-                tvVpnIp.text = "Falhou"
+                val detail = message ?: "Servidor PIA rejeitou as credenciais (utilizador/password incorretos ou conta inativa)."
+                tvVpnStatusSub.text = detail
+                tvVpnIp.text = "Acesso Negado"
 
                 btnToggleVpn.text = "TENTAR NOVAMENTE"
                 btnToggleVpn.background = GradientDrawable().apply {
@@ -281,8 +289,108 @@ class VpnActivity : BaseActivity() {
                     cornerRadius = dp(10).toFloat()
                 }
                 durationHandler.removeCallbacks(durationRunnable)
+
+                mostrarDialogoErro(detail)
             }
         }
+    }
+
+    private var isErrorDialogShowing = false
+
+    private fun mostrarDialogoErro(detail: String) {
+        if (isFinishing || isDestroyed || isErrorDialogShowing) return
+        isErrorDialogShowing = true
+
+        val username = PiaVpnConfig.getUsername(this)
+        AlertDialog.Builder(this)
+            .setTitle("Falha na Ligação PIA VPN")
+            .setMessage(
+                "A conta configurada ($username) foi rejeitada pelos servidores da Private Internet Access (Acesso Negado).\n\n" +
+                "• Motivo: Os utilizadores oficiais da PIA têm a letra 'p' seguida de 7 dígitos numéricos (exemplo: p1234567).\n" +
+                "• A conta atual '$username' tem apenas ${username.removePrefix("p").length} dígitos ou a palavra-passe expirou.\n\n" +
+                "Para ligar com sucesso, é necessário inserir uma conta PIA ativa com os 7 dígitos corretos."
+            )
+            .setPositiveButton("Compreendi") { dialog, _ ->
+                dialog.dismiss()
+                isErrorDialogShowing = false
+                btnToggleVpn.requestFocus()
+            }
+            .setNeutralButton("Alterar Conta") { dialog, _ ->
+                dialog.dismiss()
+                isErrorDialogShowing = false
+                mostrarDialogoCredenciaisOculto()
+            }
+            .setOnDismissListener {
+                isErrorDialogShowing = false
+            }
+            .show()
+    }
+
+    private fun mostrarDialogoCredenciaisOculto() {
+        if (isFinishing || isDestroyed) return
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(16), dp(24), dp(16))
+        }
+
+        val etUser = EditText(this).apply {
+            hint = "Utilizador PIA (ex: p1234567)"
+            setText(PiaVpnConfig.getUsername(this@VpnActivity))
+            setTextColor(Color.WHITE)
+            setHintTextColor(0xFF718096.toInt())
+            isSingleLine = true
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = GradientDrawable().apply {
+                setColor(0xFF1A2639.toInt())
+                cornerRadius = dp(8).toFloat()
+                setStroke(dp(1), 0xFF2D3E56.toInt())
+            }
+        }
+
+        val etPass = EditText(this).apply {
+            hint = "Palavra-passe PIA"
+            setText(PiaVpnConfig.getPassword(this@VpnActivity))
+            setTextColor(Color.WHITE)
+            setHintTextColor(0xFF718096.toInt())
+            isSingleLine = true
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(12)
+            }
+            layoutParams = lp
+            background = GradientDrawable().apply {
+                setColor(0xFF1A2639.toInt())
+                cornerRadius = dp(8).toFloat()
+                setStroke(dp(1), 0xFF2D3E56.toInt())
+            }
+        }
+
+        container.addView(etUser)
+        container.addView(etPass)
+
+        AlertDialog.Builder(this)
+            .setTitle("Configurar Credenciais PIA VPN")
+            .setView(container)
+            .setPositiveButton("Guardar e Ligar") { dialog, _ ->
+                val u = etUser.text.toString().trim()
+                val p = etPass.text.toString().trim()
+                if (u.isNotBlank() && p.isNotBlank()) {
+                    PiaVpnConfig.setUsername(this, u)
+                    PiaVpnConfig.setPassword(this, p)
+                    PiaVpnManager.resetCachedToken()
+                    Toast.makeText(this, "Credenciais guardadas. A tentar ligar…", Toast.LENGTH_SHORT).show()
+                    iniciarLigacao()
+                } else {
+                    Toast.makeText(this, "Preenche utilizador e password", Toast.LENGTH_SHORT).show()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 
     // --- ADAPTADOR DE LOCALIZAÇÕES ---
