@@ -134,6 +134,7 @@ class VpnActivity : BaseActivity() {
     private val vpnStateListener: (PiaVpnManager.VpnStatus, String?) -> Unit = { status, msg ->
         runOnUiThread {
             atualizarInterface(status, msg)
+            regionAdapter?.notifyDataSetChanged()
         }
     }
 
@@ -149,16 +150,28 @@ class VpnActivity : BaseActivity() {
             atualizarTextoRegiaoSelecionada()
 
             regionAdapter = RegionAdapter(list) { reg ->
-                selectedRegion = reg
-                PiaVpnConfig.setSelectedRegionId(this, reg.id)
-                atualizarTextoRegiaoSelecionada()
-                regionAdapter?.notifyDataSetChanged()
+                val currentStatus = PiaVpnManager.getStatus()
+                val connectedReg = PiaVpnManager.getConnectedRegion()
+                val isCurrentlyConnectedToThis = (currentStatus == PiaVpnManager.VpnStatus.CONNECTED && connectedReg?.id == reg.id)
 
-                // Se já estiver conectado, reconecta ao novo país
-                if (PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED) {
-                    Toast.makeText(this, "A mudar ligação para ${reg.name}…", Toast.LENGTH_SHORT).show()
+                if (isCurrentlyConnectedToThis) {
+                    // Clicou no país que já está conectado -> DESCONECTAR
+                    Toast.makeText(this, "A desligar ligação de ${reg.name}…", Toast.LENGTH_SHORT).show()
                     PiaVpnManager.disconnect(this)
-                    btnToggleVpn.postDelayed({ iniciarLigacao() }, 500)
+                } else if (currentStatus == PiaVpnManager.VpnStatus.CONNECTED) {
+                    // Clicou noutro país enquanto está conectado -> MUDAR DE PAÍS
+                    Toast.makeText(this, "A mudar ligação para ${reg.name}…", Toast.LENGTH_SHORT).show()
+                    PiaVpnManager.disconnect(this) {
+                        iniciarLigacao(reg)
+                    }
+                } else if (currentStatus == PiaVpnManager.VpnStatus.CONNECTING) {
+                    // Clicou enquanto está a conectar -> CANCELAR
+                    Toast.makeText(this, "Ligação cancelada", Toast.LENGTH_SHORT).show()
+                    PiaVpnManager.disconnect(this)
+                } else {
+                    // Está desconectado ou em erro -> CONECTAR DIRETAMENTE AO PAÍS CLICADO
+                    Toast.makeText(this, "A ligar a ${reg.name}…", Toast.LENGTH_SHORT).show()
+                    iniciarLigacao(reg)
                 }
             }
             rvVpnRegions.adapter = regionAdapter
@@ -175,9 +188,11 @@ class VpnActivity : BaseActivity() {
     private fun alternarVpn() {
         when (PiaVpnManager.getStatus()) {
             PiaVpnManager.VpnStatus.CONNECTED -> {
+                Toast.makeText(this, "A desligar VPN…", Toast.LENGTH_SHORT).show()
                 PiaVpnManager.disconnect(this)
             }
             PiaVpnManager.VpnStatus.CONNECTING -> {
+                Toast.makeText(this, "Ligação cancelada", Toast.LENGTH_SHORT).show()
                 PiaVpnManager.disconnect(this)
             }
             else -> {
@@ -186,12 +201,17 @@ class VpnActivity : BaseActivity() {
         }
     }
 
-    private fun iniciarLigacao() {
-        val region = selectedRegion ?: regionsList.firstOrNull()
+    private fun iniciarLigacao(targetRegion: PiaRegion? = null) {
+        val region = targetRegion ?: selectedRegion ?: regionsList.firstOrNull()
         if (region == null) {
             Toast.makeText(this, "Nenhum servidor selecionado", Toast.LENGTH_SHORT).show()
             return
         }
+
+        selectedRegion = region
+        PiaVpnConfig.setSelectedRegionId(this, region.id)
+        atualizarTextoRegiaoSelecionada()
+        regionAdapter?.notifyDataSetChanged()
 
         // Verifica permissão do sistema Android VpnService
         val prepareIntent = PiaVpnManager.checkPermission(this)
@@ -417,17 +437,60 @@ class VpnActivity : BaseActivity() {
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val reg = list[position]
             val isSelected = selectedRegion?.id == reg.id
+            val isConnectedThis = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED && PiaVpnManager.getConnectedRegion()?.id == reg.id
+            val isConnectingThis = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTING && PiaVpnManager.getConnectedRegion()?.id == reg.id
 
             holder.flag.text = reg.flagEmoji
             holder.name.text = reg.name
-            holder.badge.visibility = if (reg.isStreamingOptimized) View.VISIBLE else View.GONE
-            holder.check.visibility = if (isSelected) View.VISIBLE else View.INVISIBLE
+
+            // Badge de estado do país
+            when {
+                isConnectedThis -> {
+                    holder.badge.visibility = View.VISIBLE
+                    holder.badge.text = "● LIGADO"
+                    holder.badge.setTextColor(0xFF48BB78.toInt())
+                }
+                isConnectingThis -> {
+                    holder.badge.visibility = View.VISIBLE
+                    holder.badge.text = "● A LIGAR…"
+                    holder.badge.setTextColor(0xFFECC94B.toInt())
+                }
+                reg.isStreamingOptimized -> {
+                    holder.badge.visibility = View.VISIBLE
+                    holder.badge.text = "⚡ Otimizado para Streaming"
+                    holder.badge.setTextColor(0xFF42D6E8.toInt())
+                }
+                else -> {
+                    holder.badge.visibility = View.GONE
+                }
+            }
+
+            // Ícone de seleção ou ligado
+            when {
+                isConnectedThis -> {
+                    holder.check.visibility = View.VISIBLE
+                    holder.check.setImageResource(android.R.drawable.checkbox_on_background)
+                    holder.check.imageTintList = ColorStateList.valueOf(0xFF48BB78.toInt())
+                }
+                isSelected -> {
+                    holder.check.visibility = View.VISIBLE
+                    holder.check.setImageResource(android.R.drawable.checkbox_on_background)
+                    holder.check.imageTintList = ColorStateList.valueOf(0xFF42D6E8.toInt())
+                }
+                else -> {
+                    holder.check.visibility = View.INVISIBLE
+                }
+            }
 
             val updateCardStyle: (Boolean) -> Unit = { hasFocus ->
                 if (hasFocus) {
                     holder.card.setCardBackgroundColor(0xFF2A4365.toInt())
                     holder.card.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
                     holder.card.elevation = dp(8).toFloat()
+                } else if (isConnectedThis) {
+                    holder.card.setCardBackgroundColor(0xFF163828.toInt())
+                    holder.card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    holder.card.elevation = dp(4).toFloat()
                 } else if (isSelected) {
                     holder.card.setCardBackgroundColor(0xFF1E3250.toInt())
                     holder.card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()

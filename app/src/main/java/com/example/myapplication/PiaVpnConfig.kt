@@ -22,7 +22,11 @@ object PiaVpnConfig {
 
     fun getUsername(context: Context): String {
         val user = getPrefs(context).getString(KEY_USERNAME, "")
-        return if (!user.isNullOrBlank() && user != "p625571") user else DEFAULT_USERNAME
+        if (user.isNullOrBlank() || user == "p625571") {
+            getPrefs(context).edit().putString(KEY_USERNAME, DEFAULT_USERNAME).apply()
+            return DEFAULT_USERNAME
+        }
+        return user
     }
 
     fun setUsername(context: Context, username: String) {

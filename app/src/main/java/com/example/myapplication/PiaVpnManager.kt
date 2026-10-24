@@ -242,17 +242,23 @@ object PiaVpnManager {
         }
     }
 
-    fun disconnect(context: Context) {
-        if (status == VpnStatus.DISCONNECTED) return
+    fun disconnect(context: Context, onComplete: (() -> Unit)? = null) {
+        if (status == VpnStatus.DISCONNECTED) {
+            onComplete?.invoke()
+            return
+        }
         updateState(VpnStatus.DISCONNECTING, "A desligar VPN…")
         thread {
             try {
                 init(context)
                 backend?.setState(tunnel, Tunnel.State.DOWN, null)
-                updateState(VpnStatus.DISCONNECTED, null)
             } catch (e: Exception) {
                 e.printStackTrace()
+            } finally {
                 updateState(VpnStatus.DISCONNECTED, null)
+                if (onComplete != null) {
+                    mainHandler.post { onComplete() }
+                }
             }
         }
     }
