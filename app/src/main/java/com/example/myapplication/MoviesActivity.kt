@@ -46,6 +46,7 @@ class MoviesActivity : BaseActivity() {
     private var allMoviesInCat = listOf<VodStream>()
     private val allMoviesCache = mutableListOf<VodStream>() // Cache geral para Favoritos e Histórico
     private var movieAdapter: MovieGridAdapter? = null
+    private var lastClickedMovieId: Int = -1
 
     private var currentCategoryId = ""
     private var user = ""
@@ -83,6 +84,7 @@ class MoviesActivity : BaseActivity() {
 
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                lastClickedMovieId = -1
                 aplicarFiltroEOrdenacao()
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -109,7 +111,10 @@ class MoviesActivity : BaseActivity() {
         when (currentCategoryId) {
             "FAVORITES" -> carregarFavoritos()
             "RESUME" -> carregarContinuarAVer()
-            else -> movieAdapter?.notifyDataSetChanged()
+            else -> {
+                movieAdapter?.notifyDataSetChanged()
+                focarUltimoFilme()
+            }
         }
     }
 
@@ -187,6 +192,30 @@ class MoviesActivity : BaseActivity() {
         })
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT &&
+            rvMovies.hasFocus()) {
+            val focused = currentFocus
+            val nextFocus = android.view.FocusFinder.getInstance().findNextFocus(
+                window.decorView as ViewGroup, focused, View.FOCUS_LEFT
+            )
+            if (nextFocus != null && isDescendantOf(nextFocus, rvCategories)) {
+                focarPastaSelecionada()
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun isDescendantOf(child: View, parent: View): Boolean {
+        var current: android.view.ViewParent? = child.parent
+        while (current != null) {
+            if (current == parent) return true
+            current = current.parent
+        }
+        return false
+    }
+
     private fun focarPastaSelecionada() {
         val categoryAdapter = rvCategories.adapter as? MovieCategoryAdapter ?: return
         val position = categoryAdapter.posicaoSelecionada()
@@ -203,7 +232,31 @@ class MoviesActivity : BaseActivity() {
         }
     }
 
+    private fun focarUltimoFilme() {
+        val targetId = lastClickedMovieId
+        if (targetId == -1) return
+        val adapter = movieAdapter ?: return
+        val pos = adapter.getLista().indexOfFirst { it.streamId == targetId }
+        if (pos >= 0) {
+            rvMovies.post {
+                rvMovies.scrollToPosition(pos)
+                rvMovies.postDelayed({
+                    val vh = rvMovies.findViewHolderForAdapterPosition(pos)
+                    if (vh != null) {
+                        vh.itemView.requestFocus()
+                    } else {
+                        rvMovies.scrollToPosition(pos)
+                        rvMovies.postDelayed({
+                            rvMovies.findViewHolderForAdapterPosition(pos)?.itemView?.requestFocus()
+                        }, 80)
+                    }
+                }, 80)
+            }
+        }
+    }
+
     private fun tratarSelecaoCategoria(catId: String) {
+        lastClickedMovieId = -1
         currentCategoryId = catId
         when (catId) {
             "FAVORITES" -> carregarFavoritos()
@@ -361,6 +414,10 @@ class MoviesActivity : BaseActivity() {
         } else {
             movieAdapter?.atualizar(lista)
         }
+
+        if (lastClickedMovieId != -1) {
+            focarUltimoFilme()
+        }
     }
 
     private fun abrirDialogoOrdenacao() {
@@ -404,6 +461,7 @@ class MoviesActivity : BaseActivity() {
     }
 
     private fun abrirFilme(filme: VodStream) {
+        lastClickedMovieId = filme.streamId
         val intent = Intent(this, MovieDetailActivity::class.java).apply {
             putExtra("STREAM_ID", filme.streamId)
             putExtra("STREAM_TITLE", filme.name)
@@ -540,6 +598,8 @@ class MoviesActivity : BaseActivity() {
         private val onClick: (VodStream) -> Unit,
         private val onLongClick: (VodStream) -> Unit
     ) : RecyclerView.Adapter<MovieGridAdapter.ViewHolder>() {
+
+        fun getLista(): List<VodStream> = list
 
         fun atualizar(novaLista: List<VodStream>) {
             list = novaLista

@@ -42,6 +42,7 @@ class SeriesActivity : BaseActivity() {
     private var allSeriesInCat: List<SeriesItem> = emptyList()
     private val allSeriesCache = mutableListOf<SeriesItem>() // Cache geral para os Favoritos
     private var seriesAdapter: SeriesGridAdapter? = null
+    private var lastClickedSeriesId: Int = -1
 
     private var currentCategoryId = ""
     private var user = ""
@@ -74,6 +75,7 @@ class SeriesActivity : BaseActivity() {
 
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
+                lastClickedSeriesId = -1
                 aplicarFiltroPesquisa()
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -87,6 +89,7 @@ class SeriesActivity : BaseActivity() {
             carregarFavoritosSeries()
         } else {
             seriesAdapter?.notifyDataSetChanged()
+            focarUltimaSerie()
         }
     }
 
@@ -165,6 +168,30 @@ class SeriesActivity : BaseActivity() {
         })
     }
 
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT &&
+            rvSeries.hasFocus()) {
+            val focused = currentFocus
+            val nextFocus = android.view.FocusFinder.getInstance().findNextFocus(
+                window.decorView as ViewGroup, focused, View.FOCUS_LEFT
+            )
+            if (nextFocus != null && isDescendantOf(nextFocus, rvCategories)) {
+                focarPastaSelecionada()
+                return true
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    private fun isDescendantOf(child: View, parent: View): Boolean {
+        var current: android.view.ViewParent? = child.parent
+        while (current != null) {
+            if (current == parent) return true
+            current = current.parent
+        }
+        return false
+    }
+
     private fun focarPastaSelecionada() {
         val categoryAdapter = rvCategories.adapter as? SeriesCategoryAdapter ?: return
         val position = categoryAdapter.posicaoSelecionada()
@@ -181,7 +208,31 @@ class SeriesActivity : BaseActivity() {
         }
     }
 
+    private fun focarUltimaSerie() {
+        val targetId = lastClickedSeriesId
+        if (targetId == -1) return
+        val adapter = seriesAdapter ?: return
+        val pos = adapter.getLista().indexOfFirst { it.seriesId == targetId }
+        if (pos >= 0) {
+            rvSeries.post {
+                rvSeries.scrollToPosition(pos)
+                rvSeries.postDelayed({
+                    val vh = rvSeries.findViewHolderForAdapterPosition(pos)
+                    if (vh != null) {
+                        vh.itemView.requestFocus()
+                    } else {
+                        rvSeries.scrollToPosition(pos)
+                        rvSeries.postDelayed({
+                            rvSeries.findViewHolderForAdapterPosition(pos)?.itemView?.requestFocus()
+                        }, 80)
+                    }
+                }, 80)
+            }
+        }
+    }
+
     private fun tratarSelecaoCategoria(catId: String) {
+        lastClickedSeriesId = -1
         currentCategoryId = catId
         if (catId == "FAVORITES") {
             carregarFavoritosSeries()
@@ -283,6 +334,10 @@ class SeriesActivity : BaseActivity() {
         } else {
             seriesAdapter?.atualizar(lista)
         }
+
+        if (lastClickedSeriesId != -1) {
+            focarUltimaSerie()
+        }
     }
 
     private fun alternarFavoritoSerie(serie: SeriesItem) {
@@ -308,6 +363,7 @@ class SeriesActivity : BaseActivity() {
     }
 
     private fun abrirDetalhesSerie(serie: SeriesItem) {
+        lastClickedSeriesId = serie.seriesId
         val intent = Intent(this, SeriesDetailActivity::class.java).apply {
             putExtra("SERIES_ID", serie.seriesId)
             putExtra("SERIES_NAME", serie.name)
@@ -440,6 +496,8 @@ class SeriesActivity : BaseActivity() {
         private val onClick: (SeriesItem) -> Unit,
         private val onLongClick: (SeriesItem) -> Unit
     ) : RecyclerView.Adapter<SeriesGridAdapter.ViewHolder>() {
+
+        fun getLista(): List<SeriesItem> = list
 
         fun atualizar(novaLista: List<SeriesItem>) {
             list = novaLista
