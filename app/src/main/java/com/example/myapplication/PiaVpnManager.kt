@@ -157,11 +157,11 @@ object PiaVpnManager {
                 val password = PiaVpnConfig.getPassword(context)
 
                 if (username.isBlank() || password.isBlank()) {
-                    throw IllegalStateException("Utilizador ou palavra-passe da PIA VPN não configurados.")
+                    throw IllegalStateException("Configuração de rede em falta.")
                 }
 
-                // Passo 1: Obter Token da PIA
-                updateState(VpnStatus.CONNECTING, "A autenticar…")
+                // Passo 1: Obter Token
+                updateState(VpnStatus.CONNECTING, "A ligar à rede segura…")
                 val token = getOrFetchToken(username, password)
 
                 // Passo 2: Gerar chaves WireGuard
@@ -170,7 +170,7 @@ object PiaVpnManager {
                 val privKey = keyPair.privateKey.toBase64()
                 val pubKey = keyPair.publicKey.toBase64()
 
-                // Passo 3: Registar chave no servidor PIA (/addKey na porta 1337)
+                // Passo 3: Registar chave no servidor (/addKey na porta 1337)
                 val encodedPubKey = URLEncoder.encode(pubKey, "UTF-8")
                 val encodedToken = URLEncoder.encode(token, "UTF-8")
                 val addKeyUrl = "https://${region.serverIp}:1337/addKey?pubkey=$encodedPubKey&pt=$encodedToken"
@@ -180,13 +180,12 @@ object PiaVpnManager {
                 val respBody = resp.body?.string().orEmpty()
 
                 if (!resp.isSuccessful) {
-                    throw IllegalStateException("Erro ao registar chave no servidor (${resp.code}): $respBody")
+                    throw IllegalStateException("Erro ao estabelecer túnel seguro.")
                 }
 
                 val json = JSONObject(respBody)
                 if (json.optString("status") != "OK") {
-                    val msg = json.optString("message", "Falha na resposta do servidor")
-                    throw IllegalStateException(msg)
+                    throw IllegalStateException("Servidor indisponível.")
                 }
 
                 val peerIp = json.getString("peer_ip")
@@ -237,7 +236,7 @@ object PiaVpnManager {
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                updateState(VpnStatus.ERROR, e.localizedMessage ?: "Erro desconhecido ao ligar à VPN")
+                updateState(VpnStatus.ERROR, "Não foi possível estabelecer ligação ao servidor. Tenta novamente.")
             }
         }
     }
@@ -311,17 +310,14 @@ object PiaVpnManager {
         val body2 = res2.body?.string().orEmpty()
 
         if (!res2.isSuccessful) {
-            val errJson = try { JSONObject(body2) } catch (_: Exception) { null }
-            val errMsg = errJson?.optString("message") ?: if (res2.code == 401) "Acesso Negado (401)" else "HTTP ${res2.code}"
             resetCachedToken()
-            throw IllegalStateException("Acesso Negado na PIA VPN ($errMsg). A conta '$user' foi rejeitada pelos servidores oficiais da PIA. Os utilizadores requerem a letra 'p' seguida de 7 dígitos (ex: p1234567).")
+            throw IllegalStateException("Falha ao ligar ao servidor.")
         }
 
         val json2 = JSONObject(body2)
         if (json2.optString("status") == "ERROR") {
-            val msg = json2.optString("message", "Credenciais incorretas")
             resetCachedToken()
-            throw IllegalStateException("Autenticação PIA falhou: $msg. Confirma os dados da subscrição.")
+            throw IllegalStateException("Falha ao ligar ao servidor.")
         }
 
         val token = json2.getString("token")

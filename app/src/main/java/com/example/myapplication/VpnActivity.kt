@@ -87,16 +87,10 @@ class VpnActivity : BaseActivity() {
             alternarVpn()
         }
 
-        // Atalho de administração (manter premido OK no botão de ligar ou clicar no escudo em erro)
+        // Atalho de administração (manter premido OK no botão de ligar)
         btnToggleVpn.setOnLongClickListener {
             mostrarDialogoCredenciaisOculto()
             true
-        }
-
-        ivVpnShield.setOnClickListener {
-            if (PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.ERROR) {
-                mostrarDialogoCredenciaisOculto()
-            }
         }
 
         // Foco dos botões no comando TV
@@ -297,11 +291,10 @@ class VpnActivity : BaseActivity() {
             }
             PiaVpnManager.VpnStatus.ERROR -> {
                 ivVpnShield.imageTintList = ColorStateList.valueOf(0xFFE53E3E.toInt())
-                tvVpnStatus.text = "ERRO DE AUTENTICAÇÃO"
+                tvVpnStatus.text = "FALHA NA LIGAÇÃO"
                 tvVpnStatus.setTextColor(0xFFE53E3E.toInt())
-                val detail = message ?: "Servidor rejeitou as credenciais (utilizador/password incorretos ou conta inativa)."
-                tvVpnStatusSub.text = detail
-                tvVpnIp.text = "Acesso Negado"
+                tvVpnStatusSub.text = "Não foi possível estabelecer ligação ao servidor. Tenta novamente."
+                tvVpnIp.text = "—"
 
                 btnToggleVpn.text = "TENTAR NOVAMENTE"
                 btnToggleVpn.background = GradientDrawable().apply {
@@ -309,39 +302,8 @@ class VpnActivity : BaseActivity() {
                     cornerRadius = dp(10).toFloat()
                 }
                 durationHandler.removeCallbacks(durationRunnable)
-
-                mostrarDialogoErro(detail)
             }
         }
-    }
-
-    private var isErrorDialogShowing = false
-
-    private fun mostrarDialogoErro(detail: String) {
-        if (isFinishing || isDestroyed || isErrorDialogShowing) return
-        isErrorDialogShowing = true
-
-        val username = PiaVpnConfig.getUsername(this)
-        AlertDialog.Builder(this)
-            .setTitle("Falha na Ligação VPN")
-            .setMessage(
-                "A conta configurada ($username) foi rejeitada pelo servidor (Acesso Negado).\n\n" +
-                "Por favor confirma os dados de acesso ou se a subscrição se encontra ativa."
-            )
-            .setPositiveButton("Compreendi") { dialog, _ ->
-                dialog.dismiss()
-                isErrorDialogShowing = false
-                btnToggleVpn.requestFocus()
-            }
-            .setNeutralButton("Alterar Conta") { dialog, _ ->
-                dialog.dismiss()
-                isErrorDialogShowing = false
-                mostrarDialogoCredenciaisOculto()
-            }
-            .setOnDismissListener {
-                isErrorDialogShowing = false
-            }
-            .show()
     }
 
     private fun mostrarDialogoCredenciaisOculto() {
