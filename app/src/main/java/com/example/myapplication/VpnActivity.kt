@@ -31,7 +31,6 @@ class VpnActivity : BaseActivity() {
     private val REQUEST_VPN_CODE = 4455
 
     private lateinit var btnBackVpn: ImageButton
-    private lateinit var btnAccountVpn: Button
     private lateinit var btnToggleVpn: Button
     private lateinit var ivVpnShield: ImageView
     private lateinit var tvVpnStatus: TextView
@@ -70,7 +69,6 @@ class VpnActivity : BaseActivity() {
         setContentView(R.layout.activity_vpn)
 
         btnBackVpn = findViewById(R.id.btnBackVpn)
-        btnAccountVpn = findViewById(R.id.btnAccountVpn)
         btnToggleVpn = findViewById(R.id.btnToggleVpn)
         ivVpnShield = findViewById(R.id.ivVpnShield)
         tvVpnStatus = findViewById(R.id.tvVpnStatus)
@@ -85,17 +83,12 @@ class VpnActivity : BaseActivity() {
 
         btnBackVpn.setOnClickListener { finish() }
 
-        btnAccountVpn.setOnClickListener {
-            abrirDialogoConta()
-        }
-
         btnToggleVpn.setOnClickListener {
             alternarVpn()
         }
 
         // Foco dos botões no comando TV
         configurarFoco(btnBackVpn, 1.08f)
-        configurarFoco(btnAccountVpn, 1.06f)
         configurarFoco(btnToggleVpn, 1.04f)
 
         // Carrega servidores
@@ -274,7 +267,12 @@ class VpnActivity : BaseActivity() {
                 ivVpnShield.imageTintList = ColorStateList.valueOf(0xFFE53E3E.toInt())
                 tvVpnStatus.text = "ERRO DE LIGAÇÃO"
                 tvVpnStatus.setTextColor(0xFFE53E3E.toInt())
-                tvVpnStatusSub.text = message ?: "Falha ao ligar aos servidores da PIA"
+                val detail = message ?: "Falha ao ligar aos servidores da PIA"
+                tvVpnStatusSub.text = if (detail.contains("Autenticação", ignoreCase = true) || detail.contains("auth", ignoreCase = true)) {
+                    "Conta PIA VPN inválida ou expirada. Confirma o utilizador e a palavra-passe com o fornecedor."
+                } else {
+                    detail
+                }
                 tvVpnIp.text = "Falhou"
 
                 btnToggleVpn.text = "TENTAR NOVAMENTE"
@@ -285,31 +283,6 @@ class VpnActivity : BaseActivity() {
                 durationHandler.removeCallbacks(durationRunnable)
             }
         }
-    }
-
-    private fun abrirDialogoConta() {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_vpn_account, null)
-        val etUser = view.findViewById<EditText>(R.id.etPiaUser)
-        val etPass = view.findViewById<EditText>(R.id.etPiaPass)
-
-        etUser.setText(PiaVpnConfig.getUsername(this))
-        etPass.setText(PiaVpnConfig.getPassword(this))
-
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("Conta Private Internet Access (PIA)")
-            .setView(view)
-            .setPositiveButton("Guardar") { dialog, _ ->
-                val novoUser = etUser.text.toString().trim()
-                val novaPass = etPass.text.toString().trim()
-                if (novoUser.isNotEmpty()) PiaVpnConfig.setUsername(this, novoUser)
-                if (novaPass.isNotEmpty()) PiaVpnConfig.setPassword(this, novaPass)
-                Toast.makeText(this, "Credenciais guardadas com sucesso", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancelar") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
     }
 
     // --- ADAPTADOR DE LOCALIZAÇÕES ---

@@ -44,19 +44,6 @@
             android:textColor="#FFFFFF"
             android:textSize="17sp"
             android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnAccountVpn"
-            android:layout_width="wrap_content"
-            android:layout_height="38dp"
-            android:background="@drawable/bg_icon_button"
-            android:focusable="true"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:text="Conta PIA"
-            android:textColor="#42D6E8"
-            android:textSize="13sp"
-            android:textStyle="bold" />
     </LinearLayout>
 
     <View
