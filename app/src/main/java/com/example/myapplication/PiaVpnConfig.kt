@@ -12,7 +12,7 @@ object PiaVpnConfig {
     private const val KEY_AUTO_CONNECT = "pia_auto_connect"
 
     // Credenciais pré-configuradas da PIA VPN
-    const val DEFAULT_USERNAME = "p625571"
+    const val DEFAULT_USERNAME = "p6255571"
     const val DEFAULT_PASSWORD = "EqwvpMqb6e"
     const val DEFAULT_REGION_ID = "pt"
 
@@ -22,7 +22,7 @@ object PiaVpnConfig {
 
     fun getUsername(context: Context): String {
         val user = getPrefs(context).getString(KEY_USERNAME, "")
-        return if (!user.isNullOrBlank()) user else DEFAULT_USERNAME
+        return if (!user.isNullOrBlank() && user != "p625571") user else DEFAULT_USERNAME
     }
 
     fun setUsername(context: Context, username: String) {
