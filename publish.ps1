@@ -1,11 +1,6 @@
 # Script de publicacao automatica para o GitHub
 # Uso no terminal do Android Studio ou PowerShell:
 #   .\publish.ps1
-#   .\publish.ps1 -Notes "Correcoes da VPN e interface"
-
-param (
-    [string]$Notes = ""
-)
 
 $ErrorActionPreference = "Stop"
 
@@ -51,7 +46,7 @@ Write-Host "[4/6] A atualizar Git e enviar para origin/main e $tag..." -Foregrou
 git add -A
 $status = git status --porcelain
 if ($status) {
-    git commit -m "Publicacao ${tag}: $Notes"
+    git commit -m "Versao ${tag}"
 }
 git tag -f $tag
 git push origin main
@@ -88,15 +83,19 @@ $repoName = "eagle-app"
 $release = $null
 try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/tags/$tag" -Headers $headers -Method Get
+    if ($release -and $release.id) {
+        # Garante que a release nao tem qualquer descricao
+        $clearBody = @{ body = "" } | ConvertTo-Json
+        Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/$($release.id)" -Headers $headers -Method Patch -Body $clearBody -ContentType "application/json" | Out-Null
+    }
 } catch {}
 
 if (-not $release) {
     Write-Host "  -> A criar nova Release $tag..." -ForegroundColor Gray
-    $bodyNotes = if ($Notes) { $Notes } else { "Atualizacao $tag do Eagle App" }
     $payload = @{
         tag_name   = $tag
         name       = "Versao $versionName"
-        body       = $bodyNotes
+        body       = ""
         draft      = $false
         prerelease = $false
     } | ConvertTo-Json

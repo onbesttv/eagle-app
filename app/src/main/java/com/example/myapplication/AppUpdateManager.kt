@@ -313,33 +313,14 @@ object AppUpdateManager {
         panel.addView(title)
 
         val versionText = TextView(activity).apply {
-            text = "Nova Versão: ${release.tagName} (${release.releaseName})"
+            text = "Nova Versão: ${release.tagName}"
             setTextColor(0xFF42D6E8.toInt())
             textSize = 15f
             setTypeface(null, android.graphics.Typeface.BOLD)
             gravity = Gravity.CENTER
-            setPadding(0, dp(activity, 6), 0, dp(activity, 10))
+            setPadding(0, dp(activity, 6), 0, dp(activity, 14))
         }
         panel.addView(versionText)
-
-        if (release.releaseNotes.isNotBlank()) {
-            val notesContainer = ScrollView(activity).apply {
-                isFillViewport = true
-            }
-            val notesText = TextView(activity).apply {
-                text = "Novidades:\n${release.releaseNotes}"
-                setTextColor(0xFFCFDCE8.toInt())
-                textSize = 13f
-                setPadding(dp(activity, 14), dp(activity, 10), dp(activity, 14), dp(activity, 10))
-                background = GradientDrawable().apply {
-                    setColor(0x33101C2B)
-                    cornerRadius = dp(activity, 10).toFloat()
-                    setStroke(dp(activity, 1), 0x444A627B)
-                }
-            }
-            notesContainer.addView(notesText)
-            panel.addView(notesContainer, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(activity, 120)))
-        }
 
         val dialog = AlertDialog.Builder(activity)
             .setView(panel)
