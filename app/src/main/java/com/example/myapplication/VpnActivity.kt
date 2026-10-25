@@ -239,7 +239,7 @@ class VpnActivity : BaseActivity() {
                 tvVpnStatus.setTextColor(0xFF48BB78.toInt())
                 tvVpnStatusSub.text = "A tua ligação está encriptada e protegida"
                 tvVpnIp.text = PiaVpnManager.getProtectedIp() ?: "Ativo"
-                tvVpnIp.setTextColor(0xFF42D6E8.toInt())
+                tvVpnIp.setTextColor(AppThemeColors.mapColor(this, 0xFF42D6E8.toInt()))
 
                 btnToggleVpn.text = "DESLIGAR VPN"
                 btnToggleVpn.background = GradientDrawable().apply {
@@ -284,7 +284,7 @@ class VpnActivity : BaseActivity() {
 
                 btnToggleVpn.text = "LIGAR VPN"
                 btnToggleVpn.background = GradientDrawable().apply {
-                    setColor(0xFF2B6CB0.toInt())
+                    setColor(AppThemeColors.mapColor(this@VpnActivity, 0xFF2B6CB0.toInt()))
                     cornerRadius = dp(10).toFloat()
                 }
                 durationHandler.removeCallbacks(durationRunnable)
@@ -298,7 +298,7 @@ class VpnActivity : BaseActivity() {
 
                 btnToggleVpn.text = "TENTAR NOVAMENTE"
                 btnToggleVpn.background = GradientDrawable().apply {
-                    setColor(0xFF2B6CB0.toInt())
+                    setColor(AppThemeColors.mapColor(this@VpnActivity, 0xFF2B6CB0.toInt()))
                     cornerRadius = dp(10).toFloat()
                 }
                 durationHandler.removeCallbacks(durationRunnable)
@@ -404,6 +404,7 @@ class VpnActivity : BaseActivity() {
             holder.name.text = reg.name
 
             // Badge de estado do país
+            val ctx = holder.itemView.context
             when {
                 isConnectedThis -> {
                     holder.badge.visibility = View.VISIBLE
@@ -418,7 +419,7 @@ class VpnActivity : BaseActivity() {
                 reg.isStreamingOptimized -> {
                     holder.badge.visibility = View.VISIBLE
                     holder.badge.text = "⚡ Otimizado para Streaming"
-                    holder.badge.setTextColor(0xFF42D6E8.toInt())
+                    holder.badge.setTextColor(AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                 }
                 else -> {
                     holder.badge.visibility = View.GONE
@@ -435,7 +436,7 @@ class VpnActivity : BaseActivity() {
                 isSelected -> {
                     holder.check.visibility = View.VISIBLE
                     holder.check.setImageResource(android.R.drawable.checkbox_on_background)
-                    holder.check.imageTintList = ColorStateList.valueOf(0xFF42D6E8.toInt())
+                    holder.check.imageTintList = ColorStateList.valueOf(AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                 }
                 else -> {
                     holder.check.visibility = View.INVISIBLE
@@ -444,7 +445,7 @@ class VpnActivity : BaseActivity() {
 
             val updateCardStyle: (Boolean) -> Unit = { hasFocus ->
                 if (hasFocus) {
-                    holder.card.setCardBackgroundColor(0xFF2A4365.toInt())
+                    holder.card.setCardBackgroundColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                     holder.card.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
                     holder.card.elevation = dp(8).toFloat()
                 } else if (isConnectedThis) {
@@ -452,11 +453,11 @@ class VpnActivity : BaseActivity() {
                     holder.card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                     holder.card.elevation = dp(4).toFloat()
                 } else if (isSelected) {
-                    holder.card.setCardBackgroundColor(0xFF1E3250.toInt())
+                    holder.card.setCardBackgroundColor(AppThemeColors.mapColor(ctx, 0xFF1E3250.toInt()))
                     holder.card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                     holder.card.elevation = dp(4).toFloat()
                 } else {
-                    holder.card.setCardBackgroundColor(0xFF101A2B.toInt())
+                    holder.card.setCardBackgroundColor(AppThemeColors.mapColor(ctx, 0xFF101A2B.toInt()))
                     holder.card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                     holder.card.elevation = dp(2).toFloat()
                 }

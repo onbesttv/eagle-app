@@ -20,6 +20,16 @@ open class BaseActivity : AppCompatActivity() {
         super.attachBaseContext(LocaleHelper.applyLocale(newBase))
     }
 
+    override fun setContentView(layoutResID: Int) {
+        super.setContentView(layoutResID)
+        AppThemeColors.applyToActivity(this)
+    }
+
+    override fun setContentView(view: android.view.View?) {
+        super.setContentView(view)
+        AppThemeColors.applyToActivity(this)
+    }
+
     override fun onResume() {
         super.onResume()
         heartbeatHandler.removeCallbacks(heartbeatRunnable)

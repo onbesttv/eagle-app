@@ -23,6 +23,21 @@ object RemotePanelManager {
     private const val SUPABASE_URL = "https://myreymyqsnikjdhnstjn.supabase.co"
     private const val SUPABASE_KEY = "sb_publishable_Jsb0b0Kcf5-bv6GCUFu3KA_wO1G9HjM"
 
+    /**
+     * ID do Revendedor desta App (Modelo 2 - White-Label / Rebrand).
+     * - "master" = A tua App Oficial principal.
+     * - Quando venderes a app a um revendedor, basta mudar para o ID que criaste para ele no Painel (ex: "revenda_carlos").
+     */
+    const val RESELLER_ID = "master"
+
+    fun getResellerId(context: Context): String {
+        return try {
+            context.getString(R.string.reseller_id).trim().lowercase().ifEmpty { RESELLER_ID }
+        } catch (_: Exception) {
+            RESELLER_ID
+        }
+    }
+
     private const val PREFS = "remote_panel_prefs"
     private const val KEY_DEVICE_ID = "DEVICE_ID"
     private const val KEY_IS_BLOCKED = "IS_BLOCKED"
@@ -109,6 +124,7 @@ object RemotePanelManager {
             put("p_service", activeService)
             put("p_device_name", getDeviceName())
             put("p_app_version", getAppVersion(appContext))
+            put("p_reseller_id", getResellerId(appContext))
         }
 
         val request = Request.Builder()

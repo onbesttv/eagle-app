@@ -24,16 +24,16 @@ if ($gradleContent -match 'versionName\s*=\s*"([^"]+)"') {
 $tag = "v$versionName"
 Write-Host "`n[1/6] Versao detetada: $versionName (Tag: $tag)" -ForegroundColor Yellow
 
-# 2. Compilar APK
-Write-Host "[2/6] A compilar APK com Gradle..." -ForegroundColor Yellow
+# 2. Compilar APK (Variante Master = App Eagle Oficial)
+Write-Host "[2/6] A compilar APK Master com Gradle..." -ForegroundColor Yellow
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-$buildResult = .\gradlew.bat assembleDebug
+$buildResult = .\gradlew.bat assembleMasterDebug
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Falha na compilacao com Gradle."
 }
 
 # 3. Copiar para eagle.apk
-$srcApk = "app\build\outputs\apk\debug\app-debug.apk"
+$srcApk = "app\build\outputs\apk\master\debug\app-master-debug.apk"
 if (-not (Test-Path $srcApk)) {
     Write-Error "APK gerado nao encontrado em $srcApk"
 }
@@ -54,11 +54,11 @@ git push origin $tag --force
 
 # 5. Obter credencial do GitHub do Windows Credential Manager
 Write-Host "[5/6] A autenticar na API do GitHub..." -ForegroundColor Yellow
-$credRaw = ("url=https://github.com" | git credential fill | Out-String)
+$credRaw = ("protocol=https`nhost=github.com`nusername=onbesttv`n`n" | git credential fill | Out-String)
 $token = ""
 foreach ($line in ($credRaw -split "`n")) {
     if ($line.Trim().StartsWith("password=")) {
-        $token = $line.Trim().Substring(9)
+        $token = $line.Trim().Substring(9).Trim()
         break
     }
 }

@@ -7,6 +7,10 @@ object IptvServiceConfig {
     const val BEST = "best"
     const val BEST2 = "best2"
 
+    fun displayName(serviceId: String): String {
+        return if (serviceId == BEST2) "Templarios" else "StreamPlay"
+    }
+
     private const val PREFS = "iptv_login_prefs"
     private const val KEY_ACTIVE = "ACTIVE_SERVICE"
     private const val KEY_INITIALIZED = "MULTI_SERVICE_V1"

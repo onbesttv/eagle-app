@@ -195,21 +195,22 @@ class CatchUpActivity : BaseActivity() {
 
     private fun updateDayButtonStyle(button: TextView, hasFocus: Boolean) {
         val selected = button.tag == selectedDate
+        val ctx = button.context
         button.background = GradientDrawable().apply {
             when {
                 hasFocus -> {
-                    setColor(0xFF2A4365.toInt())
-                    setStroke(dp(2), 0xFF42D6E8.toInt())
+                    setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
+                    setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                     cornerRadius = dp(9).toFloat()
                 }
                 selected -> {
-                    setColor(0xFF23324A.toInt())
-                    setStroke(dp(2), 0xFF3182CE.toInt())
+                    setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
+                    setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF3182CE.toInt()))
                     cornerRadius = dp(9).toFloat()
                 }
                 else -> {
-                    setColor(0xFF172338.toInt())
-                    setStroke(dp(1), 0xFF2B3D59.toInt())
+                    setColor(AppThemeColors.mapColor(ctx, 0xFF172338.toInt()))
+                    setStroke(dp(1), AppThemeColors.mapColor(ctx, 0xFF2B3D59.toInt()))
                     cornerRadius = dp(9).toFloat()
                 }
             }
@@ -365,13 +366,14 @@ class CatchUpActivity : BaseActivity() {
 
             val updateBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                val ctx = holder.itemView.context
                 holder.itemView.background = android.graphics.drawable.GradientDrawable().apply {
                     if (hasFocus) {
-                        setColor(0xFF2A4365.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
+                        setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else if (currentSelected) {
-                        setColor(0xFF23324A.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else {
                         setColor(android.graphics.Color.TRANSPARENT)
@@ -402,35 +404,36 @@ class CatchUpActivity : BaseActivity() {
             val description: TextView = view.findViewById(3)
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProgramHolder {
-            val card = CardView(parent.context).apply {
+            val ctx = parent.context
+            val card = CardView(ctx).apply {
                 radius = dp(14).toFloat()
                 cardElevation = dp(2).toFloat()
-                setCardBackgroundColor(0xFF121D2D.toInt())
+                setCardBackgroundColor(AppThemeColors.mapColor(ctx, 0xFF121D2D.toInt()))
                 useCompatPadding = true
                 isFocusable = true
                 isClickable = true
                 setOnFocusChangeListener { v, hasFocus ->
                     val cv = v as CardView
                     if (hasFocus) {
-                        cv.setCardBackgroundColor(0xFF2A4365.toInt())
+                        cv.setCardBackgroundColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                         cv.elevation = dp(6).toFloat()
                         cv.animate().scaleX(1.02f).scaleY(1.02f).setDuration(100).start()
                     } else {
-                        cv.setCardBackgroundColor(0xFF121D2D.toInt())
+                        cv.setCardBackgroundColor(AppThemeColors.mapColor(ctx, 0xFF121D2D.toInt()))
                         cv.elevation = dp(2).toFloat()
                         cv.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
                     }
                 }
             }
-            val row = LinearLayout(parent.context).apply {
+            val row = LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(16), dp(12), dp(16), dp(12))
             }
-            val time = TextView(parent.context).apply {
+            val time = TextView(ctx).apply {
                 id = 1
                 textSize = 13f
-                setTextColor(0xFF42D6E8.toInt())
+                setTextColor(AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                 setTypeface(null, Typeface.BOLD)
                 gravity = Gravity.CENTER
             }

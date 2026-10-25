@@ -26,7 +26,7 @@ class ServiceSelectionActivity : BaseActivity() {
             findViewById<LinearLayout>(R.id.serviceChoices).visibility = View.GONE
             findViewById<LinearLayout>(R.id.autoLoginPanel).visibility = View.VISIBLE
             findViewById<ProgressBar>(R.id.pbServiceSelection).visibility = View.VISIBLE
-            findViewById<TextView>(R.id.tvStartupServiceBrand).text = selectedService.uppercase()
+            findViewById<TextView>(R.id.tvStartupServiceBrand).text = IptvServiceConfig.displayName(selectedService).uppercase()
             startActivity(Intent(this, StreamPlayLoginActivity::class.java)
                 .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
                 .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, selectedService))
@@ -73,8 +73,11 @@ class ServiceSelectionActivity : BaseActivity() {
             }
         }
 
-        // Foco inicial direto no cartão do serviço atualmente ativo
+        // Foco inicial direto no cartão do serviço atualmente ativo e verificação automática de atualizações
         val initialCard = if (selectedService == IptvServiceConfig.BEST2) cardOtherService else cardStreamPlay
-        initialCard.post { initialCard.requestFocus() }
+        initialCard.post {
+            initialCard.requestFocus()
+            AppUpdateManager.checkForUpdates(this, manual = false)
+        }
     }
 }

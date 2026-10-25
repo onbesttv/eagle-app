@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eagle TV — Painel de Administração</title>
+    <title>Eagle TV — Painel Master & Revendedores</title>
     <style>
         :root {
             --bg-main: #0b0f17;
@@ -15,6 +15,7 @@
             --success: #10b981;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --purple: #a855f7;
             --text-main: #f1f5f9;
             --text-muted: #94a3b8;
         }
@@ -29,7 +30,6 @@
             color: var(--text-main);
             min-height: 100vh;
         }
-        /* Login Screen */
         #loginScreen {
             display: flex;
             align-items: center;
@@ -43,7 +43,7 @@
             border-radius: 16px;
             padding: 36px 32px;
             width: 100%;
-            max-width: 400px;
+            max-width: 410px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
         .login-title {
@@ -58,10 +58,9 @@
             text-align: center;
             margin-bottom: 24px;
         }
-        /* Dashboard Layout */
         #dashboardScreen {
             display: none;
-            max-width: 1280px;
+            max-width: 1320px;
             margin: 0 auto;
             padding: 24px 20px 60px;
         }
@@ -69,7 +68,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             padding-bottom: 16px;
             border-bottom: 1px solid var(--border);
             flex-wrap: wrap;
@@ -82,8 +81,8 @@
         }
         .brand-badge {
             background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
             display: flex;
             align-items: center;
@@ -103,8 +102,31 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
-        /* Stats Grid */
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+        .tab-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -133,7 +155,6 @@
             color: var(--text-muted);
             margin-top: 4px;
         }
-        /* Main Sections */
         .grid-2col {
             display: grid;
             grid-template-columns: 1fr;
@@ -159,7 +180,7 @@
         }
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 16px;
         }
         .form-group {
@@ -172,7 +193,7 @@
             color: var(--text-muted);
             margin-bottom: 6px;
         }
-        input[type="text"], input[type="password"], input[type="url"], select {
+        input[type="text"], input[type="password"], input[type="url"], input[type="number"], input[type="date"], select {
             width: 100%;
             background: var(--bg-input);
             border: 1px solid var(--border);
@@ -183,7 +204,7 @@
             outline: none;
             transition: border-color 0.15s;
         }
-        input:focus {
+        input:focus, select:focus {
             border-color: var(--accent);
         }
         .btn {
@@ -213,6 +234,7 @@
         .btn-danger:hover { background: #dc2626; }
         .btn-success { background: var(--success); }
         .btn-success:hover { background: #059669; }
+        .btn-warning { background: var(--warning); color: #000; }
         .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
         .switch-row {
             display: flex;
@@ -226,7 +248,6 @@
             accent-color: var(--warning);
             cursor: pointer;
         }
-        /* Table */
         .filters-bar {
             display: flex;
             gap: 10px;
@@ -234,8 +255,8 @@
             margin-bottom: 16px;
             align-items: center;
         }
-        .filters-bar input {
-            max-width: 300px;
+        .filters-bar input, .filters-bar select {
+            max-width: 260px;
         }
         .pill-btn {
             background: var(--bg-input);
@@ -290,6 +311,29 @@
         .badge-online { background: rgba(16,185,129,0.18); color: #34d399; }
         .badge-offline { background: rgba(148,163,184,0.14); color: #94a3b8; }
         .badge-blocked { background: rgba(239,68,68,0.2); color: #f87171; }
+        .badge-reseller { background: rgba(245,158,11,0.18); color: #fbbf24; text-transform: none; }
+
+        /* Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 900;
+        }
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 26px;
+            width: 100%;
+            max-width: 560px;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
         .toast {
             position: fixed;
             bottom: 24px;
@@ -305,6 +349,15 @@
             display: none;
             z-index: 999;
         }
+        code.id-chip {
+            background: #0b0f17;
+            border: 1px solid var(--border);
+            padding: 3px 7px;
+            border-radius: 6px;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            color: #60a5fa;
+        }
     </style>
 </head>
 <body>
@@ -312,12 +365,16 @@
 <!-- ECRÃ DE LOGIN -->
 <div id="loginScreen">
     <div class="login-box">
-        <div class="login-title">Eagle TV Admin</div>
-        <div class="login-sub">Painel de Gestão de DNS e Utilizadores</div>
+        <div class="login-title">Eagle TV — Painel</div>
+        <div class="login-sub">Acesso Master & Painel de Revendedores</div>
         <form id="loginForm">
             <div class="form-group">
-                <label>Password de Administrador</label>
-                <input type="password" id="loginPassword" placeholder="Introduz a password..." required autofocus>
+                <label>ID de Utilizador / Revenda</label>
+                <input type="text" id="loginResellerId" value="master" placeholder="master ou ID do revendedor" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="Introduz a tua password..." required autofocus>
             </div>
             <div id="loginError" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
             <button type="submit" class="btn" id="btnLogin" style="width: 100%;">Entrar no Painel</button>
@@ -329,16 +386,23 @@
 <div id="dashboardScreen">
     <div class="topbar">
         <div class="brand">
-            <div class="brand-badge">E</div>
+            <div class="brand-badge" id="brandBadge">E</div>
             <div>
-                <h1>Eagle TV — Painel de Controlo</h1>
+                <h1 id="panelTitle">Eagle TV — Painel de Controlo</h1>
                 <span id="lastSyncLabel">Ligado ao Supabase em tempo real</span>
             </div>
         </div>
         <div class="topbar-actions">
+            <span id="roleBadge" class="badge badge-best" style="padding: 7px 12px; font-size: 12px;">MASTER</span>
             <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar Dados</button>
             <button class="btn btn-outline" onclick="logout()">Sair</button>
         </div>
+    </div>
+
+    <!-- ABAS DE NAVEGAÇÃO (Apenas visível para o Master) -->
+    <div class="nav-tabs" id="masterTabs" style="display: none;">
+        <button class="tab-btn active" id="tabBtnMain" onclick="switchTab('main')">📺 DNS & Dispositivos</button>
+        <button class="tab-btn" id="tabBtnResellers" onclick="switchTab('resellers')">🤝 Gerir Revendedores (Apps White-Label)</button>
     </div>
 
     <!-- CARTÕES DE ESTATÍSTICAS -->
@@ -346,7 +410,7 @@
         <div class="stat-card">
             <div class="stat-label">Total de Dispositivos</div>
             <div class="stat-value" id="statTotal">0</div>
-            <div class="stat-sub">Boxes / TVs registadas</div>
+            <div class="stat-sub" id="statLimitSub">Boxes / TVs registadas</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Ativos Agora (< 15 min)</div>
@@ -356,30 +420,30 @@
         <div class="stat-card">
             <div class="stat-label">Distribuição de Serviço</div>
             <div class="stat-value" id="statServices">0 / 0</div>
-            <div class="stat-sub">BEST vs BEST2</div>
+            <div class="stat-sub">StreamPlay vs Templarios</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Acessos Bloqueados</div>
+            <div class="stat-label" id="statFourthLabel">Acessos Bloqueados</div>
             <div class="stat-value" id="statBlocked" style="color: var(--danger);">0</div>
-            <div class="stat-sub">Impedidos de entrar na app</div>
+            <div class="stat-sub" id="statFourthSub">Impedidos de entrar na app</div>
         </div>
     </div>
 
-    <div class="grid-2col">
-        <!-- CONFIGURAÇÃO DE DNS E AVISOS -->
+    <!-- ABA 1: DNS & DISPOSITIVOS -->
+    <div id="tabContentMain" class="grid-2col">
         <div class="card">
             <div class="card-header">
-                <div class="card-title">⚙️ Configuração Remota de DNS & Avisos</div>
+                <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS & Avisos</div>
                 <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
             </div>
             <form id="configForm">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>DNS Serviço BEST (Principal)</label>
+                        <label>DNS Serviço 1 (StreamPlay / Principal)</label>
                         <input type="url" id="cfgBestUrl" placeholder="https://thebestplay.site" required>
                     </div>
                     <div class="form-group">
-                        <label>DNS Serviço BEST2 (Secundário)</label>
+                        <label>DNS Serviço 2 (Templarios / Secundário)</label>
                         <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080" required>
                     </div>
                 </div>
@@ -389,21 +453,20 @@
                         <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
                     </div>
                     <div class="form-group">
-                        <label>Nova Password do Painel Admin (Opcional)</label>
-                        <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a senha atual">
+                        <label>Nova Password deste Painel (Opcional)</label>
+                        <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a tua senha">
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 6px;">
                     <label class="switch-row" style="cursor: pointer;">
                         <input type="checkbox" id="cfgMaintenance">
-                        <span style="font-size: 13px; font-weight: 600;">Ativar Modo de Manutenção Geral (suspende temporariamente a entrada na app)</span>
+                        <span style="font-size: 13px; font-weight: 600;">Ativar Modo de Manutenção (suspende temporariamente a entrada na app)</span>
                     </label>
                     <button type="submit" class="btn" id="btnSaveConfig">💾 Guardar Alterações</button>
                 </div>
             </form>
         </div>
 
-        <!-- LISTA DE UTILIZADORES E BOXES -->
         <div class="card">
             <div class="card-header">
                 <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
@@ -411,10 +474,13 @@
 
             <div class="filters-bar">
                 <input type="text" id="searchInput" placeholder="Pesquisar utilizador, modelo ou ID..." oninput="renderDevices()">
+                <select id="resellerFilterSelect" style="display: none;" onchange="renderDevices()">
+                    <option value="all">Todas as Revendas + Master</option>
+                </select>
                 <button class="pill-btn active" data-filter="all" onclick="setFilter('all', this)">Todos</button>
                 <button class="pill-btn" data-filter="online" onclick="setFilter('online', this)">Online</button>
-                <button class="pill-btn" data-filter="best" onclick="setFilter('best', this)">BEST</button>
-                <button class="pill-btn" data-filter="best2" onclick="setFilter('best2', this)">BEST2</button>
+                <button class="pill-btn" data-filter="best" onclick="setFilter('best', this)">StreamPlay</button>
+                <button class="pill-btn" data-filter="best2" onclick="setFilter('best2', this)">Templarios</button>
                 <button class="pill-btn" data-filter="blocked" onclick="setFilter('blocked', this)">Bloqueados</button>
             </div>
 
@@ -424,21 +490,118 @@
                         <tr>
                             <th>Estado</th>
                             <th>Utilizador (Linha)</th>
+                            <th>Revenda / App</th>
                             <th>Serviço</th>
                             <th>Box / Dispositivo</th>
-                            <th>Versão App</th>
+                            <th>Versão</th>
                             <th>Último Acesso</th>
                             <th style="text-align: right;">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="devicesTableBody">
                         <tr>
-                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 28px;">A carregar dispositivos...</td>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">A carregar dispositivos...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- ABA 2: GESTÃO DE REVENDEDORES (Apenas Master) -->
+    <div id="tabContentResellers" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">🤝 Revendedores de App (Modelo 2 — Rebrand / White-Label)</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        Cria aqui um ID para cada revendedor a quem venderes a App. Cada revendedor pode entrar neste mesmo painel com o ID e Password dele para gerir apenas os DNS e clientes dele!
+                    </div>
+                </div>
+                <button class="btn" onclick="openResellerModal()">➕ Novo Revendedor</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>ID no Código (<code style="color:#60a5fa">RESELLER_ID</code>)</th>
+                            <th>Nome / Marca</th>
+                            <th>Password Painel</th>
+                            <th>DNS 1 & DNS 2</th>
+                            <th>Boxes Ativas / Limite</th>
+                            <th>Validade Mensalidade</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resellersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CRIAR / EDITAR REVENDEDOR -->
+<div class="modal-backdrop" id="resellerModal">
+    <div class="modal-box">
+        <div class="card-header" style="margin-bottom: 14px;">
+            <div class="card-title" id="modalResellerTitle">Novo Revendedor</div>
+            <button class="btn btn-outline btn-sm" onclick="closeResellerModal()">✕</button>
+        </div>
+        <form id="resellerForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>ID do Revendedor (ex: <code>carlos_tv</code>)</label>
+                    <input type="text" id="resIdInput" placeholder="carlos_tv" pattern="[a-zA-Z0-9_-]+" required>
+                    <small style="color:var(--text-muted); font-size:11px;">Este é o código que colocas em <code>RESELLER_ID</code> no APK dele.</small>
+                </div>
+                <div class="form-group">
+                    <label>Nome da Marca / Revenda</label>
+                    <input type="text" id="resBrandInput" placeholder="Carlos TV Pro" required>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Password de Acesso ao Painel dele</label>
+                    <input type="text" id="resPassInput" placeholder="Senha para o revendedor entrar" required>
+                </div>
+                <div class="form-group">
+                    <label>Limite Máx. de Boxes (0 = Ilimitado)</label>
+                    <input type="number" id="resMaxDevicesInput" value="0" min="0" required>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>DNS 1 do Revendedor (StreamPlay)</label>
+                    <input type="url" id="resBestUrlInput" placeholder="https://dns1-do-revenda.site" required>
+                </div>
+                <div class="form-group">
+                    <label>DNS 2 do Revendedor (Templarios — ou igual ao 1)</label>
+                    <input type="url" id="resBest2UrlInput" placeholder="http://dns2-do-revenda.xyz:8080" required>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Validade do Painel/App (Vazio = Sem expiração)</label>
+                    <input type="date" id="resExpiresInput">
+                </div>
+                <div class="form-group">
+                    <label>Mensagem quando Suspenso por Falta de Pagamento</label>
+                    <input type="text" id="resSuspendReasonInput" value="Serviço suspenso temporariamente. Contacte o seu fornecedor.">
+                </div>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 12px;">
+                <label class="switch-row" style="padding:0;">
+                    <input type="checkbox" id="resSuspendedInput">
+                    <span style="font-size:13px; font-weight:600; color: var(--danger);">Suspender todas as Apps deste Revendedor</span>
+                </label>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-outline" onclick="closeResellerModal()">Cancelar</button>
+                    <button type="submit" class="btn" id="btnSaveReseller">Guardar Revendedor</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -448,8 +611,12 @@
     const SUPABASE_URL = "https://myreymyqsnikjdhnstjn.supabase.co";
     const SUPABASE_KEY = "sb_publishable_Jsb0b0Kcf5-bv6GCUFu3KA_wO1G9HjM";
 
+    let currentResellerId = sessionStorage.getItem("eagle_reseller_id") || "master";
     let adminPassword = sessionStorage.getItem("eagle_admin_pass") || "";
+    let isMasterRole = false;
+    let multiResellerEnabled = true;
     let allDevices = [];
+    let allResellers = [];
     let currentFilter = "all";
 
     async function rpcCall(fnName, params) {
@@ -474,11 +641,19 @@
         t.textContent = msg;
         t.style.borderColor = isError ? "var(--danger)" : "var(--success)";
         t.style.display = "block";
-        setTimeout(() => { t.style.display = "none"; }, 3500);
+        setTimeout(() => { t.style.display = "none"; }, 3800);
+    }
+
+    function switchTab(tab) {
+        document.getElementById("tabBtnMain").classList.toggle("active", tab === "main");
+        document.getElementById("tabBtnResellers").classList.toggle("active", tab === "resellers");
+        document.getElementById("tabContentMain").style.display = tab === "main" ? "grid" : "none";
+        document.getElementById("tabContentResellers").style.display = tab === "resellers" ? "block" : "none";
     }
 
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
         e.preventDefault();
+        const rId = document.getElementById("loginResellerId").value.trim().toLowerCase() || "master";
         const pass = document.getElementById("loginPassword").value.trim();
         const errEl = document.getElementById("loginError");
         const btn = document.getElementById("btnLogin");
@@ -487,14 +662,18 @@
         btn.textContent = "A verificar...";
 
         try {
+            currentResellerId = rId;
             adminPassword = pass;
             await loadDashboard(true);
+            sessionStorage.setItem("eagle_reseller_id", rId);
             sessionStorage.setItem("eagle_admin_pass", pass);
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("dashboardScreen").style.display = "block";
         } catch (err) {
             adminPassword = "";
-            errEl.textContent = "Password de administrador incorreta.";
+            errEl.textContent = err.message && err.message.includes("RESELLER_SUSPENDED")
+                ? "A tua conta de revendedor encontra-se suspensa ou expirada."
+                : "ID de revenda ou Password incorretos.";
             errEl.style.display = "block";
         } finally {
             btn.disabled = false;
@@ -503,6 +682,7 @@
     });
 
     function logout() {
+        sessionStorage.removeItem("eagle_reseller_id");
         sessionStorage.removeItem("eagle_admin_pass");
         adminPassword = "";
         document.getElementById("dashboardScreen").style.display = "none";
@@ -512,7 +692,43 @@
 
     async function loadDashboard(throwOnError = false) {
         try {
-            const data = await rpcCall("admin_dashboard", { p_password: adminPassword });
+            let data;
+            try {
+                data = await rpcCall("panel_login_dashboard", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword
+                });
+                multiResellerEnabled = true;
+            } catch (e) {
+                // Fallback automático caso o SQL Multi-Revenda ainda não tenha sido corrido
+                if (e.message && e.message.includes("panel_login_dashboard")) {
+                    multiResellerEnabled = false;
+                    const legacy = await rpcCall("admin_dashboard", { p_password: adminPassword });
+                    data = {
+                        role: "master",
+                        brand_name: "Eagle TV (Master)",
+                        best_url: legacy.best_url,
+                        best2_url: legacy.best2_url,
+                        announcement: legacy.announcement,
+                        maintenance_mode: legacy.maintenance_mode,
+                        updated_at: legacy.updated_at,
+                        devices: legacy.devices || [],
+                        resellers: []
+                    };
+                } else {
+                    throw e;
+                }
+            }
+
+            isMasterRole = data.role === "master";
+            document.getElementById("panelTitle").textContent = `${data.brand_name || "Eagle TV"} — Painel de Controlo`;
+            document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
+            document.getElementById("masterTabs").style.display = isMasterRole ? "flex" : "none";
+            document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
+            document.getElementById("dnsCardTitle").textContent = isMasterRole
+                ? "⚙️ Configuração Remota dos Meus DNS (App Master)"
+                : `⚙️ Configuração Remota de DNS (${data.brand_name || currentResellerId})`;
+
             document.getElementById("cfgBestUrl").value = data.best_url || "";
             document.getElementById("cfgBest2Url").value = data.best2_url || "";
             document.getElementById("cfgAnnouncement").value = data.announcement || "";
@@ -522,7 +738,16 @@
                 : "";
 
             allDevices = Array.isArray(data.devices) ? data.devices : [];
-            updateStats();
+            allResellers = Array.isArray(data.resellers) ? data.resellers : [];
+
+            if (isMasterRole) {
+                populateResellerFilter();
+                renderResellers();
+            } else {
+                switchTab("main");
+            }
+
+            updateStats(data);
             renderDevices();
             document.getElementById("lastSyncLabel").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-PT");
         } catch (err) {
@@ -531,7 +756,17 @@
         }
     }
 
-    function updateStats() {
+    function populateResellerFilter() {
+        const sel = document.getElementById("resellerFilterSelect");
+        const prev = sel.value || "all";
+        sel.innerHTML = `<option value="all">Todas as Apps (Master + Revendas)</option><option value="master">Apenas App Master</option>` +
+            allResellers.filter(r => r.reseller_id !== "master").map(r =>
+                `<option value="${escapeHtml(r.reseller_id)}">Revenda: ${escapeHtml(r.brand_name)} (${escapeHtml(r.reseller_id)})</option>`
+            ).join("");
+        sel.value = prev;
+    }
+
+    function updateStats(data) {
         const now = Date.now();
         const total = allDevices.length;
         const online = allDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000).length;
@@ -540,11 +775,27 @@
         const best2Count = allDevices.filter(d => (d.active_service || "").toLowerCase() === "best2").length;
         const blockedCount = allDevices.filter(d => d.is_blocked).length;
 
-        document.getElementById("statTotal").textContent = total;
+        document.getElementById("statTotal").textContent = data.max_devices > 0 ? `${total} / ${data.max_devices}` : total;
+        document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
         document.getElementById("statOnline").textContent = online;
         document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
         document.getElementById("statServices").textContent = `${bestCount} / ${best2Count}`;
-        document.getElementById("statBlocked").textContent = blockedCount;
+
+        if (!isMasterRole && data.expires_at) {
+            document.getElementById("statFourthLabel").textContent = "Validade do Painel";
+            document.getElementById("statBlocked").style.color = "var(--accent)";
+            document.getElementById("statBlocked").style.fontSize = "22px";
+            document.getElementById("statBlocked").textContent = new Date(data.expires_at).toLocaleDateString("pt-PT");
+            document.getElementById("statFourthSub").textContent = `${blockedCount} dispositivos bloqueados`;
+        } else {
+            document.getElementById("statFourthLabel").textContent = "Acessos Bloqueados";
+            document.getElementById("statBlocked").style.color = "var(--danger)";
+            document.getElementById("statBlocked").style.fontSize = "28px";
+            document.getElementById("statBlocked").textContent = blockedCount;
+            document.getElementById("statFourthSub").textContent = isMasterRole
+                ? `${allResellers.filter(r => r.reseller_id !== 'master').length} revendedores registados`
+                : "Impedidos de entrar na app";
+        }
     }
 
     function setFilter(filter, btnEl) {
@@ -572,31 +823,36 @@
     function renderDevices() {
         const tbody = document.getElementById("devicesTableBody");
         const q = document.getElementById("searchInput").value.trim().toLowerCase();
+        const resellerFilter = isMasterRole ? (document.getElementById("resellerFilterSelect").value || "all") : "all";
         const now = Date.now();
 
         const filtered = allDevices.filter(d => {
             const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
             const srv = (d.active_service || "best").toLowerCase();
+            const devReseller = (d.reseller_id || "master").toLowerCase();
+
+            if (resellerFilter !== "all" && devReseller !== resellerFilter) return false;
             if (currentFilter === "online" && !isOnline) return false;
             if (currentFilter === "best" && srv !== "best") return false;
             if (currentFilter === "best2" && srv !== "best2") return false;
             if (currentFilter === "blocked" && !d.is_blocked) return false;
 
             if (q) {
-                const hay = `${d.username || ""} ${d.device_name || ""} ${d.device_id || ""}`.toLowerCase();
+                const hay = `${d.username || ""} ${d.device_name || ""} ${d.device_id || ""} ${devReseller}`.toLowerCase();
                 if (!hay.includes(q)) return false;
             }
             return true;
         });
 
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = filtered.map(d => {
             const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
             const srv = (d.active_service || "best").toLowerCase();
+            const devReseller = d.reseller_id || "master";
             const statusBadge = d.is_blocked
                 ? `<span class="badge badge-blocked">● Bloqueado</span>`
                 : isOnline
@@ -604,8 +860,8 @@
                     : `<span class="badge badge-offline">● Offline</span>`;
 
             const srvBadge = srv === "best2"
-                ? `<span class="badge badge-best2">BEST2</span>`
-                : `<span class="badge badge-best">BEST</span>`;
+                ? `<span class="badge badge-best2">Templarios</span>`
+                : `<span class="badge badge-best">StreamPlay</span>`;
 
             const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
             const blockBtn = d.is_blocked
@@ -616,6 +872,7 @@
                 <tr>
                     <td>${statusBadge}</td>
                     <td>${userLabel}</td>
+                    <td><span class="badge badge-reseller">${escapeHtml(devReseller)}</span></td>
                     <td>${srvBadge}</td>
                     <td>
                         <div>${escapeHtml(d.device_name || "Android TV")}</div>
@@ -632,6 +889,124 @@
         }).join("");
     }
 
+    function renderResellers() {
+        const tbody = document.getElementById("resellersTableBody");
+        if (!multiResellerEnabled) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--warning); padding: 28px;">⚠️ Corre o novo script SQL Multi-Revenda no Supabase SQL Editor para ativar a tabela de Revendedores!</td></tr>`;
+            return;
+        }
+        const list = allResellers.filter(r => r.reseller_id !== "master");
+        if (list.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não tens revendedores criados. Clica em "➕ Novo Revendedor" no canto superior direito!</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = list.map(r => {
+            const devCount = allDevices.filter(d => (d.reseller_id || "master") === r.reseller_id).length;
+            const isExpired = r.expires_at && new Date(r.expires_at).getTime() < Date.now();
+            const statusHtml = r.is_suspended
+                ? `<span class="badge badge-blocked">Suspenso</span>`
+                : isExpired
+                    ? `<span class="badge badge-blocked">Expirado</span>`
+                    : `<span class="badge badge-online">Ativo</span>`;
+
+            const limitLabel = r.max_devices > 0 ? `${devCount} / ${r.max_devices}` : `${devCount} (Ilimitado)`;
+            const expLabel = r.expires_at ? new Date(r.expires_at).toLocaleDateString("pt-PT") : "Sem validade";
+
+            return `
+                <tr>
+                    <td>${statusHtml}</td>
+                    <td><code class="id-chip">${escapeHtml(r.reseller_id)}</code></td>
+                    <td><strong>${escapeHtml(r.brand_name)}</strong></td>
+                    <td><code class="id-chip">${escapeHtml(r.panel_password)}</code></td>
+                    <td>
+                        <div style="font-size:12px;">1: ${escapeHtml(r.best_url)}</div>
+                        <div style="font-size:12px; color:var(--text-muted);">2: ${escapeHtml(r.best2_url)}</div>
+                    </td>
+                    <td>${limitLabel}</td>
+                    <td>${expLabel}</td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <button class="btn btn-outline btn-sm" onclick='editReseller(${JSON.stringify(r).replace(/'/g, "&#39;")})'>✏️ Editar</button>
+                        <button class="btn btn-danger btn-sm" style="margin-left:6px;" onclick="deleteReseller('${escapeHtml(r.reseller_id)}')">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    function openResellerModal(reseller = null) {
+        if (!multiResellerEnabled) {
+            alert("Cola primeiro o novo bloco SQL de Revendedores no SQL Editor do Supabase!");
+            return;
+        }
+        document.getElementById("modalResellerTitle").textContent = reseller ? `Editar Revenda: ${reseller.brand_name}` : "Novo Revendedor (App White-Label)";
+        const idInput = document.getElementById("resIdInput");
+        idInput.value = reseller ? reseller.reseller_id : "";
+        idInput.readOnly = !!reseller;
+        document.getElementById("resBrandInput").value = reseller ? reseller.brand_name : "";
+        document.getElementById("resPassInput").value = reseller ? reseller.panel_password : "";
+        document.getElementById("resMaxDevicesInput").value = reseller ? (reseller.max_devices || 0) : 0;
+        document.getElementById("resBestUrlInput").value = reseller ? reseller.best_url : "https://";
+        document.getElementById("resBest2UrlInput").value = reseller ? reseller.best2_url : "http://";
+        document.getElementById("resExpiresInput").value = (reseller && reseller.expires_at) ? reseller.expires_at.substring(0, 10) : "";
+        document.getElementById("resSuspendReasonInput").value = reseller ? (reseller.suspend_reason || "Serviço suspenso temporariamente. Contacte o seu fornecedor.") : "Serviço suspenso temporariamente. Contacte o seu fornecedor.";
+        document.getElementById("resSuspendedInput").checked = reseller ? !!reseller.is_suspended : false;
+        document.getElementById("resellerModal").style.display = "flex";
+    }
+
+    function editReseller(r) {
+        openResellerModal(r);
+    }
+
+    function closeResellerModal() {
+        document.getElementById("resellerModal").style.display = "none";
+    }
+
+    document.getElementById("resellerForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnSaveReseller");
+        btn.disabled = true;
+        btn.textContent = "A guardar...";
+
+        const expDate = document.getElementById("resExpiresInput").value;
+        try {
+            await rpcCall("master_save_reseller", {
+                p_master_password: adminPassword,
+                p_reseller_id: document.getElementById("resIdInput").value.trim().toLowerCase(),
+                p_brand_name: document.getElementById("resBrandInput").value.trim(),
+                p_panel_password: document.getElementById("resPassInput").value.trim(),
+                p_best_url: document.getElementById("resBestUrlInput").value.trim(),
+                p_best2_url: document.getElementById("resBest2UrlInput").value.trim(),
+                p_max_devices: parseInt(document.getElementById("resMaxDevicesInput").value, 10) || 0,
+                p_expires_at: expDate ? new Date(expDate + "T23:59:59Z").toISOString() : null,
+                p_is_suspended: document.getElementById("resSuspendedInput").checked,
+                p_suspend_reason: document.getElementById("resSuspendReasonInput").value.trim()
+            });
+            closeResellerModal();
+            showToast("✅ Revendedor guardado com sucesso!");
+            await loadDashboard();
+        } catch (err) {
+            showToast("Erro ao guardar revendedor.", true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Guardar Revendedor";
+        }
+    });
+
+    async function deleteReseller(rId) {
+        if (!confirm(`Tens a certeza que queres apagar o revendedor "${rId}" e os dispositivos associados?`)) return;
+        try {
+            await rpcCall("master_delete_reseller", {
+                p_master_password: adminPassword,
+                p_target_reseller_id: rId
+            });
+            showToast("Revendedor removido.");
+            await loadDashboard();
+        } catch (err) {
+            showToast("Erro ao remover revendedor.", true);
+        }
+    }
+
     document.getElementById("configForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
@@ -644,14 +1019,26 @@
         btn.disabled = true;
         btn.textContent = "A guardar...";
         try {
-            await rpcCall("admin_save_config", {
-                p_password: adminPassword,
-                p_best_url: bestUrl,
-                p_best2_url: best2Url,
-                p_announcement: announcement,
-                p_maintenance_mode: maintenance,
-                p_new_password: newPass
-            });
+            if (multiResellerEnabled) {
+                await rpcCall("panel_save_own_config", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: announcement,
+                    p_maintenance_mode: maintenance,
+                    p_new_password: newPass
+                });
+            } else {
+                await rpcCall("admin_save_config", {
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: announcement,
+                    p_maintenance_mode: maintenance,
+                    p_new_password: newPass
+                });
+            }
             if (newPass) {
                 adminPassword = newPass;
                 sessionStorage.setItem("eagle_admin_pass", newPass);
@@ -675,12 +1062,22 @@
             reason = input.trim() || reason;
         }
         try {
-            await rpcCall("admin_set_block", {
-                p_password: adminPassword,
-                p_device_id: deviceId,
-                p_blocked: shouldBlock,
-                p_reason: reason
-            });
+            if (multiResellerEnabled) {
+                await rpcCall("panel_set_device_block", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword,
+                    p_device_id: deviceId,
+                    p_blocked: shouldBlock,
+                    p_reason: reason
+                });
+            } else {
+                await rpcCall("admin_set_block", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId,
+                    p_blocked: shouldBlock,
+                    p_reason: reason
+                });
+            }
             showToast(shouldBlock ? "🚫 Dispositivo bloqueado!" : "✅ Dispositivo desbloqueado!");
             await loadDashboard();
         } catch (err) {
@@ -689,12 +1086,20 @@
     }
 
     async function deleteDevice(deviceId) {
-        if (!confirm("Remover este dispositivo da lista? (Se o cliente voltar a abrir a app, voltará a aparecer)")) return;
+        if (!confirm("Remover este dispositivo da lista?")) return;
         try {
-            await rpcCall("admin_delete_device", {
-                p_password: adminPassword,
-                p_device_id: deviceId
-            });
+            if (multiResellerEnabled) {
+                await rpcCall("panel_delete_device", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
+            } else {
+                await rpcCall("admin_delete_device", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
+            }
             showToast("Dispositivo removido da lista.");
             await loadDashboard();
         } catch (err) {
@@ -702,8 +1107,8 @@
         }
     }
 
-    // Auto-login se a sessão já estiver guardada
     if (adminPassword) {
+        document.getElementById("loginResellerId").value = currentResellerId;
         loadDashboard(true).then(() => {
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("dashboardScreen").style.display = "block";
@@ -712,7 +1117,6 @@
         });
     }
 
-    // Auto-refresh a cada 30 segundos
     setInterval(() => {
         if (adminPassword && document.getElementById("dashboardScreen").style.display === "block") {
             loadDashboard();

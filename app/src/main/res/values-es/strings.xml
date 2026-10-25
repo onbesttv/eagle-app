@@ -1,6 +1,4 @@
 <resources>
-    <string name="app_name">Eagle</string>
-
     <!-- Main Dashboard -->
     <string name="live_tv">TV EN DIRECTO</string>
     <string name="tv_guide">GUÍA TV</string>

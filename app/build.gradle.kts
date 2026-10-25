@@ -10,10 +10,27 @@ android {
         applicationId = "com.example.myapplication"
         minSdk = 26
         targetSdk = 35
-        versionCode = 39
-        versionName = "4.4"
+        versionCode = 45
+        versionName = "5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    flavorDimensions += "reseller"
+    productFlavors {
+        create("master") {
+            dimension = "reseller"
+            applicationId = "com.example.myapplication"
+            resValue("string", "app_name", "Eagle")
+            resValue("string", "reseller_id", "master")
+        }
+
+        create("tv_fabio") {
+            dimension = "reseller"
+            applicationId = "com.eagle.tv_fabio"
+            resValue("string", "app_name", "Fpinto TV")
+            resValue("string", "reseller_id", "tv_fabio")
+        }
     }
 
     buildTypes {
@@ -24,6 +41,9 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+    buildFeatures {
+        resValues = true
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

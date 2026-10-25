@@ -70,7 +70,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_weight="1"
                 android:letterSpacing="0.08"
-                android:text="BEST"
+                android:text="StreamPlay"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />
@@ -114,7 +114,7 @@
                 android:layout_marginStart="16dp"
                 android:layout_weight="1"
                 android:letterSpacing="0.08"
-                android:text="BEST2"
+                android:text="Templarios"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
                 android:textStyle="bold" />

@@ -24,6 +24,7 @@ object CatalogRefreshDialog {
     ) {
         val dialog = Dialog(activity)
         dialog.setContentView(R.layout.dialog_catalog_refresh)
+        AppThemeColors.applyToDialog(dialog)
         dialog.setCancelable(false)
         dialog.show()
         dialog.window?.apply {
@@ -105,7 +106,7 @@ object CatalogRefreshDialog {
             onItemStart = { key -> activity.runOnUiThread {
                 if (dialog.isShowing) counterViews[key]?.apply {
                     text = "A atualizar…"
-                    setTextColor(0xFF42D6E8.toInt())
+                    setTextColor(AppThemeColors.mapColor(activity, 0xFF42D6E8.toInt()))
                 }
             } },
             onItemComplete = { key, count -> activity.runOnUiThread {

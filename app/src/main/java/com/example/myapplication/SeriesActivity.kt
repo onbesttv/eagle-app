@@ -412,13 +412,14 @@ class SeriesActivity : BaseActivity() {
 
             fun atualizarDestaque(hasFocus: Boolean = itemView.hasFocus()) {
                 val currentSelected = bindingAdapterPosition == selectedPosition
+                val ctx = itemView.context
                 tv.background = GradientDrawable().apply {
                     if (hasFocus) {
-                        setColor(0xFF2A4365.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
+                        setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else if (currentSelected) {
-                        setColor(0xFF23324A.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else {
                         setColor(0x00000000)

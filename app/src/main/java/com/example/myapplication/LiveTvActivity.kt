@@ -608,13 +608,14 @@ class LiveTvActivity : BaseActivity() {
 
             fun atualizarDestaque(hasFocus: Boolean = itemView.hasFocus()) {
                 val currentSelected = bindingAdapterPosition == selectedPosition
+                val ctx = itemView.context
                 tv.background = GradientDrawable().apply {
                     if (hasFocus) {
-                        setColor(0xFF2A4365.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
+                        setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else if (currentSelected) {
-                        setColor(0xFF23324A.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else {
                         setColor(0x00000000)
@@ -713,14 +714,15 @@ class LiveTvActivity : BaseActivity() {
 
             val updateChannelBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                val ctx = holder.itemView.context
                 holder.itemView.background = GradientDrawable().apply {
                     if (hasFocus) {
-                        setColor(0xFF2A4365.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
+                        setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else if (currentSelected) {
-                        setColor(0xFF172338.toInt())
-                        setStroke(dp(1), 0xFF354B68.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF172338.toInt()))
+                        setStroke(dp(1), AppThemeColors.mapColor(ctx, 0xFF354B68.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else {
                         setColor(0x00000000)
@@ -835,14 +837,15 @@ class LiveTvActivity : BaseActivity() {
 
             val updateOverlayBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
+                val ctx = holder.itemView.context
                 holder.itemView.background = GradientDrawable().apply {
                     if (hasFocus) {
-                        setColor(0xFF2A4365.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
+                        setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else if (currentSelected) {
-                        setColor(0xFF172338.toInt())
-                        setStroke(dp(1), 0xFF354B68.toInt())
+                        setColor(AppThemeColors.mapColor(ctx, 0xFF172338.toInt()))
+                        setStroke(dp(1), AppThemeColors.mapColor(ctx, 0xFF354B68.toInt()))
                         cornerRadius = dp(8).toFloat()
                     } else {
                         setColor(0x00000000)

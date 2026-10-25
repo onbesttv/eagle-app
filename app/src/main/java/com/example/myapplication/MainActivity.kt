@@ -96,6 +96,7 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         RemotePanelManager.syncAndEnforce(this)
+        AppUpdateManager.checkForUpdates(this, manual = false)
         // Atualiza os títulos caso o idioma tenha sido alterado nas Definições
         findViewById<TextView>(R.id.tvLiveTvTitle)?.text = getString(R.string.live_tv)
         findViewById<TextView>(R.id.tvEpgTitle)?.text = getString(R.string.tv_guide)

@@ -78,10 +78,17 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun createSettingCard(item: SettingItem): CardView {
-        val accentColors = intArrayOf(
-            0xFF62D7FF.toInt(), 0xFF9BA8FF.toInt(), 0xFF6BE6C2.toInt(), 0xFF73BFFF.toInt(),
-            0xFFFFC76B.toInt(), 0xFFB49BFF.toInt(), 0xFF65D7E8.toInt(), 0xFFFF7B83.toInt()
-        )
+        val accentColors = if (AppThemeColors.isDarkGoldTheme(this)) {
+            intArrayOf(
+                0xFFFBBF24.toInt(), 0xFFF59E0B.toInt(), 0xFF34D399.toInt(), 0xFFFBBF24.toInt(),
+                0xFFFFC76B.toInt(), 0xFFD97706.toInt(), 0xFFFBBF24.toInt(), 0xFFFF7B83.toInt()
+            )
+        } else {
+            intArrayOf(
+                0xFF62D7FF.toInt(), 0xFF9BA8FF.toInt(), 0xFF6BE6C2.toInt(), 0xFF73BFFF.toInt(),
+                0xFFFFC76B.toInt(), 0xFFB49BFF.toInt(), 0xFF65D7E8.toInt(), 0xFFFF7B83.toInt()
+            )
+        }
         val accent = accentColors[settingsCardIndex++ % accentColors.size]
         val card = CardView(this).apply {
             radius = dp(20).toFloat()
@@ -288,9 +295,9 @@ class SettingsActivity : BaseActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(12))
             background = GradientDrawable().apply {
-                setColor(0xFF152238.toInt())
+                setColor(AppThemeColors.mapColor(this@SettingsActivity, 0xFF152238.toInt()))
                 cornerRadius = dp(14).toFloat()
-                setStroke(dp(1), 0xFF344967.toInt())
+                setStroke(dp(1), AppThemeColors.mapColor(this@SettingsActivity, 0xFF344967.toInt()))
             }
         }
         val labelView = TextView(this).apply {
@@ -592,14 +599,15 @@ class SettingsActivity : BaseActivity() {
             }
 
             fun updateRowAppearance(hasFocus: Boolean) {
+                val accent = AppThemeColors.mapColor(this@SettingsActivity, 0xFF42D6E8.toInt())
                 row.background = GradientDrawable().apply {
                     cornerRadius = dp(12).toFloat()
                     if (hasFocus) {
-                        setColor(0x5542D6E8.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor((accent and 0x00FFFFFF) or 0x55000000)
+                        setStroke(dp(2), accent)
                     } else if (isCurrentSelection) {
-                        setColor(0x3342D6E8.toInt())
-                        setStroke(dp(1), 0xFF42D6E8.toInt())
+                        setColor((accent and 0x00FFFFFF) or 0x33000000)
+                        setStroke(dp(1), accent)
                     } else {
                         setColor(0x22202C3A.toInt())
                         setStroke(dp(1), 0x554B6378.toInt())
@@ -630,7 +638,7 @@ class SettingsActivity : BaseActivity() {
                 text = if (isCurrentSelection) "✓" else "○"
                 textSize = if (isCurrentSelection) 17f else 19f
                 gravity = Gravity.CENTER
-                setTextColor(if (isCurrentSelection) 0xFF42D6E8.toInt() else 0xFF8192A3.toInt())
+                setTextColor(if (isCurrentSelection) AppThemeColors.mapColor(this@SettingsActivity, 0xFF42D6E8.toInt()) else 0xFF8192A3.toInt())
             }
             row.addView(marker, LinearLayout.LayoutParams(dp(28), dp(28)))
 
@@ -660,18 +668,19 @@ class SettingsActivity : BaseActivity() {
         dialog.show()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.68f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+        val accentColor = AppThemeColors.mapColor(this, 0xFF42D6E8.toInt())
         val cancelBtn = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-        cancelBtn?.setTextColor(0xFF42D6E8.toInt())
+        cancelBtn?.setTextColor(accentColor)
         cancelBtn?.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 cancelBtn.setTextColor(Color.WHITE)
                 cancelBtn.background = GradientDrawable().apply {
                     cornerRadius = dp(8).toFloat()
-                    setColor(0x5542D6E8.toInt())
-                    setStroke(dp(2), 0xFF42D6E8.toInt())
+                    setColor((accentColor and 0x00FFFFFF) or 0x55000000)
+                    setStroke(dp(2), accentColor)
                 }
             } else {
-                cancelBtn.setTextColor(0xFF42D6E8.toInt())
+                cancelBtn.setTextColor(accentColor)
                 cancelBtn.background = null
             }
         }
@@ -682,12 +691,13 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun styleSettingsDialog(dialog: AlertDialog) {
+        val accentColor = AppThemeColors.mapColor(this, 0xFF42D6E8.toInt())
         dialog.window?.setBackgroundDrawableResource(R.drawable.bg_auth_panel)
         dialog.window?.setLayout((resources.displayMetrics.widthPixels * 0.68f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.findViewById<TextView>(android.R.id.message)?.setTextColor(0xFFD2DDE7.toInt())
         val btnPos = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
         val btnNeg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-        btnPos?.setTextColor(0xFF42D6E8.toInt())
+        btnPos?.setTextColor(accentColor)
         btnNeg?.setTextColor(0xFF91A8BB.toInt())
 
         val setupButtonFocus = { btn: Button, defaultColor: Int ->
@@ -696,8 +706,8 @@ class SettingsActivity : BaseActivity() {
                     btn.setTextColor(Color.WHITE)
                     btn.background = GradientDrawable().apply {
                         cornerRadius = dp(8).toFloat()
-                        setColor(0x5542D6E8.toInt())
-                        setStroke(dp(2), 0xFF42D6E8.toInt())
+                        setColor((accentColor and 0x00FFFFFF) or 0x55000000)
+                        setStroke(dp(2), accentColor)
                     }
                 } else {
                     btn.setTextColor(defaultColor)
@@ -705,7 +715,7 @@ class SettingsActivity : BaseActivity() {
                 }
             }
         }
-        btnPos?.let { setupButtonFocus(it, 0xFF42D6E8.toInt()) }
+        btnPos?.let { setupButtonFocus(it, accentColor) }
         btnNeg?.let { setupButtonFocus(it, 0xFF91A8BB.toInt()) }
     }
 

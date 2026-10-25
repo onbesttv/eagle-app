@@ -74,8 +74,9 @@ class StreamPlayLoginActivity : BaseActivity() {
         loginButton = findViewById(R.id.btnServiceLogin)
         autoProgressPanel = findViewById(R.id.autoLoginProgressPanel)
         autoStatusText = findViewById(R.id.tvAutoLoginStatus)
-        findViewById<TextView>(R.id.tvLoginServiceBrand).text = selectedService.uppercase()
-        findViewById<TextView>(R.id.tvAutoLoginServiceBrand).text = selectedService.uppercase()
+        val serviceBrandLabel = IptvServiceConfig.displayName(selectedService).uppercase()
+        findViewById<TextView>(R.id.tvLoginServiceBrand).text = serviceBrandLabel
+        findViewById<TextView>(R.id.tvAutoLoginServiceBrand).text = serviceBrandLabel
 
         IptvServiceConfig.select(this, selectedService)
         usernameInput.setText(IptvServiceConfig.username(this, selectedService))

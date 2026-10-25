@@ -102,9 +102,10 @@ object AppUpdateManager {
         activity.lifecycleScope.launch {
             val apiUrl = AppUpdateConfig.getLatestReleaseApiUrl(activity)
             val currentVersion = getAppVersionName(activity)
+            val resellerId = RemotePanelManager.getResellerId(activity)
 
             val result = withContext(Dispatchers.IO) {
-                fetchLatestRelease(apiUrl)
+                fetchLatestRelease(apiUrl, resellerId)
             }
 
             if (activity.isFinishing || activity.isDestroyed) return@launch
@@ -143,7 +144,7 @@ object AppUpdateManager {
         data class Error(val message: String) : ReleaseResult()
     }
 
-    private fun fetchLatestRelease(apiUrl: String): ReleaseResult {
+    private fun fetchLatestRelease(apiUrl: String, resellerId: String): ReleaseResult {
         return try {
             val request = Request.Builder()
                 .url(apiUrl)
@@ -164,44 +165,46 @@ object AppUpdateManager {
                 return ReleaseResult.Error("Não foi possível verificar atualizações de momento. Tenta mais tarde.")
             }
 
-            val json = JSONObject(bodyString)
-            val tagName = json.optString("tag_name", "").trim()
-            val releaseName = json.optString("name", tagName).trim()
-            val body = json.optString("body", "").trim()
+            // Procura nas releases mais recentes a primeira que contenha o APK exclusivo desta variante (eagle.apk ou <reseller_id>.apk)
+            val expectedApkName = if (resellerId == "master") "eagle.apk" else "${resellerId}.apk"
+            val releasesArray = if (bodyString.trimStart().startsWith("[")) {
+                org.json.JSONArray(bodyString)
+            } else {
+                org.json.JSONArray().put(JSONObject(bodyString))
+            }
 
-            // Procura nos assets um ficheiro .apk
-            val assetsArray = json.optJSONArray("assets")
-            var apkUrl: String? = null
-            var apkName: String? = null
-            var apkSize = 0L
+            for (rIndex in 0 until releasesArray.length()) {
+                val json = releasesArray.getJSONObject(rIndex)
+                if (json.optBoolean("draft", false)) continue
 
-            if (assetsArray != null) {
+                val tagName = json.optString("tag_name", "").trim()
+                val releaseName = json.optString("name", tagName).trim()
+                val body = json.optString("body", "").trim()
+                val assetsArray = json.optJSONArray("assets") ?: continue
+
                 for (i in 0 until assetsArray.length()) {
                     val asset = assetsArray.getJSONObject(i)
                     val name = asset.optString("name", "")
-                    if (name.endsWith(".apk", ignoreCase = true)) {
-                        apkUrl = asset.optString("browser_download_url", "")
-                        apkName = name
-                        apkSize = asset.optLong("size", 0L)
-                        break
+                    if (name.equals(expectedApkName, ignoreCase = true)) {
+                        val apkUrl = asset.optString("browser_download_url", "")
+                        val apkSize = asset.optLong("size", 0L)
+                        if (apkUrl.isNotBlank()) {
+                            return ReleaseResult.Success(
+                                ReleaseInfo(
+                                    tagName = tagName,
+                                    releaseName = if (releaseName.isBlank()) tagName else releaseName,
+                                    releaseNotes = body,
+                                    apkDownloadUrl = apkUrl,
+                                    apkFileName = name,
+                                    apkSizeBytes = apkSize
+                                )
+                            )
+                        }
                     }
                 }
             }
 
-            if (apkUrl.isNullOrBlank() || apkName == null) {
-                return ReleaseResult.UpToDate
-            }
-
-            ReleaseResult.Success(
-                ReleaseInfo(
-                    tagName = tagName,
-                    releaseName = if (releaseName.isBlank()) tagName else releaseName,
-                    releaseNotes = body,
-                    apkDownloadUrl = apkUrl,
-                    apkFileName = apkName,
-                    apkSizeBytes = apkSize
-                )
-            )
+            ReleaseResult.UpToDate
         } catch (e: Exception) {
             ReleaseResult.Error("Não foi possível verificar atualizações de momento.\nVerifica a ligação à Internet e tenta novamente.")
         }
@@ -719,8 +722,9 @@ object AppUpdateManager {
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         val screenWidth = activity.resources.displayMetrics.widthPixels
         dialog.window?.setLayout((screenWidth * 0.72f).toInt().coerceAtMost(screenWidth - dp(activity, 48)), ViewGroup.LayoutParams.WRAP_CONTENT)
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(0xFF42D6E8.toInt())
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(0xFF91A8BB.toInt())
+        AppThemeColors.applyToDialog(dialog)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(AppThemeColors.mapColor(activity, 0xFF42D6E8.toInt()))
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(AppThemeColors.mapColor(activity, 0xFF91A8BB.toInt()))
     }
 
     private fun formatFileSize(bytes: Long): String {
