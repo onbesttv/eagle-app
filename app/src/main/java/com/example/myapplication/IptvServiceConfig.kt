@@ -12,6 +12,8 @@ object IptvServiceConfig {
     private const val KEY_INITIALIZED = "MULTI_SERVICE_V1"
     private const val BEST_URL = "https://thebestplay.site"
     private const val BEST2_URL = "http://gd.tugabest.xyz:8080"
+    private const val KEY_REMOTE_BEST_URL = "REMOTE_BEST_URL"
+    private const val KEY_REMOTE_BEST2_URL = "REMOTE_BEST2_URL"
     private const val BEST_USER = "BEST_USER"
     private const val BEST_PASS = "BEST_PASS"
     private const val BEST2_USER = "BEST2_USER"
@@ -54,8 +56,26 @@ object IptvServiceConfig {
         return prefs.getString(KEY_ACTIVE, BEST)?.takeIf { it == BEST2 } ?: BEST
     }
 
-    fun baseUrl(context: Context, serviceId: String = activeServiceId(context)): String =
-        (if (serviceId == BEST2) BEST2_URL else BEST_URL).trimEnd('/')
+    fun baseUrl(context: Context, serviceId: String = activeServiceId(context)): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val rawUrl = if (serviceId == BEST2) {
+            prefs.getString(KEY_REMOTE_BEST2_URL, null)?.takeIf { it.isNotBlank() } ?: BEST2_URL
+        } else {
+            prefs.getString(KEY_REMOTE_BEST_URL, null)?.takeIf { it.isNotBlank() } ?: BEST_URL
+        }
+        return rawUrl.trim().trimEnd('/')
+    }
+
+    fun updateRemoteUrls(context: Context, bestUrl: String?, best2Url: String?) {
+        val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+        if (!bestUrl.isNullOrBlank()) {
+            editor.putString(KEY_REMOTE_BEST_URL, bestUrl.trim().trimEnd('/'))
+        }
+        if (!best2Url.isNullOrBlank()) {
+            editor.putString(KEY_REMOTE_BEST2_URL, best2Url.trim().trimEnd('/'))
+        }
+        editor.apply()
+    }
 
     fun username(context: Context, serviceId: String = activeServiceId(context)): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

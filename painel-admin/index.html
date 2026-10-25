@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eagle TV — Painel de Administração</title>
+    <style>
+        :root {
+            --bg-main: #0b0f17;
+            --bg-card: #131b29;
+            --bg-input: #0e1420;
+            --border: #233047;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+        /* Login Screen */
+        #loginScreen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .login-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+        .login-sub {
+            color: var(--text-muted);
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        /* Dashboard Layout */
+        #dashboardScreen {
+            display: none;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px 20px 60px;
+        }
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-badge {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+        }
+        .brand h1 {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .brand span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 20px;
+        }
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .stat-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        /* Main Sections */
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        input[type="text"], input[type="password"], input[type="url"], select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        input:focus {
+            border-color: var(--accent);
+        }
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: opacity 0.15s, background 0.15s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn:hover { background: var(--accent-hover); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: #059669; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+        .switch-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-top: 8px;
+        }
+        .switch-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--warning);
+            cursor: pointer;
+        }
+        /* Table */
+        .filters-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+        .filters-bar input {
+            max-width: 300px;
+        }
+        .pill-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 7px 13px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .pill-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 9px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-best { background: rgba(59,130,246,0.18); color: #60a5fa; }
+        .badge-best2 { background: rgba(168,85,247,0.18); color: #c084fc; }
+        .badge-online { background: rgba(16,185,129,0.18); color: #34d399; }
+        .badge-offline { background: rgba(148,163,184,0.14); color: #94a3b8; }
+        .badge-blocked { background: rgba(239,68,68,0.2); color: #f87171; }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            border: 1px solid var(--border);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            display: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ECRÃ DE LOGIN -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="login-title">Eagle TV Admin</div>
+        <div class="login-sub">Painel de Gestão de DNS e Utilizadores</div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Password de Administrador</label>
+                <input type="password" id="loginPassword" placeholder="Introduz a password..." required autofocus>
+            </div>
+            <div id="loginError" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
+            <button type="submit" class="btn" id="btnLogin" style="width: 100%;">Entrar no Painel</button>
+        </form>
+    </div>
+</div>
+
+<!-- ECRÃ PRINCIPAL DO PAINEL -->
+<div id="dashboardScreen">
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-badge">E</div>
+            <div>
+                <h1>Eagle TV — Painel de Controlo</h1>
+                <span id="lastSyncLabel">Ligado ao Supabase em tempo real</span>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar Dados</button>
+            <button class="btn btn-outline" onclick="logout()">Sair</button>
+        </div>
+    </div>
+
+    <!-- CARTÕES DE ESTATÍSTICAS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total de Dispositivos</div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-sub">Boxes / TVs registadas</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Ativos Agora (< 15 min)</div>
+            <div class="stat-value" id="statOnline" style="color: var(--success);">0</div>
+            <div class="stat-sub" id="statToday">0 ativos nas últimas 24h</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Distribuição de Serviço</div>
+            <div class="stat-value" id="statServices">0 / 0</div>
+            <div class="stat-sub">BEST vs BEST2</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Acessos Bloqueados</div>
+            <div class="stat-value" id="statBlocked" style="color: var(--danger);">0</div>
+            <div class="stat-sub">Impedidos de entrar na app</div>
+        </div>
+    </div>
+
+    <div class="grid-2col">
+        <!-- CONFIGURAÇÃO DE DNS E AVISOS -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">⚙️ Configuração Remota de DNS & Avisos</div>
+                <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
+            </div>
+            <form id="configForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>DNS Serviço BEST (Principal)</label>
+                        <input type="url" id="cfgBestUrl" placeholder="https://thebestplay.site" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DNS Serviço BEST2 (Secundário)</label>
+                        <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080" required>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
+                        <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
+                    </div>
+                    <div class="form-group">
+                        <label>Nova Password do Painel Admin (Opcional)</label>
+                        <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a senha atual">
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 6px;">
+                    <label class="switch-row" style="cursor: pointer;">
+                        <input type="checkbox" id="cfgMaintenance">
+                        <span style="font-size: 13px; font-weight: 600;">Ativar Modo de Manutenção Geral (suspende temporariamente a entrada na app)</span>
+                    </label>
+                    <button type="submit" class="btn" id="btnSaveConfig">💾 Guardar Alterações</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- LISTA DE UTILIZADORES E BOXES -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
+            </div>
+
+            <div class="filters-bar">
+                <input type="text" id="searchInput" placeholder="Pesquisar utilizador, modelo ou ID..." oninput="renderDevices()">
+                <button class="pill-btn active" data-filter="all" onclick="setFilter('all', this)">Todos</button>
+                <button class="pill-btn" data-filter="online" onclick="setFilter('online', this)">Online</button>
+                <button class="pill-btn" data-filter="best" onclick="setFilter('best', this)">BEST</button>
+                <button class="pill-btn" data-filter="best2" onclick="setFilter('best2', this)">BEST2</button>
+                <button class="pill-btn" data-filter="blocked" onclick="setFilter('blocked', this)">Bloqueados</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Utilizador (Linha)</th>
+                            <th>Serviço</th>
+                            <th>Box / Dispositivo</th>
+                            <th>Versão App</th>
+                            <th>Último Acesso</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="devicesTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 28px;">A carregar dispositivos...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const SUPABASE_URL = "https://myreymyqsnikjdhnstjn.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Jsb0b0Kcf5-bv6GCUFu3KA_wO1G9HjM";
+
+    let adminPassword = sessionStorage.getItem("eagle_admin_pass") || "";
+    let allDevices = [];
+    let currentFilter = "all";
+
+    async function rpcCall(fnName, params) {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
+            method: "POST",
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(params)
+        });
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(errText || `HTTP ${res.status}`);
+        }
+        return await res.json();
+    }
+
+    function showToast(msg, isError = false) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.style.borderColor = isError ? "var(--danger)" : "var(--success)";
+        t.style.display = "block";
+        setTimeout(() => { t.style.display = "none"; }, 3500);
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const pass = document.getElementById("loginPassword").value.trim();
+        const errEl = document.getElementById("loginError");
+        const btn = document.getElementById("btnLogin");
+        errEl.style.display = "none";
+        btn.disabled = true;
+        btn.textContent = "A verificar...";
+
+        try {
+            adminPassword = pass;
+            await loadDashboard(true);
+            sessionStorage.setItem("eagle_admin_pass", pass);
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("dashboardScreen").style.display = "block";
+        } catch (err) {
+            adminPassword = "";
+            errEl.textContent = "Password de administrador incorreta.";
+            errEl.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Entrar no Painel";
+        }
+    });
+
+    function logout() {
+        sessionStorage.removeItem("eagle_admin_pass");
+        adminPassword = "";
+        document.getElementById("dashboardScreen").style.display = "none";
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("loginPassword").value = "";
+    }
+
+    async function loadDashboard(throwOnError = false) {
+        try {
+            const data = await rpcCall("admin_dashboard", { p_password: adminPassword });
+            document.getElementById("cfgBestUrl").value = data.best_url || "";
+            document.getElementById("cfgBest2Url").value = data.best2_url || "";
+            document.getElementById("cfgAnnouncement").value = data.announcement || "";
+            document.getElementById("cfgMaintenance").checked = !!data.maintenance_mode;
+            document.getElementById("cfgUpdatedAt").textContent = data.updated_at
+                ? "Última alteração: " + new Date(data.updated_at).toLocaleString("pt-PT")
+                : "";
+
+            allDevices = Array.isArray(data.devices) ? data.devices : [];
+            updateStats();
+            renderDevices();
+            document.getElementById("lastSyncLabel").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-PT");
+        } catch (err) {
+            if (throwOnError) throw err;
+            showToast("Erro ao atualizar dados do painel.", true);
+        }
+    }
+
+    function updateStats() {
+        const now = Date.now();
+        const total = allDevices.length;
+        const online = allDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000).length;
+        const today = allDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 24 * 60 * 60 * 1000).length;
+        const bestCount = allDevices.filter(d => (d.active_service || "best").toLowerCase() === "best").length;
+        const best2Count = allDevices.filter(d => (d.active_service || "").toLowerCase() === "best2").length;
+        const blockedCount = allDevices.filter(d => d.is_blocked).length;
+
+        document.getElementById("statTotal").textContent = total;
+        document.getElementById("statOnline").textContent = online;
+        document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
+        document.getElementById("statServices").textContent = `${bestCount} / ${best2Count}`;
+        document.getElementById("statBlocked").textContent = blockedCount;
+    }
+
+    function setFilter(filter, btnEl) {
+        currentFilter = filter;
+        document.querySelectorAll(".pill-btn").forEach(b => b.classList.remove("active"));
+        btnEl.classList.add("active");
+        renderDevices();
+    }
+
+    function formatRelativeTime(iso) {
+        if (!iso) return "-";
+        const diffSec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+        if (diffSec < 60) return "Agora mesmo";
+        if (diffSec < 3600) return `Há ${Math.floor(diffSec / 60)} min`;
+        if (diffSec < 86400) return `Há ${Math.floor(diffSec / 3600)} h`;
+        return new Date(iso).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function escapeHtml(str) {
+        return String(str || "").replace(/[&<>"']/g, s => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        }[s]));
+    }
+
+    function renderDevices() {
+        const tbody = document.getElementById("devicesTableBody");
+        const q = document.getElementById("searchInput").value.trim().toLowerCase();
+        const now = Date.now();
+
+        const filtered = allDevices.filter(d => {
+            const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
+            const srv = (d.active_service || "best").toLowerCase();
+            if (currentFilter === "online" && !isOnline) return false;
+            if (currentFilter === "best" && srv !== "best") return false;
+            if (currentFilter === "best2" && srv !== "best2") return false;
+            if (currentFilter === "blocked" && !d.is_blocked) return false;
+
+            if (q) {
+                const hay = `${d.username || ""} ${d.device_name || ""} ${d.device_id || ""}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(d => {
+            const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
+            const srv = (d.active_service || "best").toLowerCase();
+            const statusBadge = d.is_blocked
+                ? `<span class="badge badge-blocked">● Bloqueado</span>`
+                : isOnline
+                    ? `<span class="badge badge-online">● Online</span>`
+                    : `<span class="badge badge-offline">● Offline</span>`;
+
+            const srvBadge = srv === "best2"
+                ? `<span class="badge badge-best2">BEST2</span>`
+                : `<span class="badge badge-best">BEST</span>`;
+
+            const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
+            const blockBtn = d.is_blocked
+                ? `<button class="btn btn-success btn-sm" onclick="toggleBlock('${escapeHtml(d.device_id)}', false)">Desbloquear</button>`
+                : `<button class="btn btn-danger btn-sm" onclick="toggleBlock('${escapeHtml(d.device_id)}', true)">Bloquear</button>`;
+
+            return `
+                <tr>
+                    <td>${statusBadge}</td>
+                    <td>${userLabel}</td>
+                    <td>${srvBadge}</td>
+                    <td>
+                        <div>${escapeHtml(d.device_name || "Android TV")}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">ID: ${escapeHtml(d.device_id)}</div>
+                    </td>
+                    <td>${escapeHtml(d.app_version || "1.0")}</td>
+                    <td title="${escapeHtml(d.last_seen)}">${formatRelativeTime(d.last_seen)}</td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        ${blockBtn}
+                        <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}')">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    document.getElementById("configForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnSaveConfig");
+        const bestUrl = document.getElementById("cfgBestUrl").value.trim();
+        const best2Url = document.getElementById("cfgBest2Url").value.trim();
+        const announcement = document.getElementById("cfgAnnouncement").value.trim();
+        const maintenance = document.getElementById("cfgMaintenance").checked;
+        const newPass = document.getElementById("cfgNewPassword").value.trim();
+
+        btn.disabled = true;
+        btn.textContent = "A guardar...";
+        try {
+            await rpcCall("admin_save_config", {
+                p_password: adminPassword,
+                p_best_url: bestUrl,
+                p_best2_url: best2Url,
+                p_announcement: announcement,
+                p_maintenance_mode: maintenance,
+                p_new_password: newPass
+            });
+            if (newPass) {
+                adminPassword = newPass;
+                sessionStorage.setItem("eagle_admin_pass", newPass);
+                document.getElementById("cfgNewPassword").value = "";
+            }
+            showToast("✅ Configurações e DNS atualizados com sucesso!");
+            await loadDashboard();
+        } catch (err) {
+            showToast("Erro ao guardar configurações.", true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "💾 Guardar Alterações";
+        }
+    });
+
+    async function toggleBlock(deviceId, shouldBlock) {
+        let reason = "Acesso suspenso pelo administrador.";
+        if (shouldBlock) {
+            const input = prompt("Motivo do bloqueio (aparecerá na TV do cliente):", reason);
+            if (input === null) return;
+            reason = input.trim() || reason;
+        }
+        try {
+            await rpcCall("admin_set_block", {
+                p_password: adminPassword,
+                p_device_id: deviceId,
+                p_blocked: shouldBlock,
+                p_reason: reason
+            });
+            showToast(shouldBlock ? "🚫 Dispositivo bloqueado!" : "✅ Dispositivo desbloqueado!");
+            await loadDashboard();
+        } catch (err) {
+            showToast("Erro ao alterar bloqueio do dispositivo.", true);
+        }
+    }
+
+    async function deleteDevice(deviceId) {
+        if (!confirm("Remover este dispositivo da lista? (Se o cliente voltar a abrir a app, voltará a aparecer)")) return;
+        try {
+            await rpcCall("admin_delete_device", {
+                p_password: adminPassword,
+                p_device_id: deviceId
+            });
+            showToast("Dispositivo removido da lista.");
+            await loadDashboard();
+        } catch (err) {
+            showToast("Erro ao remover dispositivo.", true);
+        }
+    }
+
+    // Auto-login se a sessão já estiver guardada
+    if (adminPassword) {
+        loadDashboard(true).then(() => {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("dashboardScreen").style.display = "block";
+        }).catch(() => {
+            sessionStorage.removeItem("eagle_admin_pass");
+        });
+    }
+
+    // Auto-refresh a cada 30 segundos
+    setInterval(() => {
+        if (adminPassword && document.getElementById("dashboardScreen").style.display === "block") {
+            loadDashboard();
+        }
+    }, 30000);
+</script>
+</body>
+</html>

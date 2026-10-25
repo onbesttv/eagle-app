@@ -117,6 +117,9 @@ class StreamPlayLoginActivity : BaseActivity() {
     }
 
     private fun login() {
+        if (RemotePanelManager.enforceOnUi(this)) {
+            return
+        }
         val username = usernameInput.text.toString().trim()
         val password = passwordInput.text.toString()
         if (username.isBlank() || password.isBlank()) {
@@ -151,6 +154,7 @@ class StreamPlayLoginActivity : BaseActivity() {
                 }
 
                 IptvServiceConfig.saveCredentials(this@StreamPlayLoginActivity, selectedService, username, password)
+                RemotePanelManager.sync(this@StreamPlayLoginActivity)
 
                 runOnUiThread {
                     if (isAutoLogin) autoProgressPanel.visibility = View.GONE

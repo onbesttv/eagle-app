@@ -1,0 +1,220 @@
+package com.example.myapplication
+
+import android.app.Activity
+import android.content.Context
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import androidx.appcompat.app.AlertDialog
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONObject
+import java.io.IOException
+import java.util.UUID
+import java.util.concurrent.TimeUnit
+
+object RemotePanelManager {
+    private const val SUPABASE_URL = "https://myreymyqsnikjdhnstjn.supabase.co"
+    private const val SUPABASE_KEY = "sb_publishable_Jsb0b0Kcf5-bv6GCUFu3KA_wO1G9HjM"
+
+    private const val PREFS = "remote_panel_prefs"
+    private const val KEY_DEVICE_ID = "DEVICE_ID"
+    private const val KEY_IS_BLOCKED = "IS_BLOCKED"
+    private const val KEY_BLOCK_REASON = "BLOCK_REASON"
+    private const val KEY_MAINTENANCE = "MAINTENANCE_MODE"
+    private const val KEY_ANNOUNCEMENT = "ANNOUNCEMENT"
+    private const val KEY_LAST_SHOWN_ANNOUNCEMENT = "LAST_SHOWN_ANNOUNCEMENT"
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var activeBlockDialog: AlertDialog? = null
+
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .writeTimeout(4, TimeUnit.SECONDS)
+            .callTimeout(5, TimeUnit.SECONDS)
+            .build()
+    }
+
+    fun getDeviceId(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val cached = prefs.getString(KEY_DEVICE_ID, null)
+        if (!cached.isNullOrBlank()) return cached
+
+        val androidId = try {
+            Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+        } catch (_: Exception) {
+            null
+        }
+        val finalId = if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
+            androidId
+        } else {
+            UUID.randomUUID().toString().replace("-", "").take(16)
+        }
+        prefs.edit().putString(KEY_DEVICE_ID, finalId).apply()
+        return finalId
+    }
+
+    private fun getDeviceName(): String {
+        val manufacturer = Build.MANUFACTURER?.trim().orEmpty()
+        val model = Build.MODEL?.trim().orEmpty()
+        return if (model.startsWith(manufacturer, ignoreCase = true)) {
+            model
+        } else {
+            "$manufacturer $model".trim()
+        }
+    }
+
+    private fun getAppVersion(context: Context): String {
+        return try {
+            val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            pInfo.versionName ?: "1.0"
+        } catch (_: Exception) {
+            "1.0"
+        }
+    }
+
+    fun isBlocked(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getBoolean(KEY_IS_BLOCKED, false) || prefs.getBoolean(KEY_MAINTENANCE, false)
+    }
+
+    fun getBlockMessage(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val isMaint = prefs.getBoolean(KEY_MAINTENANCE, false)
+        if (isMaint) {
+            val notice = prefs.getString(KEY_ANNOUNCEMENT, "").orEmpty().trim()
+            return if (notice.isNotBlank()) notice else "O serviço encontra-se em manutenção temporária. Por favor, tenta novamente dentro de momentos."
+        }
+        return prefs.getString(KEY_BLOCK_REASON, null)?.takeIf { it.isNotBlank() }
+            ?: "Acesso suspenso pelo administrador."
+    }
+
+    fun sync(context: Context, onComplete: ((Boolean) -> Unit)? = null) {
+        val appContext = context.applicationContext
+        IptvServiceConfig.initialize(appContext)
+        val activeService = IptvServiceConfig.activeServiceId(appContext)
+        val username = IptvServiceConfig.username(appContext, activeService)
+
+        val payload = JSONObject().apply {
+            put("p_device_id", getDeviceId(appContext))
+            put("p_username", username)
+            put("p_service", activeService)
+            put("p_device_name", getDeviceName())
+            put("p_app_version", getAppVersion(appContext))
+        }
+
+        val request = Request.Builder()
+            .url("$SUPABASE_URL/rest/v1/rpc/app_sync")
+            .header("apikey", SUPABASE_KEY)
+            .header("Authorization", "Bearer $SUPABASE_KEY")
+            .header("Content-Type", "application/json")
+            .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                mainHandler.post { onComplete?.invoke(false) }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val raw = response.body?.string().orEmpty()
+                var success = false
+                if (response.isSuccessful && raw.isNotBlank()) {
+                    try {
+                        val json = JSONObject(raw)
+                        val bestUrl = json.optString("best_url", "").trim()
+                        val best2Url = json.optString("best2_url", "").trim()
+                        val announcement = json.optString("announcement", "").trim()
+                        val maintenance = json.optBoolean("maintenance_mode", false)
+                        val blocked = json.optBoolean("is_blocked", false)
+                        val blockReason = json.optString("block_reason", "Acesso suspenso pelo administrador.").trim()
+
+                        IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
+
+                        appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                            .putBoolean(KEY_IS_BLOCKED, blocked)
+                            .putString(KEY_BLOCK_REASON, blockReason)
+                            .putBoolean(KEY_MAINTENANCE, maintenance)
+                            .putString(KEY_ANNOUNCEMENT, announcement)
+                            .apply()
+
+                        success = true
+                    } catch (_: Exception) {
+                    }
+                }
+                mainHandler.post { onComplete?.invoke(success) }
+            }
+        })
+    }
+
+    fun syncAndEnforce(activity: Activity) {
+        sync(activity) {
+            if (!activity.isFinishing && !activity.isDestroyed) {
+                enforceOnUi(activity)
+            }
+        }
+    }
+
+    fun enforceOnUi(activity: Activity): Boolean {
+        if (activity.isFinishing || activity.isDestroyed) return false
+        val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val blocked = prefs.getBoolean(KEY_IS_BLOCKED, false)
+        val maintenance = prefs.getBoolean(KEY_MAINTENANCE, false)
+
+        if (blocked || maintenance) {
+            showBlockOrMaintenanceDialog(activity, maintenance)
+            return true
+        } else {
+            activeBlockDialog?.takeIf { it.isShowing }?.dismiss()
+            activeBlockDialog = null
+        }
+
+        val announcement = prefs.getString(KEY_ANNOUNCEMENT, "").orEmpty().trim()
+        val lastShown = prefs.getString(KEY_LAST_SHOWN_ANNOUNCEMENT, "").orEmpty().trim()
+        if (announcement.isNotBlank() && announcement != lastShown) {
+            prefs.edit().putString(KEY_LAST_SHOWN_ANNOUNCEMENT, announcement).apply()
+            AlertDialog.Builder(activity)
+                .setTitle("Aviso Importante")
+                .setMessage(announcement)
+                .setPositiveButton("OK", null)
+                .show()
+        } else if (announcement.isBlank() && lastShown.isNotBlank()) {
+            prefs.edit().remove(KEY_LAST_SHOWN_ANNOUNCEMENT).apply()
+        }
+
+        return false
+    }
+
+    private fun showBlockOrMaintenanceDialog(activity: Activity, isMaintenance: Boolean) {
+        if (activeBlockDialog?.isShowing == true) return
+        val title = if (isMaintenance) "Serviço em Manutenção" else "Acesso Indisponível"
+        val message = getBlockMessage(activity) + "\n\nID do Dispositivo: ${getDeviceId(activity)}"
+
+        activeBlockDialog = AlertDialog.Builder(activity)
+            .setTitle(title)
+            .setMessage(message)
+            .setCancelable(false)
+            .setPositiveButton("Verificar Novamente") { dialog, _ ->
+                dialog.dismiss()
+                activeBlockDialog = null
+                sync(activity) {
+                    if (!activity.isFinishing && !activity.isDestroyed) {
+                        enforceOnUi(activity)
+                    }
+                }
+            }
+            .setNegativeButton("Sair") { _, _ ->
+                activity.finishAffinity()
+            }
+            .create()
+        activeBlockDialog?.show()
+    }
+}
