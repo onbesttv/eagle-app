@@ -11,6 +11,10 @@ object IptvServiceConfig {
         return if (serviceId == BEST2) "Templarios" else "StreamPlay"
     }
 
+    fun isStreamPlayDisabled(context: Context): Boolean {
+        return RemotePanelManager.getResellerId(context).equals("tv_fabio", ignoreCase = true)
+    }
+
     private const val PREFS = "iptv_login_prefs"
     private const val KEY_ACTIVE = "ACTIVE_SERVICE"
     private const val KEY_INITIALIZED = "MULTI_SERVICE_V1"
@@ -56,6 +60,9 @@ object IptvServiceConfig {
     }
 
     fun activeServiceId(context: Context): String {
+        if (isStreamPlayDisabled(context)) {
+            return BEST2
+        }
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return prefs.getString(KEY_ACTIVE, BEST)?.takeIf { it == BEST2 } ?: BEST
     }
@@ -92,7 +99,7 @@ object IptvServiceConfig {
     }
 
     fun select(context: Context, serviceId: String) {
-        val validService = if (serviceId == BEST2) BEST2 else BEST
+        val validService = if (isStreamPlayDisabled(context) || serviceId == BEST2) BEST2 else BEST
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_ACTIVE, validService)
             .putString("SAVED_SERVICE", validService)

@@ -41,16 +41,13 @@ Copy-Item $srcApk -Destination "eagle.apk" -Force
 $apkSizeMB = [math]::Round((Get-Item "eagle.apk").Length / 1MB, 2)
 Write-Host "[3/6] eagle.apk atualizado com sucesso ($apkSizeMB MB)" -ForegroundColor Green
 
-# 4. Git commit e push
-Write-Host "[4/6] A atualizar Git e enviar para origin/main e $tag..." -ForegroundColor Yellow
+# 4. Guardar backup local no Git (sem enviar codigo-fonte para o GitHub publico)
+Write-Host "[4/6] A guardar estado local no Git (codigo-fonte mantido privado no PC)..." -ForegroundColor Yellow
 git add -A
 $status = git status --porcelain
 if ($status) {
     git commit -m "Versao ${tag}"
 }
-git tag -f $tag
-git push origin main
-git push origin $tag --force
 
 # 5. Obter credencial do GitHub do Windows Credential Manager
 Write-Host "[5/6] A autenticar na API do GitHub..." -ForegroundColor Yellow

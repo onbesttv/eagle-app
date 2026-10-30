@@ -37,32 +37,41 @@ class ServiceSelectionActivity : BaseActivity() {
         val cardOtherService = findViewById<View>(R.id.cardOtherService)
         val bestCheck = findViewById<TextView>(R.id.tvBestCheck)
         val best2Check = findViewById<TextView>(R.id.tvBest2Check)
+        val streamPlayDisabled = IptvServiceConfig.isStreamPlayDisabled(this)
 
         fun updateSelection(service: String) {
-            selectedService = service
-            bestCheck.visibility = if (service == IptvServiceConfig.BEST) View.VISIBLE else View.INVISIBLE
-            best2Check.visibility = if (service == IptvServiceConfig.BEST2) View.VISIBLE else View.INVISIBLE
+            selectedService = if (streamPlayDisabled) IptvServiceConfig.BEST2 else service
+            bestCheck.visibility = if (!streamPlayDisabled && selectedService == IptvServiceConfig.BEST) View.VISIBLE else View.INVISIBLE
+            best2Check.visibility = if (selectedService == IptvServiceConfig.BEST2) View.VISIBLE else View.INVISIBLE
         }
         updateSelection(selectedService)
 
         fun entrarNoServico(service: String) {
             updateSelection(service)
-            IptvServiceConfig.select(this, service)
-            val user = IptvServiceConfig.username(this, service)
-            val pass = IptvServiceConfig.password(this, service)
+            IptvServiceConfig.select(this, selectedService)
+            val user = IptvServiceConfig.username(this, selectedService)
+            val pass = IptvServiceConfig.password(this, selectedService)
             val hasCredentials = user.isNotBlank() && pass.isNotBlank()
             startActivity(
                 Intent(this, StreamPlayLoginActivity::class.java)
-                    .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, service)
+                    .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, selectedService)
                     .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, hasCredentials)
             )
         }
 
-        cardStreamPlay.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST) }
+        if (streamPlayDisabled) {
+            cardStreamPlay.isEnabled = false
+            cardStreamPlay.isClickable = false
+            cardStreamPlay.isFocusable = false
+            cardStreamPlay.isFocusableInTouchMode = false
+            cardStreamPlay.alpha = 0.38f
+        } else {
+            cardStreamPlay.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST) }
+        }
         cardOtherService.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST2) }
 
         // Animação suave de navegação com comando da TV
-        val interactiveCards = listOf(cardStreamPlay, cardOtherService)
+        val interactiveCards = if (streamPlayDisabled) listOf(cardOtherService) else listOf(cardStreamPlay, cardOtherService)
         interactiveCards.forEach { view ->
             view.setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
@@ -74,7 +83,7 @@ class ServiceSelectionActivity : BaseActivity() {
         }
 
         // Foco inicial direto no cartão do serviço atualmente ativo e verificação automática de atualizações
-        val initialCard = if (selectedService == IptvServiceConfig.BEST2) cardOtherService else cardStreamPlay
+        val initialCard = if (streamPlayDisabled || selectedService == IptvServiceConfig.BEST2) cardOtherService else cardStreamPlay
         initialCard.post {
             initialCard.requestFocus()
             AppUpdateManager.checkForUpdates(this, manual = false)

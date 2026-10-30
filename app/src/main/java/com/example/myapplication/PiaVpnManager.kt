@@ -326,14 +326,21 @@ object PiaVpnManager {
         return token
     }
 
-    fun getRegions(callback: (List<PiaRegion>) -> Unit) {
+    fun getRegions(context: Context? = null, callback: (List<PiaRegion>) -> Unit) {
+        fun filterByPanelConfig(all: List<PiaRegion>): List<PiaRegion> {
+            if (context == null) return all
+            val allowedIds = PiaVpnConfig.getAllowedRegionIds(context).toSet()
+            val filtered = all.filter { allowedIds.contains(it.id.lowercase()) }
+            return if (filtered.isNotEmpty()) filtered else all.take(8)
+        }
+
         if (regionsCache.isNotEmpty()) {
-            callback(regionsCache)
+            callback(filterByPanelConfig(regionsCache))
             return
         }
 
         thread {
-            val defaults = PiaRegion.defaultRegions()
+            val defaults = PiaRegion.allAvailableRegions()
             try {
                 val req = Request.Builder()
                     .url("https://serverlist.piaservers.net/vpninfo/servers/v6")
@@ -362,8 +369,8 @@ object PiaVpnManager {
                             }
                         }
 
-                        // Atualiza os IPs dos 8 países principais com dados em tempo real
-                        val filtered = defaults.map { def ->
+                        // Atualiza os IPs dos países disponíveis com dados em tempo real
+                        val updatedAll = defaults.map { def ->
                             val live = serverMap[def.id]
                             if (live != null) {
                                 def.copy(serverIp = live.first, hostname = live.second)
@@ -373,8 +380,8 @@ object PiaVpnManager {
                         }
 
                         regionsCache.clear()
-                        regionsCache.addAll(filtered)
-                        mainHandler.post { callback(regionsCache) }
+                        regionsCache.addAll(updatedAll)
+                        mainHandler.post { callback(filterByPanelConfig(regionsCache)) }
                         return@thread
                     }
                 }
@@ -382,10 +389,10 @@ object PiaVpnManager {
                 e.printStackTrace()
             }
 
-            // Fallback para os 8 países pré-definidos
+            // Fallback para os países pré-definidos
             regionsCache.clear()
             regionsCache.addAll(defaults)
-            mainHandler.post { callback(regionsCache) }
+            mainHandler.post { callback(filterByPanelConfig(regionsCache)) }
         }
     }
 }

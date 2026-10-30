@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eagle TV — Painel Master & Revendedores</title>
+    <title>Painel de Controlo — Gestão de Apps & DNS</title>
     <style>
         :root {
             --bg-main: #0b0f17;
@@ -358,6 +358,42 @@
             font-size: 12px;
             color: #60a5fa;
         }
+        .vpn-countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .vpn-country-chip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s;
+        }
+        .vpn-country-chip.active {
+            background: rgba(59, 130, 246, 0.16);
+            border-color: var(--accent);
+            color: var(--text-main);
+        }
+        .vpn-country-chip .vpn-check {
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--accent);
+            opacity: 0;
+        }
+        .vpn-country-chip.active .vpn-check {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -365,16 +401,16 @@
 <!-- ECRÃ DE LOGIN -->
 <div id="loginScreen">
     <div class="login-box">
-        <div class="login-title">Eagle TV — Painel</div>
-        <div class="login-sub">Acesso Master & Painel de Revendedores</div>
+        <div class="login-title">Painel de Controlo</div>
+        <div class="login-sub">Acesso de Administração & Revendedores</div>
         <form id="loginForm">
             <div class="form-group">
                 <label>ID de Utilizador / Revenda</label>
-                <input type="text" id="loginResellerId" value="master" placeholder="master ou ID do revendedor" required>
+                <input type="text" id="loginResellerId" placeholder="Introduz o teu ID: " required>
             </div>
             <div class="form-group">
                 <label>Password</label>
-                <input type="password" id="loginPassword" placeholder="Introduz a tua password..." required autofocus>
+                <input type="password" id="loginPassword" placeholder="Introduz a tua password" required autofocus>
             </div>
             <div id="loginError" style="color: var(--danger); font-size: 13px; margin-bottom: 12px; display: none;"></div>
             <button type="submit" class="btn" id="btnLogin" style="width: 100%;">Entrar no Painel</button>
@@ -456,6 +492,16 @@
                         <label>Nova Password deste Painel (Opcional)</label>
                         <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a tua senha">
                     </div>
+                </div>
+                <div class="form-group" style="margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                        <label style="margin-bottom: 0; color: var(--text-main); font-size: 13.5px;">🛡️ Países da VPN na App (Clica para Ativar / Desativar na TV)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="setVpnPreset('default8')">8 Europeus Padrão</button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="setVpnPreset('all')">Selecionar Todos</button>
+                        </div>
+                    </div>
+                    <div class="vpn-countries-grid" id="vpnCountriesGrid"></div>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 6px;">
                     <label class="switch-row" style="cursor: pointer;">
@@ -619,6 +665,60 @@
     let allResellers = [];
     let currentFilter = "all";
 
+    const AVAILABLE_VPN_COUNTRIES = [
+        { id: "pt", name: "Portugal", flag: "🇵🇹", defaultOn: true },
+        { id: "spain", name: "Espanha", flag: "🇪🇸", defaultOn: true },
+        { id: "france", name: "França", flag: "🇫🇷", defaultOn: true },
+        { id: "uk", name: "Reino Unido", flag: "🇬🇧", defaultOn: true },
+        { id: "nl_amsterdam", name: "Holanda", flag: "🇳🇱", defaultOn: true },
+        { id: "de-frankfurt", name: "Alemanha", flag: "🇩🇪", defaultOn: true },
+        { id: "swiss", name: "Suíça", flag: "🇨🇭", defaultOn: true },
+        { id: "italy", name: "Itália", flag: "🇮🇹", defaultOn: true },
+        { id: "belgium", name: "Bélgica", flag: "🇧🇪", defaultOn: false },
+        { id: "lu", name: "Luxemburgo", flag: "🇱🇺", defaultOn: false },
+        { id: "us_new_york_city", name: "Estados Unidos", flag: "🇺🇸", defaultOn: false },
+        { id: "br", name: "Brasil", flag: "🇧🇷", defaultOn: false },
+        { id: "ca_toronto", name: "Canadá", flag: "🇨🇦", defaultOn: false },
+        { id: "poland", name: "Polónia", flag: "🇵🇱", defaultOn: false }
+    ];
+    let selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+
+    function renderVpnCountriesGrid() {
+        const grid = document.getElementById("vpnCountriesGrid");
+        if (!grid) return;
+        grid.innerHTML = AVAILABLE_VPN_COUNTRIES.map(c => {
+            const isActive = selectedVpnCountries.has(c.id);
+            return `
+                <div class="vpn-country-chip ${isActive ? 'active' : ''}" onclick="toggleVpnCountry('${c.id}')">
+                    <span>${c.flag} ${escapeHtml(c.name)}</span>
+                    <span class="vpn-check">✓</span>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function toggleVpnCountry(id) {
+        if (selectedVpnCountries.has(id)) {
+            if (selectedVpnCountries.size <= 1) {
+                showToast("Tem de ficar pelo menos 1 país ativo na VPN.", true);
+                return;
+            }
+            selectedVpnCountries.delete(id);
+        } else {
+            selectedVpnCountries.add(id);
+        }
+        renderVpnCountriesGrid();
+    }
+
+    function setVpnPreset(mode) {
+        if (mode === "all") {
+            selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.map(c => c.id));
+        } else {
+            selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+        }
+        renderVpnCountriesGrid();
+    }
+
     async function rpcCall(fnName, params) {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fnName}`, {
             method: "POST",
@@ -721,7 +821,10 @@
             }
 
             isMasterRole = data.role === "master";
-            document.getElementById("panelTitle").textContent = `${data.brand_name || "Eagle TV"} — Painel de Controlo`;
+            const brandTitle = `${data.brand_name || "Painel"} — Painel de Controlo`;
+            document.getElementById("panelTitle").textContent = brandTitle;
+            document.title = brandTitle;
+            document.getElementById("brandBadge").textContent = (data.brand_name || "P").trim().charAt(0).toUpperCase();
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
             document.getElementById("masterTabs").style.display = isMasterRole ? "flex" : "none";
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
@@ -731,7 +834,18 @@
 
             document.getElementById("cfgBestUrl").value = data.best_url || "";
             document.getElementById("cfgBest2Url").value = data.best2_url || "";
-            document.getElementById("cfgAnnouncement").value = data.announcement || "";
+            const rawAnn = String(data.announcement || "");
+            const vpnSplit = rawAnn.split("||VPN:");
+            document.getElementById("cfgAnnouncement").value = (vpnSplit[0] || "").trim();
+            if (vpnSplit.length > 1 && vpnSplit[1].trim()) {
+                const ids = vpnSplit[1].trim().split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+                if (ids.length > 0) {
+                    selectedVpnCountries = new Set(ids);
+                }
+            } else {
+                selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+            }
+            renderVpnCountriesGrid();
             document.getElementById("cfgMaintenance").checked = !!data.maintenance_mode;
             document.getElementById("cfgUpdatedAt").textContent = data.updated_at
                 ? "Última alteração: " + new Date(data.updated_at).toLocaleString("pt-PT")
@@ -1012,7 +1126,9 @@
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
         const best2Url = document.getElementById("cfgBest2Url").value.trim();
-        const announcement = document.getElementById("cfgAnnouncement").value.trim();
+        const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
+        const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
+        const announcement = `${cleanAnnouncement} ||VPN:${vpnCsv}`.trim();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         const newPass = document.getElementById("cfgNewPassword").value.trim();
 

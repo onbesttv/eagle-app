@@ -148,7 +148,14 @@ object RemotePanelManager {
                         val json = JSONObject(raw)
                         val bestUrl = json.optString("best_url", "").trim()
                         val best2Url = json.optString("best2_url", "").trim()
-                        val announcement = json.optString("announcement", "").trim()
+                        val rawAnnouncement = json.optString("announcement", "").trim()
+                        val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
+                        val announcement = announcementParts[0].trim()
+                        if (announcementParts.size > 1) {
+                            PiaVpnConfig.setAllowedRegionsCsv(appContext, announcementParts[1].trim())
+                        } else {
+                            PiaVpnConfig.setAllowedRegionsCsv(appContext, null)
+                        }
                         val maintenance = json.optBoolean("maintenance_mode", false)
                         val blocked = json.optBoolean("is_blocked", false)
                         val blockReason = json.optString("block_reason", "Acesso suspenso pelo administrador.").trim()

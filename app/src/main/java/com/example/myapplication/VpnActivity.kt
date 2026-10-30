@@ -134,7 +134,7 @@ class VpnActivity : BaseActivity() {
 
     private fun carregarRegioes() {
         pbVpnLoading.visibility = View.VISIBLE
-        PiaVpnManager.getRegions { list ->
+        fun renderizarLista(list: List<PiaRegion>) {
             pbVpnLoading.visibility = View.GONE
             regionsList = list
 
@@ -169,6 +169,21 @@ class VpnActivity : BaseActivity() {
                 }
             }
             rvVpnRegions.adapter = regionAdapter
+        }
+
+        PiaVpnManager.getRegions(this) { list ->
+            renderizarLista(list)
+        }
+
+        // Sincroniza em tempo real com o Painel para refletir logo países adicionados/removidos
+        RemotePanelManager.sync(this) {
+            if (!isFinishing && !isDestroyed) {
+                PiaVpnManager.getRegions(this) { updatedList ->
+                    if (updatedList.map { it.id } != regionsList.map { it.id }) {
+                        renderizarLista(updatedList)
+                    }
+                }
+            }
         }
     }
 

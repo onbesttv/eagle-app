@@ -10,11 +10,13 @@ object PiaVpnConfig {
     private const val KEY_PASSWORD = "pia_password"
     private const val KEY_REGION_ID = "pia_region_id"
     private const val KEY_AUTO_CONNECT = "pia_auto_connect"
+    private const val KEY_ALLOWED_REGIONS = "pia_allowed_regions_csv"
 
     // Credenciais pré-configuradas da PIA VPN
     const val DEFAULT_USERNAME = "p6255571"
     const val DEFAULT_PASSWORD = "EqwvpMqb6e"
     const val DEFAULT_REGION_ID = "pt"
+    const val DEFAULT_ALLOWED_REGIONS = "pt,spain,france,uk,nl_amsterdam,de-frankfurt,swiss,italy"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -56,5 +58,19 @@ object PiaVpnConfig {
 
     fun setAutoConnect(context: Context, autoConnect: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_AUTO_CONNECT, autoConnect).apply()
+    }
+
+    fun getAllowedRegionIds(context: Context): List<String> {
+        val raw = getPrefs(context).getString(KEY_ALLOWED_REGIONS, null)?.trim()
+        val csv = if (raw.isNullOrBlank()) DEFAULT_ALLOWED_REGIONS else raw
+        return csv.split(",").map { it.trim().lowercase() }.filter { it.isNotBlank() }
+    }
+
+    fun setAllowedRegionsCsv(context: Context, csv: String?) {
+        if (!csv.isNullOrBlank()) {
+            getPrefs(context).edit().putString(KEY_ALLOWED_REGIONS, csv.trim()).apply()
+        } else {
+            getPrefs(context).edit().remove(KEY_ALLOWED_REGIONS).apply()
+        }
     }
 }
