@@ -76,4 +76,5 @@
 
     <!-- General -->
     <string name="category_favorites">★ FAVORITOS</string>
+    <string name="category_recent">🕒 AÑADIDOS RECIENTEMENTE</string>
 </resources>

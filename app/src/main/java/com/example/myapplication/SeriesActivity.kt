@@ -50,6 +50,24 @@ class SeriesActivity : BaseActivity() {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun parseTimestamp(value: String?): Long {
+        if (value.isNullOrBlank()) return 0L
+        val num = value.toLongOrNull()
+        if (num != null) {
+            return if (num > 100_000_000_000L) num / 1000L else num
+        }
+        if (!value.contains("-")) return 0L
+        return try {
+            if (value.contains(":")) {
+                java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).parse(value)?.time?.div(1000) ?: 0L
+            } else {
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(value)?.time?.div(1000) ?: 0L
+            }
+        } catch (_: Exception) {
+            0L
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_series)
@@ -85,11 +103,13 @@ class SeriesActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (currentCategoryId == "FAVORITES") {
-            carregarFavoritosSeries()
-        } else {
-            seriesAdapter?.notifyDataSetChanged()
-            focarUltimaSerie()
+        when (currentCategoryId) {
+            "FAVORITES" -> carregarFavoritosSeries()
+            "RECENT" -> carregarRecentesSeries()
+            else -> {
+                seriesAdapter?.notifyDataSetChanged()
+                focarUltimaSerie()
+            }
         }
     }
 
@@ -112,15 +132,16 @@ class SeriesActivity : BaseActivity() {
 
                     val categoriasCompletas = mutableListOf<SeriesCategory>()
                     categoriasCompletas.add(SeriesCategory("FAVORITES", getString(R.string.category_favorites)))
+                    categoriasCompletas.add(SeriesCategory("RECENT", getString(R.string.category_recent)))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {
-                        val initialPos = if (categoriasCompletas.size > 1) 1 else 0
+                        val initialPos = if (categoriasCompletas.size > 2) 2 else 0
                         rvCategories.adapter = SeriesCategoryAdapter(categoriasCompletas, initialPos) { cat ->
                             tratarSelecaoCategoria(cat.categoryId)
                         }
-                        if (categoriasCompletas.size > 1) {
-                            tratarSelecaoCategoria(categoriasCompletas[1].categoryId)
+                        if (categoriasCompletas.size > 2) {
+                            tratarSelecaoCategoria(categoriasCompletas[2].categoryId)
                         } else {
                             tratarSelecaoCategoria("FAVORITES")
                         }
@@ -158,10 +179,14 @@ class SeriesActivity : BaseActivity() {
                     val series: List<SeriesItem> = gson.fromJson(json, type)
                     allSeriesCache.clear()
                     allSeriesCache.addAll(series)
-                    val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                    counts["RECENT"] = minOf(40, series.size)
                     CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
                     runOnUiThread {
                         (rvCategories.adapter as? SeriesCategoryAdapter)?.atualizarTextosVisiveis()
+                        if (currentCategoryId == "RECENT") {
+                            carregarRecentesSeries()
+                        }
                     }
                 } catch (_: Exception) {}
             }
@@ -234,12 +259,70 @@ class SeriesActivity : BaseActivity() {
     private fun tratarSelecaoCategoria(catId: String) {
         lastClickedSeriesId = -1
         currentCategoryId = catId
-        if (catId == "FAVORITES") {
-            carregarFavoritosSeries()
-        } else {
-            carregarSeriesDaCategoria(catId)
+        when (catId) {
+            "FAVORITES" -> carregarFavoritosSeries()
+            "RECENT" -> carregarRecentesSeries()
+            else -> carregarSeriesDaCategoria(catId)
         }
         focarPastaSelecionada()
+    }
+
+    private fun carregarRecentesSeries() {
+        if (allSeriesCache.isNotEmpty()) {
+            val recentes = allSeriesCache.sortedWith(
+                compareByDescending<SeriesItem> {
+                    maxOf(
+                        parseTimestamp(it.lastModified),
+                        parseTimestamp(it.added),
+                        parseTimestamp(it.releaseDate)
+                    )
+                }.thenByDescending { it.seriesId }
+            ).take(40)
+            allSeriesInCat = recentes
+            aplicarFiltroPesquisa()
+        } else {
+            val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
+            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+
+            client.newCall(req).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        Toast.makeText(this@SeriesActivity, "Erro ao carregar séries recentes", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val json = response.body?.string() ?: return
+                    try {
+                        val type = object : TypeToken<List<SeriesItem>>() {}.type
+                        val series: List<SeriesItem> = gson.fromJson(json, type)
+
+                        runOnUiThread {
+                            allSeriesCache.clear()
+                            allSeriesCache.addAll(series)
+                            val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                            counts["RECENT"] = minOf(40, series.size)
+                            CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
+                            (rvCategories.adapter as? SeriesCategoryAdapter)?.atualizarTextosVisiveis()
+
+                            val recentes = series.sortedWith(
+                                compareByDescending<SeriesItem> {
+                                    maxOf(
+                                        parseTimestamp(it.lastModified),
+                                        parseTimestamp(it.added),
+                                        parseTimestamp(it.releaseDate)
+                                    )
+                                }.thenByDescending { it.seriesId }
+                            ).take(40)
+                            allSeriesInCat = recentes
+                            aplicarFiltroPesquisa()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            })
+        }
     }
 
     private fun carregarFavoritosSeries() {
@@ -402,6 +485,10 @@ class SeriesActivity : BaseActivity() {
                     val favPrefs = rvCategories.context.getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
                     favPrefs.getStringSet("fav_ids", emptySet())?.size ?: 0
                 }
+                "RECENT" -> {
+                    if (allSeriesCache.isNotEmpty()) minOf(40, allSeriesCache.size)
+                    else CategoryCountHelper.getSeriesCount(rvCategories.context, "RECENT")
+                }
                 else -> CategoryCountHelper.getSeriesCount(rvCategories.context, cat.categoryId)
             }
             return if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
@@ -446,7 +533,7 @@ class SeriesActivity : BaseActivity() {
             val cat = list[position]
             holder.tv.text = textoCategoria(cat)
 
-            if (cat.categoryId == "FAVORITES") {
+            if (cat.categoryId == "FAVORITES" || cat.categoryId == "RECENT") {
                 holder.tv.setTextColor(0xFFF5C56B.toInt())
             } else {
                 holder.tv.setTextColor(0xFFFFFFFF.toInt())

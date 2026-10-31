@@ -57,6 +57,24 @@ class MoviesActivity : BaseActivity() {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
+    private fun parseTimestamp(value: String?): Long {
+        if (value.isNullOrBlank()) return 0L
+        val num = value.toLongOrNull()
+        if (num != null) {
+            return if (num > 100_000_000_000L) num / 1000L else num
+        }
+        if (!value.contains("-")) return 0L
+        return try {
+            if (value.contains(":")) {
+                java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).parse(value)?.time?.div(1000) ?: 0L
+            } else {
+                java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).parse(value)?.time?.div(1000) ?: 0L
+            }
+        } catch (_: Exception) {
+            0L
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_movies)
@@ -111,6 +129,7 @@ class MoviesActivity : BaseActivity() {
         when (currentCategoryId) {
             "FAVORITES" -> carregarFavoritos()
             "RESUME" -> carregarContinuarAVer()
+            "RECENT" -> carregarRecentes()
             else -> {
                 movieAdapter?.notifyDataSetChanged()
                 focarUltimoFilme()
@@ -136,15 +155,16 @@ class MoviesActivity : BaseActivity() {
                     val categoriasCompletas = mutableListOf<VodCategory>()
                     categoriasCompletas.add(VodCategory("FAVORITES", getString(R.string.category_favorites), 0))
                     categoriasCompletas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
+                    categoriasCompletas.add(VodCategory("RECENT", getString(R.string.category_recent), 0))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {
-                        val initialPos = if (categoriasCompletas.size > 2) 2 else 0
+                        val initialPos = if (categoriasCompletas.size > 3) 3 else 0
                         rvCategories.adapter = MovieCategoryAdapter(categoriasCompletas, initialPos) { cat ->
                             tratarSelecaoCategoria(cat.categoryId)
                         }
-                        if (categoriasCompletas.size > 2) {
-                            tratarSelecaoCategoria(categoriasCompletas[2].categoryId)
+                        if (categoriasCompletas.size > 3) {
+                            tratarSelecaoCategoria(categoriasCompletas[3].categoryId)
                         } else {
                             tratarSelecaoCategoria("FAVORITES")
                         }
@@ -182,10 +202,14 @@ class MoviesActivity : BaseActivity() {
                     val filmes: List<VodStream> = gson.fromJson(json, type)
                     allMoviesCache.clear()
                     allMoviesCache.addAll(filmes)
-                    val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                    counts["RECENT"] = minOf(40, filmes.size)
                     CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
                     runOnUiThread {
                         (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
+                        if (currentCategoryId == "RECENT") {
+                            carregarRecentes()
+                        }
                     }
                 } catch (_: Exception) {}
             }
@@ -261,9 +285,58 @@ class MoviesActivity : BaseActivity() {
         when (catId) {
             "FAVORITES" -> carregarFavoritos()
             "RESUME" -> carregarContinuarAVer()
+            "RECENT" -> carregarRecentes()
             else -> carregarFilmesDaCategoria(catId)
         }
         focarPastaSelecionada()
+    }
+
+    private fun carregarRecentes() {
+        if (allMoviesCache.isNotEmpty()) {
+            val filmesOrdenados = allMoviesCache.sortedWith(
+                compareByDescending<VodStream> { parseTimestamp(it.added) }
+                    .thenByDescending { it.streamId }
+            ).take(40)
+            allMoviesInCat = filmesOrdenados
+            aplicarFiltroEOrdenacao()
+        } else {
+            val url = "$BASE_URL/player_api.php?username=$user&password=$pass&action=get_vod_streams"
+            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+
+            client.newCall(req).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        Toast.makeText(this@MoviesActivity, "Erro ao carregar filmes recentes", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val json = response.body?.string() ?: return
+                    try {
+                        val type = object : TypeToken<List<VodStream>>() {}.type
+                        val filmes: List<VodStream> = gson.fromJson(json, type)
+
+                        runOnUiThread {
+                            allMoviesCache.clear()
+                            allMoviesCache.addAll(filmes)
+                            val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                            counts["RECENT"] = minOf(40, filmes.size)
+                            CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
+                            (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
+
+                            val filmesOrdenados = filmes.sortedWith(
+                                compareByDescending<VodStream> { parseTimestamp(it.added) }
+                                    .thenByDescending { it.streamId }
+                            ).take(40)
+                            allMoviesInCat = filmesOrdenados
+                            aplicarFiltroEOrdenacao()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            })
+        }
     }
 
     private fun carregarFavoritos() {
@@ -399,7 +472,10 @@ class MoviesActivity : BaseActivity() {
 
         lista = when (currentSortMode) {
             1 -> lista.sortedBy { it.name.lowercase() }
-            2 -> lista.sortedByDescending { it.streamId }
+            2 -> lista.sortedWith(
+                compareByDescending<VodStream> { parseTimestamp(it.added) }
+                    .thenByDescending { it.streamId }
+            )
             3 -> lista.sortedByDescending { it.rating_5based ?: it.rating?.toDoubleOrNull() ?: 0.0 }
             else -> lista
         }
@@ -504,6 +580,10 @@ class MoviesActivity : BaseActivity() {
                     val resumePrefs = rvCategories.context.getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
                     resumePrefs.all.keys.count { it.startsWith("pos_") && (resumePrefs.all[it] as? Long ?: 0L) > 10000L }
                 }
+                "RECENT" -> {
+                    if (allMoviesCache.isNotEmpty()) minOf(40, allMoviesCache.size)
+                    else CategoryCountHelper.getVodCount(rvCategories.context, "RECENT")
+                }
                 else -> CategoryCountHelper.getVodCount(rvCategories.context, cat.categoryId)
             }
             return if (count > 0) "${cat.categoryName} ($count)" else cat.categoryName
@@ -548,7 +628,7 @@ class MoviesActivity : BaseActivity() {
             val cat = list[position]
             holder.tv.text = textoCategoria(cat)
 
-            if (cat.categoryId == "FAVORITES" || cat.categoryId == "RESUME") {
+            if (cat.categoryId == "FAVORITES" || cat.categoryId == "RESUME" || cat.categoryId == "RECENT") {
                 holder.tv.setTextColor(0xFFF5C56B.toInt())
             } else {
                 holder.tv.setTextColor(0xFFFFFFFF.toInt())

@@ -435,10 +435,11 @@
         </div>
     </div>
 
-    <!-- ABAS DE NAVEGAÇÃO (Apenas visível para o Master) -->
-    <div class="nav-tabs" id="masterTabs" style="display: none;">
+    <!-- ABAS DE NAVEGAÇÃO (Visível para Master e Revendedores) -->
+    <div class="nav-tabs" id="masterTabs">
         <button class="tab-btn active" id="tabBtnMain" onclick="switchTab('main')">📺 DNS & Dispositivos</button>
-        <button class="tab-btn" id="tabBtnResellers" onclick="switchTab('resellers')">🤝 Gerir Revendedores (Apps White-Label)</button>
+        <button class="tab-btn" id="tabBtnVpn" onclick="switchTab('vpn')">🛡️ Gerir VPN</button>
+        <button class="tab-btn" id="tabBtnResellers" style="display: none;" onclick="switchTab('resellers')">🤝 Gerir Revendedores (Apps White-Label)</button>
     </div>
 
     <!-- CARTÕES DE ESTATÍSTICAS -->
@@ -488,27 +489,17 @@
                         <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
                         <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="newPasswordGroup">
                         <label>Nova Password deste Painel (Opcional)</label>
                         <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a tua senha">
                     </div>
                 </div>
-                <div class="form-group" style="margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-                        <label style="margin-bottom: 0; color: var(--text-main); font-size: 13.5px;">🛡️ Países da VPN na App (Clica para Ativar / Desativar na TV)</label>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="setVpnPreset('default8')">8 Europeus Padrão</button>
-                            <button type="button" class="btn btn-outline btn-sm" onclick="setVpnPreset('all')">Selecionar Todos</button>
-                        </div>
-                    </div>
-                    <div class="vpn-countries-grid" id="vpnCountriesGrid"></div>
-                </div>
                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 6px;">
-                    <label class="switch-row" style="cursor: pointer;">
+                    <label class="switch-row" id="maintenanceSwitchLabel" style="cursor: pointer;">
                         <input type="checkbox" id="cfgMaintenance">
                         <span style="font-size: 13px; font-weight: 600;">Ativar Modo de Manutenção (suspende temporariamente a entrada na app)</span>
                     </label>
-                    <button type="submit" class="btn" id="btnSaveConfig">💾 Guardar Alterações</button>
+                    <button type="submit" class="btn" id="btnSaveConfig" style="margin-left: auto;">💾 Guardar Alterações</button>
                 </div>
             </form>
         </div>
@@ -554,7 +545,32 @@
         </div>
     </div>
 
-    <!-- ABA 2: GESTÃO DE REVENDEDORES (Apenas Master) -->
+    <!-- ABA 2: GERIR VPN (Master e Revendedores) -->
+    <div id="tabContentVpn" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title" id="vpnCardTitle">🛡️ Gestão dos Países da VPN na App</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        Escolhe abaixo quais os países da VPN que queres que apareçam disponíveis na tua aplicação. A alteração reflete-se em tempo real assim que o cliente abrir o menu VPN na TV!
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="setVpnPreset('default8')">8 Europeus Padrão</button>
+                    <button type="button" class="btn btn-outline btn-sm" onclick="setVpnPreset('all')">Selecionar Todos</button>
+                </div>
+            </div>
+
+            <div class="vpn-countries-grid" id="vpnCountriesGrid" style="margin-top: 12px; margin-bottom: 22px;"></div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; padding-top: 16px; border-top: 1px solid var(--border);">
+                <span id="vpnActiveCountLabel" style="font-size: 13px; color: var(--text-muted); font-weight: 600;">8 países selecionados</span>
+                <button type="button" class="btn" id="btnSaveVpn" onclick="saveVpnCountries()">💾 Guardar Países da VPN</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABA 3: GESTÃO DE REVENDEDORES (Apenas Master) -->
     <div id="tabContentResellers" style="display: none;">
         <div class="card">
             <div class="card-header">
@@ -695,6 +711,28 @@
                 </div>
             `;
         }).join("");
+        const countEl = document.getElementById("vpnActiveCountLabel");
+        if (countEl) {
+            countEl.textContent = `${selectedVpnCountries.size} de ${AVAILABLE_VPN_COUNTRIES.length} países ativos na App`;
+        }
+    }
+
+    async function saveVpnCountries() {
+        const btn = document.getElementById("btnSaveVpn");
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "A guardar...";
+        }
+        try {
+            document.getElementById("configForm").requestSubmit();
+        } finally {
+            setTimeout(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = "💾 Guardar Países da VPN";
+                }
+            }, 900);
+        }
     }
 
     function toggleVpnCountry(id) {
@@ -746,8 +784,10 @@
 
     function switchTab(tab) {
         document.getElementById("tabBtnMain").classList.toggle("active", tab === "main");
+        document.getElementById("tabBtnVpn").classList.toggle("active", tab === "vpn");
         document.getElementById("tabBtnResellers").classList.toggle("active", tab === "resellers");
         document.getElementById("tabContentMain").style.display = tab === "main" ? "grid" : "none";
+        document.getElementById("tabContentVpn").style.display = tab === "vpn" ? "block" : "none";
         document.getElementById("tabContentResellers").style.display = tab === "resellers" ? "block" : "none";
     }
 
@@ -826,11 +866,17 @@
             document.title = brandTitle;
             document.getElementById("brandBadge").textContent = (data.brand_name || "P").trim().charAt(0).toUpperCase();
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
-            document.getElementById("masterTabs").style.display = isMasterRole ? "flex" : "none";
+            document.getElementById("masterTabs").style.display = "flex";
+            document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
+            document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
+            document.getElementById("maintenanceSwitchLabel").style.display = isMasterRole ? "flex" : "none";
             document.getElementById("dnsCardTitle").textContent = isMasterRole
                 ? "⚙️ Configuração Remota dos Meus DNS (App Master)"
                 : `⚙️ Configuração Remota de DNS (${data.brand_name || currentResellerId})`;
+            document.getElementById("vpnCardTitle").textContent = isMasterRole
+                ? "🛡️ Gestão dos Países da VPN (App Master)"
+                : `🛡️ Gestão dos Países da VPN (${data.brand_name || currentResellerId})`;
 
             document.getElementById("cfgBestUrl").value = data.best_url || "";
             document.getElementById("cfgBest2Url").value = data.best2_url || "";
@@ -857,7 +903,7 @@
             if (isMasterRole) {
                 populateResellerFilter();
                 renderResellers();
-            } else {
+            } else if (document.getElementById("tabBtnResellers").classList.contains("active")) {
                 switchTab("main");
             }
 

@@ -72,7 +72,10 @@ data class SeriesItem(
     @SerializedName("cover") val cover: String?,
     @SerializedName("plot") val plot: String?,
     @SerializedName("rating") val rating: String?,
-    @SerializedName("category_id") val categoryId: String?
+    @SerializedName("category_id") val categoryId: String?,
+    @SerializedName("last_modified") val lastModified: String? = null,
+    @SerializedName("added") val added: String? = null,
+    @SerializedName("releaseDate") val releaseDate: String? = null
 )
 
 // Episódio individual
