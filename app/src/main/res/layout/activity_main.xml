@@ -289,10 +289,10 @@
             android:duplicateParentState="true"
             android:background="@drawable/bg_home_tile_glass">
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_home_catchup"
-                app:tint="#F0FBFF" />
+                android:id="@+id/ivCatchUpIcon"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:src="@drawable/ic_home_catchup" />
             <TextView
                 android:id="@+id/tvCatchUpTitle"
                 android:layout_width="wrap_content"

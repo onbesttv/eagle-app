@@ -56,12 +56,26 @@ class MainActivity : BaseActivity() {
         val btnUpdateService = findViewById<ImageButton>(R.id.btnUpdateService)
         val btnVpn = findViewById<ImageButton>(R.id.btnVpn)
 
-        btnVpn.setOnClickListener {
-            startActivity(Intent(this, VpnActivity::class.java))
+        val hideVpn = RemotePanelManager.getResellerId(this).equals("pereira_tv", ignoreCase = true)
+        if (hideVpn) {
+            btnVpn.visibility = android.view.View.GONE
+            btnVpn.isFocusable = false
+            btnVpn.isClickable = false
+            val catchUpLayout = cardCatchUp.getChildAt(0) as? android.view.ViewGroup
+            val ivCatchUp = catchUpLayout?.getChildAt(0) as? ImageView
+            ivCatchUp?.imageTintList = null
+        } else {
+            btnVpn.setOnClickListener {
+                startActivity(Intent(this, VpnActivity::class.java))
+            }
         }
 
         // Destaque visual e sombra ao navegar com comando da Box
-        val interactiveViews = listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnVpn, btnUpdateService, btnSettings)
+        val interactiveViews = if (hideVpn) {
+            listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnUpdateService, btnSettings)
+        } else {
+            listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnVpn, btnUpdateService, btnSettings)
+        }
         interactiveViews.forEach { view ->
             view.setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {

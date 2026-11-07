@@ -454,10 +454,10 @@
             <div class="stat-value" id="statOnline" style="color: var(--success);">0</div>
             <div class="stat-sub" id="statToday">0 ativos nas últimas 24h</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Distribuição de Serviço</div>
+        <div class="stat-card" id="statCardServices">
+            <div class="stat-label" id="statServicesLabel">Distribuição de Serviço</div>
             <div class="stat-value" id="statServices">0 / 0</div>
-            <div class="stat-sub">StreamPlay vs Templarios</div>
+            <div class="stat-sub" id="statServicesSub">StreamPlay vs Templarios</div>
         </div>
         <div class="stat-card">
             <div class="stat-label" id="statFourthLabel">Acessos Bloqueados</div>
@@ -476,12 +476,12 @@
             <form id="configForm">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>DNS Serviço 1 (StreamPlay / Principal)</label>
+                        <label id="best1UrlLabel">DNS Serviço 1 (StreamPlay / Principal)</label>
                         <input type="url" id="cfgBestUrl" placeholder="https://thebestplay.site" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="best2UrlGroup">
                         <label>DNS Serviço 2 (Templarios / Secundário)</label>
-                        <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080" required>
+                        <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080">
                     </div>
                 </div>
                 <div class="form-grid">
@@ -516,8 +516,8 @@
                 </select>
                 <button class="pill-btn active" data-filter="all" onclick="setFilter('all', this)">Todos</button>
                 <button class="pill-btn" data-filter="online" onclick="setFilter('online', this)">Online</button>
-                <button class="pill-btn" data-filter="best" onclick="setFilter('best', this)">StreamPlay</button>
-                <button class="pill-btn" data-filter="best2" onclick="setFilter('best2', this)">Templarios</button>
+                <button class="pill-btn" id="filterBtnBest" data-filter="best" onclick="setFilter('best', this)">StreamPlay</button>
+                <button class="pill-btn" id="filterBtnBest2" data-filter="best2" onclick="setFilter('best2', this)">Templarios</button>
                 <button class="pill-btn" data-filter="blocked" onclick="setFilter('blocked', this)">Bloqueados</button>
             </div>
 
@@ -866,7 +866,16 @@
             document.title = brandTitle;
             document.getElementById("brandBadge").textContent = (data.brand_name || "P").trim().charAt(0).toUpperCase();
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
+            const hasVpnInApp = currentResellerId !== "pereira_tv";
+            const hasBest2InApp = currentResellerId !== "pereira_tv";
             document.getElementById("masterTabs").style.display = "flex";
+            document.getElementById("tabBtnVpn").style.display = hasVpnInApp ? "inline-block" : "none";
+            document.getElementById("best1UrlLabel").textContent = hasBest2InApp
+                ? "DNS Serviço 1 (StreamPlay / Principal)"
+                : "DNS do Servidor (StreamPlay)";
+            document.getElementById("best2UrlGroup").style.display = hasBest2InApp ? "block" : "none";
+            document.getElementById("filterBtnBest").style.display = hasBest2InApp ? "inline-block" : "none";
+            document.getElementById("filterBtnBest2").style.display = hasBest2InApp ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
@@ -939,7 +948,15 @@
         document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
         document.getElementById("statOnline").textContent = online;
         document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
-        document.getElementById("statServices").textContent = `${bestCount} / ${best2Count}`;
+        if (currentResellerId === "pereira_tv") {
+            document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
+            document.getElementById("statServices").textContent = "StreamPlay";
+            document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
+        } else {
+            document.getElementById("statServicesLabel").textContent = "Distribuição de Serviço";
+            document.getElementById("statServices").textContent = `${bestCount} / ${best2Count}`;
+            document.getElementById("statServicesSub").textContent = "StreamPlay vs Templarios";
+        }
 
         if (!isMasterRole && data.expires_at) {
             document.getElementById("statFourthLabel").textContent = "Validade do Painel";
@@ -1019,7 +1036,7 @@
                     ? `<span class="badge badge-online">● Online</span>`
                     : `<span class="badge badge-offline">● Offline</span>`;
 
-            const srvBadge = srv === "best2"
+            const srvBadge = (srv === "best2" && currentResellerId !== "pereira_tv")
                 ? `<span class="badge badge-best2">Templarios</span>`
                 : `<span class="badge badge-best">StreamPlay</span>`;
 
@@ -1171,7 +1188,7 @@
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = currentResellerId === "pereira_tv" ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const announcement = `${cleanAnnouncement} ||VPN:${vpnCsv}`.trim();

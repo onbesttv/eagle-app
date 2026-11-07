@@ -104,6 +104,7 @@ if (Test-Path $resLogo) {
         $gIcon = [System.Drawing.Graphics]::FromImage($iconBmp)
         $gIcon.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
         $gIcon.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $gIcon.Clear([System.Drawing.Color]::FromArgb(255, 5, 5, 7))
         $gIcon.DrawImage($bitmap, 0, 0, $sz, $sz)
         $gIcon.Dispose()
         $iconBmp.Save((Join-Path (Resolve-Path $mipDir).Path "ic_launcher.png"), [System.Drawing.Imaging.ImageFormat]::Png)
@@ -145,7 +146,10 @@ Write-Host "===================================================" -ForegroundColo
 
 if ($Publicar) {
     $gradleContent = Get-Content "app/build.gradle.kts" -Raw
-    if ($gradleContent -match 'versionName\s*=\s*"([^"]+)"') {
+    $flavorPattern = 'create\("' + [regex]::Escape($cleanId) + '"\)[\s\S]*?versionName\s*=\s*"([^"]+)"'
+    if ($gradleContent -match $flavorPattern) {
+        $versionName = $matches[1]
+    } elseif ($gradleContent -match 'versionName\s*=\s*"([^"]+)"') {
         $versionName = $matches[1]
     } else {
         throw "Nao foi possivel detetar versionName em app/build.gradle.kts"

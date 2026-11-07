@@ -61,13 +61,16 @@ class SettingsActivity : BaseActivity() {
         )
 
         val grid = findViewById<GridLayout>(R.id.settingsGrid)
-        grid.columnCount = 4
-        grid.rowCount = 2
+        val isPereira = AppThemeColors.isPereiraTheme(this)
+        val cols = if (isPereira) 2 else 4
+        val rows = if (isPereira) 4 else 2
+        grid.columnCount = cols
+        grid.rowCount = rows
         items.forEachIndexed { index, item ->
-            val card = createSettingCard(item)
+            val card = createSettingCard(item, isPereira)
             val params = GridLayout.LayoutParams(
-                GridLayout.spec(index / 4, 1f),
-                GridLayout.spec(index % 4, 1f)
+                GridLayout.spec(index / cols, 1f),
+                GridLayout.spec(index % cols, 1f)
             ).apply {
                 width = 0
                 height = 0
@@ -77,14 +80,17 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    private fun createSettingCard(item: SettingItem): CardView {
-        val accentColors = if (AppThemeColors.isDarkGoldTheme(this)) {
-            intArrayOf(
+    private fun createSettingCard(item: SettingItem, isPereira: Boolean = false): CardView {
+        val accentColors = when {
+            AppThemeColors.isDarkGoldTheme(this) -> intArrayOf(
                 0xFFFBBF24.toInt(), 0xFFF59E0B.toInt(), 0xFF34D399.toInt(), 0xFFFBBF24.toInt(),
                 0xFFFFC76B.toInt(), 0xFFD97706.toInt(), 0xFFFBBF24.toInt(), 0xFFFF7B83.toInt()
             )
-        } else {
-            intArrayOf(
+            isPereira -> intArrayOf(
+                0xFF38BDF8.toInt(), 0xFF60A5FA.toInt(), 0xFF38BDF8.toInt(), 0xFF60A5FA.toInt(),
+                0xFF0EA5E9.toInt(), 0xFF7DD3FC.toInt(), 0xFF38BDF8.toInt(), 0xFFFF6B7A.toInt()
+            )
+            else -> intArrayOf(
                 0xFF62D7FF.toInt(), 0xFF9BA8FF.toInt(), 0xFF6BE6C2.toInt(), 0xFF73BFFF.toInt(),
                 0xFFFFC76B.toInt(), 0xFFB49BFF.toInt(), 0xFF65D7E8.toInt(), 0xFFFF7B83.toInt()
             )
@@ -118,9 +124,9 @@ class SettingsActivity : BaseActivity() {
             }
         }
         val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dp(8), dp(10), dp(8), dp(10))
+            orientation = if (isPereira) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
+            gravity = if (isPereira) Gravity.CENTER_VERTICAL else Gravity.CENTER
+            setPadding(dp(if (isPereira) 18 else 8), dp(10), dp(if (isPereira) 18 else 8), dp(10))
             background = getDrawable(R.drawable.bg_dashboard_card)
         }
         val iconPlate = android.widget.FrameLayout(this).apply {
@@ -130,8 +136,10 @@ class SettingsActivity : BaseActivity() {
                 setStroke(dp(1), (accent and 0x00FFFFFF) or 0x66000000)
             }
         }
+        val iconSize = if (isPereira) dp(30) else dp(42)
+        val plateSize = if (isPereira) dp(48) else dp(58)
         val icon = ImageView(this).apply {
-            layoutParams = android.widget.FrameLayout.LayoutParams(dp(42), dp(42), Gravity.CENTER)
+            layoutParams = android.widget.FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER)
             setImageResource(item.icon)
             setColorFilter(accent)
             scaleType = ImageView.ScaleType.FIT_CENTER
@@ -140,14 +148,14 @@ class SettingsActivity : BaseActivity() {
         val title = TextView(this).apply {
             text = item.title
             setTextColor(Color.WHITE)
-            textSize = 13f
+            textSize = if (isPereira) 15f else 13f
             letterSpacing = 0.02f
-            gravity = Gravity.CENTER
+            gravity = if (isPereira) Gravity.START or Gravity.CENTER_VERTICAL else Gravity.CENTER
             maxLines = 2
-            setPadding(0, dp(9), 0, 0)
+            setPadding(if (isPereira) dp(16) else 0, if (isPereira) 0 else dp(9), 0, 0)
             setTypeface(null, android.graphics.Typeface.BOLD)
         }
-        content.addView(iconPlate, LinearLayout.LayoutParams(dp(58), dp(58)))
+        content.addView(iconPlate, LinearLayout.LayoutParams(plateSize, plateSize))
         content.addView(title, LinearLayout.LayoutParams(-1, -2))
         card.addView(content)
         return card
@@ -176,24 +184,59 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun showAccount() {
+        val outerPanel = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(20), dp(24), dp(14))
+            background = getDrawable(R.drawable.bg_auth_panel)
+        }
+
+        val heading = TextView(this).apply {
+            text = getString(R.string.settings_account).uppercase(Locale.getDefault())
+            textSize = 16f
+            letterSpacing = 0.18f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, dp(4))
+        }
+        outerPanel.addView(heading, LinearLayout.LayoutParams(-1, -2))
+
+        val subtitle = TextView(this).apply {
+            text = "DETALHES DA TUA SUBSCRIÇÃO E LINHA ATIVA"
+            textSize = 11f
+            letterSpacing = 0.12f
+            gravity = Gravity.CENTER
+            setTextColor(AppThemeColors.mapColor(this@SettingsActivity, 0xFF62D7FF.toInt()))
+            setPadding(0, 0, 0, dp(16))
+        }
+        outerPanel.addView(subtitle, LinearLayout.LayoutParams(-1, -2))
+
         val details = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(22), dp(14), dp(22), dp(14))
         }
-        addAccountRow(details, "Conta", "A carregar…", Color.LTGRAY)
+        addAccountRow(details, "Conta", "A consultar servidor…", 0xFFD2DDE7.toInt())
+
         val accountScroll = ScrollView(this).apply {
             isFillViewport = true
             addView(details)
         }
+        outerPanel.addView(accountScroll, LinearLayout.LayoutParams(-1, -2))
+
         val dialog = AlertDialog.Builder(this)
-            .setTitle("ACCOUNT INFORMATION")
-            .setView(accountScroll)
+            .setView(outerPanel)
             .setPositiveButton("FECHAR", null)
             .create()
         dialog.show()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         val screenWidth = resources.displayMetrics.widthPixels
-        dialog.window?.setLayout((screenWidth * 0.72f).toInt().coerceAtMost(screenWidth - dp(48)), ViewGroup.LayoutParams.WRAP_CONTENT)
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(Color.WHITE)
+        dialog.window?.setLayout((screenWidth * 0.68f).toInt().coerceAtMost(screenWidth - dp(48)), ViewGroup.LayoutParams.WRAP_CONTENT)
+        styleSettingsDialog(dialog)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.let { btnClose ->
+            btnClose.isFocusable = true
+            btnClose.isFocusableInTouchMode = true
+            btnClose.post { btnClose.requestFocus() }
+        }
 
         val user = login.getString("SAVED_USER", "").orEmpty()
         val pass = login.getString("SAVED_PASS", "").orEmpty()
@@ -207,7 +250,7 @@ class SettingsActivity : BaseActivity() {
                     if (dialog.isShowing) {
                         details.removeAllViews()
                         addAccountRow(details, "Estado", "Indisponível", 0xFFFF513F.toInt())
-                        addAccountRow(details, "Informação", "Não foi possível consultar o servidor. Verifica a ligação à Internet.", Color.LTGRAY)
+                        addAccountRow(details, "Informação", "Não foi possível consultar o servidor. Verifica a ligação à Internet.", 0xFFD2DDE7.toInt())
                     }
                 }
             }
@@ -224,7 +267,7 @@ class SettingsActivity : BaseActivity() {
                     val expirationDate = parseExpirationDate(expRaw)
                     val expiry = when {
                         expRaw == null || expRaw == "0" -> "Ilimitada"
-                        expirationDate != null -> SimpleDateFormat("yyyy/MM/dd hh:mm:ss a", Locale.getDefault()).format(expirationDate)
+                        expirationDate != null -> SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(expirationDate)
                         else -> "Data não disponibilizada"
                     }
                     val trialValue = info.opt("is_trial")
@@ -241,15 +284,15 @@ class SettingsActivity : BaseActivity() {
                     runOnUiThread {
                         if (dialog.isShowing) {
                             details.removeAllViews()
-                            addAccountRow(details, "Nome de usuário", user, Color.WHITE)
+                            addAccountRow(details, "Utilizador", user, Color.WHITE)
                             addAccountRow(
                                 details,
-                                "Mensagem",
-                                if (isTrial) "Esta é uma conta de avaliação." else "Esta não é uma conta de avaliação.",
-                                0xFFFFD54F.toInt()
+                                "Tipo de Conta",
+                                if (isTrial) "Conta de Avaliação (Trial)" else "Subscrição Premium",
+                                AppThemeColors.mapColor(this@SettingsActivity, 0xFF62D7FF.toInt())
                             )
-                            addAccountRow(details, "Expira", expiry, 0xFFFFD54F.toInt())
-                            addAccountRow(details, "Status", if (active) "ACTIVE" else "INACTIVE", if (active) 0xFFB6FF00.toInt() else 0xFFFF513F.toInt())
+                            addAccountRow(details, "Validade / Expira", expiry, 0xFFFFD54F.toInt())
+                            addAccountRow(details, "Status", if (active) "ATIVA" else "INATIVA", if (active) 0xFF34D399.toInt() else 0xFFFF513F.toInt())
                         }
                     }
                 } catch (_: Exception) {
@@ -257,7 +300,7 @@ class SettingsActivity : BaseActivity() {
                         if (dialog.isShowing) {
                             details.removeAllViews()
                             addAccountRow(details, "Estado", "Indisponível", 0xFFFF513F.toInt())
-                            addAccountRow(details, "Informação", "O servidor devolveu dados de conta inválidos.", Color.LTGRAY)
+                            addAccountRow(details, "Informação", "O servidor devolveu dados de conta inválidos.", 0xFFD2DDE7.toInt())
                         }
                     }
                 }
@@ -291,40 +334,43 @@ class SettingsActivity : BaseActivity() {
 
     private fun addAccountRow(container: LinearLayout, label: String, value: String, valueColor: Int) {
         val card = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(12))
+            setPadding(dp(18), dp(14), dp(18), dp(14))
             background = GradientDrawable().apply {
-                setColor(AppThemeColors.mapColor(this@SettingsActivity, 0xFF152238.toInt()))
+                setColor(AppThemeColors.mapColor(this@SettingsActivity, 0xFF101C30.toInt()))
                 cornerRadius = dp(14).toFloat()
-                setStroke(dp(1), AppThemeColors.mapColor(this@SettingsActivity, 0xFF344967.toInt()))
+                setStroke(dp(1), AppThemeColors.mapColor(this@SettingsActivity, 0xFF2B4666.toInt()))
             }
         }
         val labelView = TextView(this).apply {
             text = label.uppercase(Locale.getDefault())
-            textSize = 11f
+            textSize = 12f
             letterSpacing = 0.08f
-            setTextColor(0xFFB8C5D3.toInt())
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(0xFF9EBBD7.toInt())
         }
         val valueView = TextView(this).apply {
-            text = value
-            textSize = if (label == "Status") 18f else 16f
+            text = if (label == "Status") "● $value" else value
+            textSize = 15f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(valueColor)
-            setPadding(0, dp(5), 0, 0)
+            gravity = Gravity.END
             maxLines = 2
             if (label == "Status") {
+                val isOk = value == "ATIVA" || value == "ACTIVE"
                 background = GradientDrawable().apply {
-                    setColor(if (value == "ACTIVE") 0xFF174526.toInt() else 0xFF542B30.toInt())
-                    cornerRadius = dp(8).toFloat()
+                    setColor(if (isOk) 0x3310B981 else 0x33EF4444)
+                    cornerRadius = dp(20).toFloat()
+                    setStroke(dp(1), if (isOk) 0xFF10B981.toInt() else 0xFFEF4444.toInt())
                 }
-                setPadding(dp(12), dp(6), dp(12), dp(6))
+                setPadding(dp(14), dp(5), dp(14), dp(5))
             }
         }
-        card.addView(labelView)
-        card.addView(valueView)
+        card.addView(labelView, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        card.addView(valueView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         val params = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        params.bottomMargin = dp(9)
+        params.bottomMargin = dp(8)
         container.addView(card, params)
     }
 

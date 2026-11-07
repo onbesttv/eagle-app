@@ -241,14 +241,17 @@ class EpgActivity : BaseActivity() {
             val updateCatBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
                 val ctx = holder.itemView.context
+                val isPereira = AppThemeColors.isPereiraTheme(ctx)
+                val radius = dp(if (isPereira) 18 else 8).toFloat()
                 holder.tv.background = GradientDrawable().apply {
                     if (hasFocus) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                         setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        cornerRadius = radius
                     } else if (currentSelected) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        if (isPereira) setStroke(dp(1), 0x6638BDF8)
+                        cornerRadius = radius
                     } else {
                         setColor(0x00000000)
                     }
@@ -306,14 +309,17 @@ class EpgActivity : BaseActivity() {
             val updateChannelBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
                 val ctx = holder.itemView.context
+                val isPereira = AppThemeColors.isPereiraTheme(ctx)
+                val radius = dp(if (isPereira) 16 else 8).toFloat()
                 holder.itemView.background = GradientDrawable().apply {
                     if (hasFocus) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                         setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        cornerRadius = radius
                     } else if (currentSelected) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF172338.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        if (isPereira) setStroke(dp(1), 0x5538BDF8)
+                        cornerRadius = radius
                     } else {
                         setColor(0x00000000)
                     }

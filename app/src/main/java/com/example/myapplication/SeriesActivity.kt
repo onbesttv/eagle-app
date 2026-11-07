@@ -87,7 +87,7 @@ class SeriesActivity : BaseActivity() {
         etSearch = findViewById(R.id.etSearchSeries)
 
         rvCategories.layoutManager = LinearLayoutManager(this)
-        rvSeries.layoutManager = GridLayoutManager(this, 5)
+        rvSeries.layoutManager = GridLayoutManager(this, if (AppThemeColors.isPereiraTheme(this)) 6 else 5)
 
         carregarCategoriasSeries()
 
@@ -500,14 +500,17 @@ class SeriesActivity : BaseActivity() {
             fun atualizarDestaque(hasFocus: Boolean = itemView.hasFocus()) {
                 val currentSelected = bindingAdapterPosition == selectedPosition
                 val ctx = itemView.context
+                val isPereira = AppThemeColors.isPereiraTheme(ctx)
+                val radius = dp(if (isPereira) 18 else 8).toFloat()
                 tv.background = GradientDrawable().apply {
                     if (hasFocus) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                         setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        cornerRadius = radius
                     } else if (currentSelected) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        if (isPereira) setStroke(dp(1), 0x6638BDF8)
+                        cornerRadius = radius
                     } else {
                         setColor(0x00000000)
                     }
@@ -534,7 +537,7 @@ class SeriesActivity : BaseActivity() {
             holder.tv.text = textoCategoria(cat)
 
             if (cat.categoryId == "FAVORITES" || cat.categoryId == "RECENT") {
-                holder.tv.setTextColor(0xFFF5C56B.toInt())
+                holder.tv.setTextColor(AppThemeColors.mapColor(holder.itemView.context, 0xFFF5C56B.toInt()))
             } else {
                 holder.tv.setTextColor(0xFFFFFFFF.toInt())
             }

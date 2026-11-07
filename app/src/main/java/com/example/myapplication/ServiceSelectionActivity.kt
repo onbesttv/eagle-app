@@ -38,11 +38,16 @@ class ServiceSelectionActivity : BaseActivity() {
         val bestCheck = findViewById<TextView>(R.id.tvBestCheck)
         val best2Check = findViewById<TextView>(R.id.tvBest2Check)
         val streamPlayDisabled = IptvServiceConfig.isStreamPlayDisabled(this)
+        val templariosDisabled = IptvServiceConfig.isTemplariosDisabled(this)
 
         fun updateSelection(service: String) {
-            selectedService = if (streamPlayDisabled) IptvServiceConfig.BEST2 else service
+            selectedService = when {
+                streamPlayDisabled -> IptvServiceConfig.BEST2
+                templariosDisabled -> IptvServiceConfig.BEST
+                else -> service
+            }
             bestCheck.visibility = if (!streamPlayDisabled && selectedService == IptvServiceConfig.BEST) View.VISIBLE else View.INVISIBLE
-            best2Check.visibility = if (selectedService == IptvServiceConfig.BEST2) View.VISIBLE else View.INVISIBLE
+            best2Check.visibility = if (!templariosDisabled && selectedService == IptvServiceConfig.BEST2) View.VISIBLE else View.INVISIBLE
         }
         updateSelection(selectedService)
 
@@ -68,10 +73,23 @@ class ServiceSelectionActivity : BaseActivity() {
         } else {
             cardStreamPlay.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST) }
         }
-        cardOtherService.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST2) }
+
+        if (templariosDisabled) {
+            cardOtherService.visibility = View.GONE
+            cardOtherService.isEnabled = false
+            cardOtherService.isClickable = false
+            cardOtherService.isFocusable = false
+            cardOtherService.isFocusableInTouchMode = false
+        } else {
+            cardOtherService.setOnClickListener { entrarNoServico(IptvServiceConfig.BEST2) }
+        }
 
         // Animação suave de navegação com comando da TV
-        val interactiveCards = if (streamPlayDisabled) listOf(cardOtherService) else listOf(cardStreamPlay, cardOtherService)
+        val interactiveCards = when {
+            streamPlayDisabled -> listOf(cardOtherService)
+            templariosDisabled -> listOf(cardStreamPlay)
+            else -> listOf(cardStreamPlay, cardOtherService)
+        }
         interactiveCards.forEach { view ->
             view.setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
@@ -83,7 +101,12 @@ class ServiceSelectionActivity : BaseActivity() {
         }
 
         // Foco inicial direto no cartão do serviço atualmente ativo e verificação automática de atualizações
-        val initialCard = if (streamPlayDisabled || selectedService == IptvServiceConfig.BEST2) cardOtherService else cardStreamPlay
+        val initialCard = when {
+            streamPlayDisabled -> cardOtherService
+            templariosDisabled -> cardStreamPlay
+            selectedService == IptvServiceConfig.BEST2 -> cardOtherService
+            else -> cardStreamPlay
+        }
         initialCard.post {
             initialCard.requestFocus()
             AppUpdateManager.checkForUpdates(this, manual = false)

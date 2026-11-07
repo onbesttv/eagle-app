@@ -15,11 +15,24 @@ object IptvServiceConfig {
         return RemotePanelManager.getResellerId(context).equals("tv_fabio", ignoreCase = true)
     }
 
+    fun isTemplariosDisabled(context: Context): Boolean {
+        return RemotePanelManager.getResellerId(context).equals("pereira_tv", ignoreCase = true)
+    }
+
     private const val PREFS = "iptv_login_prefs"
     private const val KEY_ACTIVE = "ACTIVE_SERVICE"
     private const val KEY_INITIALIZED = "MULTI_SERVICE_V1"
     private const val BEST_URL = "https://thebestplay.site"
+    private const val PEREIRA_TV_BEST_URL = "https://pereiratv.com:443"
     private const val BEST2_URL = "http://gd.tugabest.xyz:8080"
+
+    private fun defaultBestUrl(context: Context): String {
+        return if (RemotePanelManager.getResellerId(context).equals("pereira_tv", ignoreCase = true)) {
+            PEREIRA_TV_BEST_URL
+        } else {
+            BEST_URL
+        }
+    }
     private const val KEY_REMOTE_BEST_URL = "REMOTE_BEST_URL"
     private const val KEY_REMOTE_BEST2_URL = "REMOTE_BEST2_URL"
     private const val BEST_USER = "BEST_USER"
@@ -63,24 +76,36 @@ object IptvServiceConfig {
         if (isStreamPlayDisabled(context)) {
             return BEST2
         }
+        if (isTemplariosDisabled(context)) {
+            return BEST
+        }
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return prefs.getString(KEY_ACTIVE, BEST)?.takeIf { it == BEST2 } ?: BEST
     }
 
     fun baseUrl(context: Context, serviceId: String = activeServiceId(context)): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val isPereira = RemotePanelManager.getResellerId(context).equals("pereira_tv", ignoreCase = true)
         val rawUrl = if (serviceId == BEST2) {
             prefs.getString(KEY_REMOTE_BEST2_URL, null)?.takeIf { it.isNotBlank() } ?: BEST2_URL
         } else {
-            prefs.getString(KEY_REMOTE_BEST_URL, null)?.takeIf { it.isNotBlank() } ?: BEST_URL
+            prefs.getString(KEY_REMOTE_BEST_URL, null)
+                ?.takeIf { it.isNotBlank() && !(isPereira && it.equals(BEST_URL, ignoreCase = true)) }
+                ?: defaultBestUrl(context)
         }
         return rawUrl.trim().trimEnd('/')
     }
 
     fun updateRemoteUrls(context: Context, bestUrl: String?, best2Url: String?) {
         val editor = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+        val isPereira = RemotePanelManager.getResellerId(context).equals("pereira_tv", ignoreCase = true)
         if (!bestUrl.isNullOrBlank()) {
-            editor.putString(KEY_REMOTE_BEST_URL, bestUrl.trim().trimEnd('/'))
+            val cleanBest = bestUrl.trim().trimEnd('/')
+            if (isPereira && cleanBest.equals(BEST_URL, ignoreCase = true)) {
+                editor.remove(KEY_REMOTE_BEST_URL)
+            } else {
+                editor.putString(KEY_REMOTE_BEST_URL, cleanBest)
+            }
         }
         if (!best2Url.isNullOrBlank()) {
             editor.putString(KEY_REMOTE_BEST2_URL, best2Url.trim().trimEnd('/'))
@@ -99,7 +124,12 @@ object IptvServiceConfig {
     }
 
     fun select(context: Context, serviceId: String) {
-        val validService = if (isStreamPlayDisabled(context) || serviceId == BEST2) BEST2 else BEST
+        val validService = when {
+            isStreamPlayDisabled(context) -> BEST2
+            isTemplariosDisabled(context) -> BEST
+            serviceId == BEST2 -> BEST2
+            else -> BEST
+        }
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_ACTIVE, validService)
             .putString("SAVED_SERVICE", validService)

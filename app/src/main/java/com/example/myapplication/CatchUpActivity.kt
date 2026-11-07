@@ -196,22 +196,23 @@ class CatchUpActivity : BaseActivity() {
     private fun updateDayButtonStyle(button: TextView, hasFocus: Boolean) {
         val selected = button.tag == selectedDate
         val ctx = button.context
+        val radius = dp(if (AppThemeColors.isPereiraTheme(ctx)) 22 else 9).toFloat()
         button.background = GradientDrawable().apply {
             when {
                 hasFocus -> {
                     setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                     setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
-                    cornerRadius = dp(9).toFloat()
+                    cornerRadius = radius
                 }
                 selected -> {
                     setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
                     setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF3182CE.toInt()))
-                    cornerRadius = dp(9).toFloat()
+                    cornerRadius = radius
                 }
                 else -> {
                     setColor(AppThemeColors.mapColor(ctx, 0xFF172338.toInt()))
                     setStroke(dp(1), AppThemeColors.mapColor(ctx, 0xFF2B3D59.toInt()))
-                    cornerRadius = dp(9).toFloat()
+                    cornerRadius = radius
                 }
             }
         }
@@ -367,14 +368,17 @@ class CatchUpActivity : BaseActivity() {
             val updateBg: (Boolean) -> Unit = { hasFocus ->
                 val currentSelected = holder.bindingAdapterPosition == selectedPosition
                 val ctx = holder.itemView.context
+                val isPereira = AppThemeColors.isPereiraTheme(ctx)
+                val radius = dp(if (isPereira) 16 else 8).toFloat()
                 holder.itemView.background = android.graphics.drawable.GradientDrawable().apply {
                     if (hasFocus) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF2A4365.toInt()))
                         setStroke(dp(2), AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        cornerRadius = radius
                     } else if (currentSelected) {
                         setColor(AppThemeColors.mapColor(ctx, 0xFF23324A.toInt()))
-                        cornerRadius = dp(8).toFloat()
+                        if (isPereira) setStroke(dp(1), 0x6638BDF8)
+                        cornerRadius = radius
                     } else {
                         setColor(android.graphics.Color.TRANSPARENT)
                     }
@@ -436,6 +440,14 @@ class CatchUpActivity : BaseActivity() {
                 setTextColor(AppThemeColors.mapColor(ctx, 0xFF42D6E8.toInt()))
                 setTypeface(null, Typeface.BOLD)
                 gravity = Gravity.CENTER
+                if (AppThemeColors.isPereiraTheme(ctx)) {
+                    setPadding(dp(8), dp(6), dp(8), dp(6))
+                    background = GradientDrawable().apply {
+                        setColor(0xFF091326.toInt())
+                        cornerRadius = dp(10).toFloat()
+                        setStroke(dp(1), 0x6638BDF8)
+                    }
+                }
             }
             row.addView(time, LinearLayout.LayoutParams(dp(105), -2))
             val textColumn = LinearLayout(parent.context).apply { orientation = LinearLayout.VERTICAL }
