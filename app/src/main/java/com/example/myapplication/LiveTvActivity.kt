@@ -503,10 +503,17 @@ class LiveTvActivity : BaseActivity() {
                         rvOverlayChannels.adapter = overlayAdapter
 
                         if (iniciarReproducao && currentStreamId == -1 && canais.isNotEmpty()) {
+                            val targetChannelName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
+                            val selectedByTarget = if (!targetChannelName.isNullOrBlank()) {
+                                val cleanTarget = targetChannelName.replace(" ", "").lowercase()
+                                canais.firstOrNull { it.name.replace(" ", "").lowercase().contains(cleanTarget) }
+                                    ?: canais.firstOrNull { cleanTarget.contains(it.name.replace(" ", "").lowercase()) }
+                            } else null
+
                             val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
                             val lastId = appSettings.getInt("last_live_stream_id", -1)
                             val resumeLast = appSettings.getBoolean("last_live", false)
-                            val selected = if (resumeLast) canais.firstOrNull { it.streamId == lastId } else null
+                            val selected = selectedByTarget ?: if (resumeLast) canais.firstOrNull { it.streamId == lastId } else null
                             val canalInicial = selected ?: canais[0]
                             channelAdapter?.selecionarCanalPorId(canalInicial.streamId)
                             tocarNoMiniPlayer(canalInicial)

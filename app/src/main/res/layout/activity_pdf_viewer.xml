@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#06090F"
+    android:keepScreenOn="true">
+
+    <!-- SCROLLABLE PAGE CONTAINER -->
+    <ScrollView
+        android:id="@+id/scrollViewPdf"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <HorizontalScrollView
+            android:id="@+id/hScrollViewPdf"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center">
+
+                <ImageView
+                    android:id="@+id/ivPdfPage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:adjustViewBounds="true"
+                    android:scaleType="fitCenter" />
+            </FrameLayout>
+        </HorizontalScrollView>
+    </ScrollView>
+
+    <!-- TOP OVERLAY BAR (Auto-hides) -->
+    <LinearLayout
+        android:id="@+id/layoutTopBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:background="#CC0A111F"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/btnBackPdf"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_button"
+            android:src="@android:drawable/ic_menu_revert"
+            android:contentDescription="Voltar"
+            android:focusable="true"
+            app:tint="#FFFFFF" />
+
+        <TextView
+            android:id="@+id/tvPdfTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="A Bola"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <!-- PAGE CONTROLS -->
+        <ImageButton
+            android:id="@+id/btnPrevPage"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_button"
+            android:src="@android:drawable/ic_media_previous"
+            android:contentDescription="Página Anterior"
+            android:focusable="true"
+            app:tint="#38BDF8" />
+
+        <TextView
+            android:id="@+id/tvPageIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:background="@drawable/bg_channel_pill"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="5dp"
+            android:paddingBottom="5dp"
+            android:text="Pág. 1 / 48"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnNextPage"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/bg_icon_button"
+            android:src="@android:drawable/ic_media_next"
+            android:contentDescription="Página Seguinte"
+            android:focusable="true"
+            app:tint="#38BDF8" />
+
+        <!-- ZOOM TOGGLE -->
+        <Button
+            android:id="@+id/btnZoomToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_channel_pill"
+            android:text="Zoom"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <!-- TV CONTROLS HINT (Floating at bottom, auto-fades) -->
+    <TextView
+        android:id="@+id/tvControlsHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="#CC0F172A"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:text="Comando TV: ◀ / ▶ Mudar página  •  [OK] Zoom  •  ▲ / ▼ Rolar página"
+        android:textColor="#E2E8F0"
+        android:textSize="12sp" />
+
+    <!-- LOADING & DOWNLOAD PROGRESS OVERLAY -->
+    <LinearLayout
+        android:id="@+id/layoutPdfLoading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:background="#E6050811"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:id="@+id/pbDownloadPdf"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:indeterminate="true" />
+
+        <TextView
+            android:id="@+id/tvLoadingStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="A descarregar jornal..."
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvLoadingProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="A preparar leitor de alta definição..."
+            android:textColor="#38BDF8"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/btnCancelDownload"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_channel_pill"
+            android:text="Cancelar"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+</FrameLayout>

@@ -1,0 +1,135 @@
+{
+  "updated_at": "2026-11-08 15:00",
+  "jogos": [
+    {
+      "id": "1",
+      "data": "Hoje",
+      "hora": "18:00",
+      "liga": "Liga Portugal",
+      "equipa_casa": "SC Braga",
+      "equipa_fora": "Sporting CP",
+      "canal": "Sport TV 1",
+      "destaque": true
+    },
+    {
+      "id": "2",
+      "data": "Hoje",
+      "hora": "20:30",
+      "liga": "Liga Portugal",
+      "equipa_casa": "SL Benfica",
+      "equipa_fora": "FC Porto",
+      "canal": "BTV 1",
+      "destaque": true
+    },
+    {
+      "id": "3",
+      "data": "Hoje",
+      "hora": "16:30",
+      "liga": "Premier League",
+      "equipa_casa": "Chelsea",
+      "equipa_fora": "Arsenal",
+      "canal": "DAZN 1",
+      "destaque": true
+    },
+    {
+      "id": "4",
+      "data": "Hoje",
+      "hora": "20:00",
+      "liga": "La Liga",
+      "equipa_casa": "Real Sociedad",
+      "equipa_fora": "Barcelona",
+      "canal": "DAZN 2",
+      "destaque": true
+    },
+    {
+      "id": "5",
+      "data": "Hoje",
+      "hora": "19:45",
+      "liga": "Serie A",
+      "equipa_casa": "Inter",
+      "equipa_fora": "Napoli",
+      "canal": "Sport TV 2",
+      "destaque": false
+    },
+    {
+      "id": "6",
+      "data": "Hoje",
+      "hora": "15:30",
+      "liga": "Liga Portugal",
+      "equipa_casa": "Santa Clara",
+      "equipa_fora": "Vitória SC",
+      "canal": "Sport TV 1",
+      "destaque": false
+    },
+    {
+      "id": "7",
+      "data": "Hoje",
+      "hora": "17:30",
+      "liga": "Bundesliga",
+      "equipa_casa": "Stuttgart",
+      "equipa_fora": "Eintracht Frankfurt",
+      "canal": "DAZN 3",
+      "destaque": false
+    },
+    {
+      "id": "8",
+      "data": "Amanhã",
+      "hora": "20:15",
+      "liga": "Liga Portugal",
+      "equipa_casa": "Moreirense",
+      "equipa_fora": "Gil Vicente",
+      "canal": "Sport TV 1",
+      "destaque": false
+    },
+    {
+      "id": "9",
+      "data": "Terça",
+      "hora": "20:00",
+      "liga": "Champions League",
+      "equipa_casa": "Real Madrid",
+      "equipa_fora": "AC Milan",
+      "canal": "DAZN 1",
+      "destaque": true
+    },
+    {
+      "id": "10",
+      "data": "Terça",
+      "hora": "20:00",
+      "liga": "Champions League",
+      "equipa_casa": "Sporting CP",
+      "equipa_fora": "Manchester City",
+      "canal": "Sport TV 1",
+      "destaque": true
+    },
+    {
+      "id": "11",
+      "data": "Quarta",
+      "hora": "20:00",
+      "liga": "Champions League",
+      "equipa_casa": "Bayern Munique",
+      "equipa_fora": "SL Benfica",
+      "canal": "DAZN 1",
+      "destaque": true
+    },
+    {
+      "id": "12",
+      "data": "Quinta",
+      "hora": "20:00",
+      "liga": "Liga Europa",
+      "equipa_casa": "Lazio",
+      "equipa_fora": "FC Porto",
+      "canal": "Sport TV 1",
+      "destaque": true
+    },
+    {
+      "id": "13",
+      "data": "Quinta",
+      "hora": "17:45",
+      "liga": "Liga Europa",
+      "equipa_casa": "Elfsborg",
+      "equipa_fora": "SC Braga",
+      "canal": "Sport TV 2",
+      "destaque": false
+    }
+  ]
+}

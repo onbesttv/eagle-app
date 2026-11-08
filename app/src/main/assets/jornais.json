@@ -1,0 +1,68 @@
+{
+  "updated_at": "2026-11-08",
+  "jornais": [
+    {
+      "id": "abola",
+      "nome": "A Bola",
+      "categoria": "Desporto",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 48,
+      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_1.pdf"
+    },
+    {
+      "id": "record",
+      "nome": "Record",
+      "categoria": "Desporto",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 44,
+      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_2.pdf"
+    },
+    {
+      "id": "ojogo",
+      "nome": "O Jogo",
+      "categoria": "Desporto",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 40,
+      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_3.pdf"
+    },
+    {
+      "id": "cm",
+      "nome": "Correio da Manhã",
+      "categoria": "Generalistas",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 52,
+      "pdf_url": ""
+    },
+    {
+      "id": "desportivo_guimaraes",
+      "nome": "Desportivo de Guimarães",
+      "categoria": "Desporto",
+      "data": "03 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_0.pdf"
+    },
+    {
+      "id": "opais",
+      "nome": "O País",
+      "categoria": "Internacionais",
+      "data": "03 Nov",
+      "pais": "MZ",
+      "paginas": 32,
+      "pdf_url": ""
+    },
+    {
+      "id": "pontofinal",
+      "nome": "Ponto Final",
+      "categoria": "Internacionais",
+      "data": "03 Nov",
+      "pais": "MO",
+      "paginas": 16,
+      "pdf_url": ""
+    }
+  ]
+}

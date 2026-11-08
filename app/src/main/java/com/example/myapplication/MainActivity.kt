@@ -22,6 +22,8 @@ class MainActivity : BaseActivity() {
         val cardMovies = findViewById<CardView>(R.id.cardMovies)
         val cardSeries = findViewById<CardView>(R.id.cardSeries)
         val cardCatchUp = findViewById<CardView>(R.id.cardCatchUp)
+        val cardSportsAgenda = findViewById<CardView?>(R.id.cardSportsAgenda)
+        val cardNewspapers = findViewById<CardView?>(R.id.cardNewspapers)
 
         // Carrega o teu logótipo
         ivLogo.setImageResource(R.drawable.eagle_wordmark)
@@ -59,6 +61,27 @@ class MainActivity : BaseActivity() {
             startActivity(Intent(this, CatchUpActivity::class.java))
         }
 
+        val isEagleMaster = RemotePanelManager.getResellerId(this).equals("master", ignoreCase = true)
+        if (isEagleMaster) {
+            cardSportsAgenda?.visibility = android.view.View.VISIBLE
+            cardNewspapers?.visibility = android.view.View.VISIBLE
+            cardSportsAgenda?.setOnClickListener {
+                startActivity(Intent(this, SportsAgendaActivity::class.java))
+            }
+            cardNewspapers?.setOnClickListener {
+                startActivity(Intent(this, NewspapersActivity::class.java))
+            }
+        } else {
+            cardSportsAgenda?.visibility = android.view.View.GONE
+            cardNewspapers?.visibility = android.view.View.GONE
+            val catchUpParams = cardCatchUp.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            catchUpParams?.marginEnd = 0
+            val d = resources.displayMetrics.density
+            catchUpParams?.width = (200 * d).toInt()
+            catchUpParams?.height = (48 * d).toInt()
+            cardCatchUp.layoutParams = catchUpParams
+        }
+
         val btnSettings = findViewById<ImageButton>(R.id.btnSettings)
         val btnUpdateService = findViewById<ImageButton>(R.id.btnUpdateService)
         val btnVpn = findViewById<ImageButton>(R.id.btnVpn)
@@ -78,10 +101,11 @@ class MainActivity : BaseActivity() {
         }
 
         // Destaque visual e sombra ao navegar com comando da Box
-        val interactiveViews = if (hideVpn) {
-            listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnUpdateService, btnSettings)
-        } else {
-            listOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnVpn, btnUpdateService, btnSettings)
+        val interactiveViews = mutableListOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnUpdateService, btnSettings)
+        if (!hideVpn) interactiveViews.add(btnVpn)
+        if (isEagleMaster) {
+            cardSportsAgenda?.let { interactiveViews.add(it) }
+            cardNewspapers?.let { interactiveViews.add(it) }
         }
         interactiveViews.forEach { view ->
             view.setOnFocusChangeListener { v, hasFocus ->
