@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#060405"
+                android:centerColor="#0E0709"
+                android:endColor="#180A0E" />
+            <corners android:radius="12dp" />
+            <stroke
+                android:width="1.5dp"
+                android:color="#66EF4444" />
+        </shape>
+    </item>
+    <item
+        android:gravity="center"
+        android:top="16dp"
+        android:bottom="16dp"
+        android:left="24dp"
+        android:right="24dp">
+        <bitmap
+            android:src="@drawable/eagle_wordmark"
+            android:gravity="center" />
+    </item>
+</layer-list>

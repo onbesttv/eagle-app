@@ -177,7 +177,8 @@ object AppUpdateManager {
                 val json = releasesArray.getJSONObject(rIndex)
                 if (json.optBoolean("draft", false)) continue
 
-                val tagName = json.optString("tag_name", "").trim()
+                val rawTagName = json.optString("tag_name", "").trim()
+                val tagName = rawTagName.substringBefore("-")
                 val releaseName = json.optString("name", tagName).trim()
                 val body = json.optString("body", "").trim()
                 val assetsArray = json.optJSONArray("assets") ?: continue

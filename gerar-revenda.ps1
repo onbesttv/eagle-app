@@ -146,15 +146,15 @@ Write-Host "===================================================" -ForegroundColo
 
 if ($Publicar) {
     $gradleContent = Get-Content "app/build.gradle.kts" -Raw
-    $flavorPattern = 'create\("' + [regex]::Escape($cleanId) + '"\)[\s\S]*?versionName\s*=\s*"([^"]+)"'
+    $flavorPattern = 'create\("' + [regex]::Escape($cleanId) + '"\)\s*\{[^}]*?versionName\s*=\s*"([^"]+)"'
     if ($gradleContent -match $flavorPattern) {
         $versionName = $matches[1]
-    } elseif ($gradleContent -match 'versionName\s*=\s*"([^"]+)"') {
+    } elseif ($gradleContent -match 'defaultConfig\s*\{[^}]*?versionName\s*=\s*"([^"]+)"') {
         $versionName = $matches[1]
     } else {
         throw "Nao foi possivel detetar versionName em app/build.gradle.kts"
     }
-    $tag = "v$versionName"
+    $tag = if ($cleanId -eq "godinho_tv") { "v${versionName}-${cleanId}" } else { "v$versionName" }
     Write-Host "`n[*] A publicar '$cleanId.apk' na Release Isolada $tag (prerelease) do GitHub..." -ForegroundColor Yellow
 
     $credRaw = ("protocol=https`nhost=github.com`nusername=onbesttv`n`n" | git credential fill | Out-String)

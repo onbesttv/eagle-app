@@ -40,6 +40,15 @@ android {
             resValue("string", "app_name", "PereiraTV")
             resValue("string", "reseller_id", "pereira_tv")
         }
+
+        create("godinho_tv") {
+            dimension = "reseller"
+            applicationId = "com.eagle.godinho_tv"
+            versionCode = 10
+            versionName = "1.0"
+            resValue("string", "app_name", "GodinhoTV")
+            resValue("string", "reseller_id", "godinho_tv")
+        }
     }
 
     buildTypes {

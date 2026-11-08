@@ -1,0 +1,23 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Base.Theme.MyApplication" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#DC2626</item>
+        <item name="colorSecondary">#EF4444</item>
+        <item name="colorTertiary">#991B1B</item>
+        <item name="android:statusBarColor">#060405</item>
+        <item name="android:navigationBarColor">#060405</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">#EF4444</item>
+        <item name="android:windowBackground">@drawable/bg_launch_splash</item>
+        <item name="android:windowSplashScreenBackground">#060405</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#060405</item>
+    </style>
+
+    <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
+
+    <style name="Theme.StartupSplash" parent="Theme.MyApplication">
+        <item name="android:windowBackground">#060405</item>
+        <item name="android:windowSplashScreenBackground">#060405</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#060405</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/eagle_badge</item>
+    </style>
+</resources>

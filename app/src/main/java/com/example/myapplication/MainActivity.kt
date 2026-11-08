@@ -25,6 +25,13 @@ class MainActivity : BaseActivity() {
 
         // Carrega o teu logótipo
         ivLogo.setImageResource(R.drawable.eagle_wordmark)
+        if (AppThemeColors.isGodinhoTheme(this)) {
+            val density = resources.displayMetrics.density
+            ivLogo.layoutParams = ivLogo.layoutParams.apply {
+                width = (156 * density).toInt()
+                height = (104 * density).toInt()
+            }
+        }
 
         val prefs = getSharedPreferences("iptv_login_prefs", MODE_PRIVATE)
         val savedUser = prefs.getString("SAVED_USER", "").orEmpty()

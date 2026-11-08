@@ -867,7 +867,7 @@
             document.getElementById("brandBadge").textContent = (data.brand_name || "P").trim().charAt(0).toUpperCase();
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
             const hasVpnInApp = currentResellerId !== "pereira_tv";
-            const hasBest2InApp = currentResellerId !== "pereira_tv";
+            const hasBest2InApp = currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv";
             document.getElementById("masterTabs").style.display = "flex";
             document.getElementById("tabBtnVpn").style.display = hasVpnInApp ? "inline-block" : "none";
             document.getElementById("best1UrlLabel").textContent = hasBest2InApp
@@ -948,7 +948,7 @@
         document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
         document.getElementById("statOnline").textContent = online;
         document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
-        if (currentResellerId === "pereira_tv") {
+        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") {
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
             document.getElementById("statServices").textContent = "StreamPlay";
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
@@ -1036,7 +1036,7 @@
                     ? `<span class="badge badge-online">● Online</span>`
                     : `<span class="badge badge-offline">● Offline</span>`;
 
-            const srvBadge = (srv === "best2" && currentResellerId !== "pereira_tv")
+            const srvBadge = (srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv")
                 ? `<span class="badge badge-best2">Templarios</span>`
                 : `<span class="badge badge-best">StreamPlay</span>`;
 
@@ -1188,7 +1188,7 @@
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = currentResellerId === "pereira_tv" ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const announcement = `${cleanAnnouncement} ||VPN:${vpnCsv}`.trim();

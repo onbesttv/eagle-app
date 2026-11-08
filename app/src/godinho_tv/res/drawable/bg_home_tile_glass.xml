@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Quando o cartão tem Foco (navegação comando Box) - Destaque Vermelho Carmesim GodinhoTV -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#DC2626"
+                android:centerColor="#88131A"
+                android:endColor="#240609" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp" />
+            <gradient
+                android:angle="270"
+                android:startColor="#B91C1C"
+                android:centerColor="#701016"
+                android:endColor="#1A0507" />
+        </shape>
+    </item>
+    <!-- Estado normal: vidro fumado preto carbono-rubi -->
+    <item>
+        <layer-list>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <solid android:color="#EC0B0507" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="rectangle">
+                    <corners android:radius="16dp" />
+                    <stroke
+                        android:width="1.3dp"
+                        android:color="#48EF4444" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>
