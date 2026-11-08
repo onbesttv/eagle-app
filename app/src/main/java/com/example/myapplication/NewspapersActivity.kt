@@ -41,6 +41,7 @@ class NewspapersActivity : BaseActivity() {
         "🌟 Todos",
         "⚽ Desporto",
         "📰 Generalistas",
+        "✨ Revistas",
         "🌍 Internacionais"
     )
 

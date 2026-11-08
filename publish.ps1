@@ -123,8 +123,16 @@ if ($uploadResp.id) {
     $tgPdfs = Get-ChildItem "C:\Users\guizi\Downloads\Telegram Desktop" -Filter "*.pdf" -ErrorAction SilentlyContinue
     if ($tgPdfs) {
         Write-Host "  -> A sincronizar jornais PDF para a Release..." -ForegroundColor Gray
+        $currentAssets = (Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/$($release.id)" -Headers $headers -Method Get).assets
         foreach ($pdf in $tgPdfs) {
+            if ($pdf.Name -eq "Comprovativo.pdf") { continue }
             $cleanName = $pdf.Name -replace '[^a-zA-Z0-9_\.]', '_'
+            $alreadyUploaded = $currentAssets | Where-Object { $_.name -eq $cleanName }
+            if ($alreadyUploaded) {
+                Write-Host "     * $cleanName ja existe na Release" -ForegroundColor DarkGray
+                continue
+            }
+            Write-Host "     * A enviar $cleanName..." -ForegroundColor Gray
             $pdfUrl = "https://uploads.github.com/repos/$repoOwner/$repoName/releases/$($release.id)/assets?name=$cleanName"
             curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" -H "Content-Type: application/pdf" --data-binary "@$($pdf.FullName)" $pdfUrl | Out-Null
         }
