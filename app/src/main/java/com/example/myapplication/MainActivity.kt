@@ -149,10 +149,12 @@ class MainActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvSeriesTitle)?.text = getString(R.string.series)
         findViewById<TextView>(R.id.tvCatchUpTitle)?.text = getString(R.string.catch_up)
 
-        // Atualiza ícone da VPN conforme o estado de proteção
+        // Atualiza ícone da VPN conforme o estado de proteção (sem estragar o PNG multi-cor do ícone)
         val isVpnConnected = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED
         val btnVpn = findViewById<ImageButton>(R.id.btnVpn)
-        btnVpn?.imageTintList = ColorStateList.valueOf(if (isVpnConnected) 0xFF48BB78.toInt() else 0xFFFFFFFF.toInt())
+        btnVpn?.imageTintList = null
+        btnVpn?.colorFilter = null
+        btnVpn?.backgroundTintList = if (isVpnConnected) ColorStateList.valueOf(0xFF15803D.toInt()) else null
 
         // Garante que ao regressar ao ecrã inicial o foco volta para o LIVE TV caso estivesse no botão de definições
         val cardLiveTv = findViewById<CardView>(R.id.cardLiveTv)
