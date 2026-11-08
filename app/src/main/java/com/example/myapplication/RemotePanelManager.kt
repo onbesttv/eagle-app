@@ -152,7 +152,23 @@ object RemotePanelManager {
                         val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
                         val announcement = announcementParts[0].trim()
                         if (announcementParts.size > 1) {
-                            PiaVpnConfig.setAllowedRegionsCsv(appContext, announcementParts[1].trim())
+                            val vpnRaw = announcementParts[1].trim()
+                            val authParts = vpnRaw.split("||VPN_AUTH:", limit = 2)
+                            val regionsCsv = authParts[0].trim()
+                            PiaVpnConfig.setAllowedRegionsCsv(appContext, regionsCsv)
+
+                            if (authParts.size > 1) {
+                                val creds = authParts[1].trim().split(":", limit = 2)
+                                if (creds.size == 2 && creds[0].isNotBlank() && creds[1].isNotBlank()) {
+                                    val newU = creds[0].trim()
+                                    val newP = creds[1].trim()
+                                    if (PiaVpnConfig.getUsername(appContext) != newU || PiaVpnConfig.getPassword(appContext) != newP) {
+                                        PiaVpnConfig.setUsername(appContext, newU)
+                                        PiaVpnConfig.setPassword(appContext, newP)
+                                        PiaVpnManager.resetCachedToken()
+                                    }
+                                }
+                            }
                         } else {
                             PiaVpnConfig.setAllowedRegionsCsv(appContext, null)
                         }

@@ -547,6 +547,38 @@
 
     <!-- ABA 2: GERIR VPN (Master e Revendedores) -->
     <div id="tabContentVpn" style="display: none;">
+        <!-- Card de Credenciais da VPN -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">🔐 Conta & Credenciais PIA VPN na App</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="vpnAccountDesc">
+                        Conta PIA VPN configurada para a aplicação.
+                    </div>
+                </div>
+                <span id="vpnAccountBadge" class="badge badge-online" style="padding: 6px 12px; font-size: 12px;">⭐ Conta Própria (p7426501)</span>
+            </div>
+            <div class="form-grid" style="margin-top: 14px;">
+                <div class="form-group">
+                    <label>Utilizador PIA VPN</label>
+                    <input type="text" id="cfgVpnUser" placeholder="p7426501" required>
+                </div>
+                <div class="form-group">
+                    <label>Palavra-passe PIA VPN</label>
+                    <div style="position: relative;">
+                        <input type="password" id="cfgVpnPass" placeholder="on4q5FT9vx" style="padding-right: 42px;" required>
+                        <button type="button" onclick="toggleVpnPassVisibility()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 16px;">👁️</button>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 8px;">
+                <span style="font-size: 11px; color: var(--text-muted);">
+                    💡 <em>As alterações das credenciais sincronizam automaticamente com as TVs no próximo acesso.</em>
+                </span>
+                <button type="button" class="btn btn-sm" onclick="saveVpnCountries()">💾 Guardar Credenciais & Países</button>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <div>
@@ -698,6 +730,19 @@
         { id: "poland", name: "Polónia", flag: "🇵🇱", defaultOn: false }
     ];
     let selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+
+    const VPN_ACCOUNTS = {
+        master: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Eagle Master & Godinho TV)" },
+        godinho_tv: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Godinho TV)" },
+        tv_fabio: { user: "p6255571", pass: "EqwvpMqb6e", label: "Conta Fpinto (tv_fabio)" }
+    };
+
+    function toggleVpnPassVisibility() {
+        const inp = document.getElementById("cfgVpnPass");
+        if (inp) {
+            inp.type = inp.type === "password" ? "text" : "password";
+        }
+    }
 
     function renderVpnCountriesGrid() {
         const grid = document.getElementById("vpnCountriesGrid");
@@ -892,13 +937,49 @@
             const rawAnn = String(data.announcement || "");
             const vpnSplit = rawAnn.split("||VPN:");
             document.getElementById("cfgAnnouncement").value = (vpnSplit[0] || "").trim();
+
+            const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
+            let vpnUser = defaultAcc.user;
+            let vpnPass = defaultAcc.pass;
+
             if (vpnSplit.length > 1 && vpnSplit[1].trim()) {
-                const ids = vpnSplit[1].trim().split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+                const vpnPayload = vpnSplit[1].trim();
+                const authSplit = vpnPayload.split("||VPN_AUTH:");
+                const ids = (authSplit[0] || "").trim().split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
                 if (ids.length > 0) {
                     selectedVpnCountries = new Set(ids);
+                } else {
+                    selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+                }
+                if (authSplit.length > 1 && authSplit[1].trim()) {
+                    const creds = authSplit[1].trim().split(":", 2);
+                    if (creds.length === 2 && creds[0] && creds[1]) {
+                        vpnUser = creds[0].trim();
+                        vpnPass = creds[1].trim();
+                    }
                 }
             } else {
                 selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+            }
+
+            const userInp = document.getElementById("cfgVpnUser");
+            const passInp = document.getElementById("cfgVpnPass");
+            if (userInp) userInp.value = vpnUser;
+            if (passInp) passInp.value = vpnPass;
+
+            const isSelfAccount = (vpnUser === "p7426501");
+            const badgeEl = document.getElementById("vpnAccountBadge");
+            if (badgeEl) {
+                badgeEl.className = isSelfAccount ? "badge badge-online" : "badge badge-best2";
+                badgeEl.textContent = isSelfAccount ? "⭐ Conta Própria (p7426501)" : "Conta Fpinto (p6255571)";
+            }
+            const descEl = document.getElementById("vpnAccountDesc");
+            if (descEl) {
+                descEl.textContent = (currentResellerId === "tv_fabio")
+                    ? "Conta PIA VPN associada à aplicação Fpinto TV."
+                    : (currentResellerId === "godinho_tv")
+                        ? "Conta PIA VPN associada à aplicação Godinho TV (Acesso Próprio)."
+                        : "Conta PIA VPN própria / principal associada à aplicação Eagle e Godinho TV.";
             }
             renderVpnCountriesGrid();
             document.getElementById("cfgMaintenance").checked = !!data.maintenance_mode;
@@ -1094,7 +1175,10 @@
                 <tr>
                     <td>${statusHtml}</td>
                     <td><code class="id-chip">${escapeHtml(r.reseller_id)}</code></td>
-                    <td><strong>${escapeHtml(r.brand_name)}</strong></td>
+                    <td>
+                        <strong>${escapeHtml(r.brand_name)}</strong>
+                        <div>${r.reseller_id === 'pereira_tv' ? '<span class=\"badge badge-offline\" style=\"font-size:10px; margin-top:4px;\">Sem VPN</span>' : r.reseller_id === 'tv_fabio' ? '<span class=\"badge badge-best2\" style=\"font-size:10px; margin-top:4px;\">🛡️ VPN Fpinto (p6255571)</span>' : '<span class=\"badge badge-online\" style=\"font-size:10px; margin-top:4px;\">🛡️ VPN Própria (p7426501)</span>'}</div>
+                    </td>
                     <td><code class="id-chip">${escapeHtml(r.panel_password)}</code></td>
                     <td>
                         <div style="font-size:12px;">1: ${escapeHtml(r.best_url)}</div>
@@ -1191,7 +1275,10 @@
         const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
-        const announcement = `${cleanAnnouncement} ||VPN:${vpnCsv}`.trim();
+        const vpnUser = (document.getElementById("cfgVpnUser") ? document.getElementById("cfgVpnUser").value.trim() : "");
+        const vpnPass = (document.getElementById("cfgVpnPass") ? document.getElementById("cfgVpnPass").value.trim() : "");
+        const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
+        const announcement = `${cleanAnnouncement} ||VPN:${vpnCsv}${vpnAuthPart}`.trim();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         const newPass = document.getElementById("cfgNewPassword").value.trim();
 

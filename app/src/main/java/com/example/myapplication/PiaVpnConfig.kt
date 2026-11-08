@@ -12,9 +12,17 @@ object PiaVpnConfig {
     private const val KEY_AUTO_CONNECT = "pia_auto_connect"
     private const val KEY_ALLOWED_REGIONS = "pia_allowed_regions_csv"
 
-    // Credenciais pré-configuradas da PIA VPN
-    const val DEFAULT_USERNAME = "p6255571"
-    const val DEFAULT_PASSWORD = "EqwvpMqb6e"
+    // Credenciais Próprias da PIA VPN (App Master / Eagle e Godinho TV)
+    const val MASTER_USERNAME = "p7426501"
+    const val MASTER_PASSWORD = "on4q5FT9vx"
+
+    // Credenciais de Revenda da PIA VPN (tv_fabio / Fpinto)
+    const val FPINTO_USERNAME = "p6255571"
+    const val FPINTO_PASSWORD = "EqwvpMqb6e"
+
+    // Compatibilidade reversa
+    const val DEFAULT_USERNAME = MASTER_USERNAME
+    const val DEFAULT_PASSWORD = MASTER_PASSWORD
     const val DEFAULT_REGION_ID = "pt"
     const val DEFAULT_ALLOWED_REGIONS = "pt,spain,france,uk,nl_amsterdam,de-frankfurt,swiss,italy"
 
@@ -22,11 +30,27 @@ object PiaVpnConfig {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
 
+    private fun isTvFabio(context: Context): Boolean {
+        return RemotePanelManager.getResellerId(context).equals("tv_fabio", ignoreCase = true)
+    }
+
+    fun getDefaultUsername(context: Context): String {
+        return if (isTvFabio(context)) FPINTO_USERNAME else MASTER_USERNAME
+    }
+
+    fun getDefaultPassword(context: Context): String {
+        return if (isTvFabio(context)) FPINTO_PASSWORD else MASTER_PASSWORD
+    }
+
     fun getUsername(context: Context): String {
-        val user = getPrefs(context).getString(KEY_USERNAME, "")
-        if (user.isNullOrBlank() || user == "p625571") {
-            getPrefs(context).edit().putString(KEY_USERNAME, DEFAULT_USERNAME).apply()
-            return DEFAULT_USERNAME
+        val defaultUser = getDefaultUsername(context)
+        val prefs = getPrefs(context)
+        val user = prefs.getString(KEY_USERNAME, "")
+        // Migração automática se a app for Master ou Godinho TV e ainda tiver o utilizador antigo do Fpinto
+        if (user.isNullOrBlank() || user == "p625571" || (!isTvFabio(context) && user == FPINTO_USERNAME)) {
+            prefs.edit().putString(KEY_USERNAME, defaultUser).apply()
+            PiaVpnManager.resetCachedToken()
+            return defaultUser
         }
         return user
     }
@@ -36,8 +60,14 @@ object PiaVpnConfig {
     }
 
     fun getPassword(context: Context): String {
-        val pass = getPrefs(context).getString(KEY_PASSWORD, "")
-        return if (!pass.isNullOrBlank()) pass else DEFAULT_PASSWORD
+        val defaultPass = getDefaultPassword(context)
+        val prefs = getPrefs(context)
+        val pass = prefs.getString(KEY_PASSWORD, "")
+        if (pass.isNullOrBlank() || (!isTvFabio(context) && pass == FPINTO_PASSWORD)) {
+            prefs.edit().putString(KEY_PASSWORD, defaultPass).apply()
+            return defaultPass
+        }
+        return pass
     }
 
     fun setPassword(context: Context, password: String) {
