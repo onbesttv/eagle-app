@@ -119,6 +119,17 @@ $uploadUrl = "https://uploads.github.com/repos/$repoOwner/$repoName/releases/$($
 $uploadResp = curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@eagle.apk" $uploadUrl | ConvertFrom-Json
 
 if ($uploadResp.id) {
+    # Upload automatico de jornais PDF da pasta Telegram Desktop se existirem
+    $tgPdfs = Get-ChildItem "C:\Users\guizi\Downloads\Telegram Desktop" -Filter "*.pdf" -ErrorAction SilentlyContinue
+    if ($tgPdfs) {
+        Write-Host "  -> A sincronizar jornais PDF para a Release..." -ForegroundColor Gray
+        foreach ($pdf in $tgPdfs) {
+            $cleanName = $pdf.Name -replace '[^a-zA-Z0-9_\.]', '_'
+            $pdfUrl = "https://uploads.github.com/repos/$repoOwner/$repoName/releases/$($release.id)/assets?name=$cleanName"
+            curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" -H "Content-Type: application/pdf" --data-binary "@$($pdf.FullName)" $pdfUrl | Out-Null
+        }
+    }
+
     Write-Host "`n============================================================" -ForegroundColor Green
     Write-Host "  PUBLICACAO CONCLUIDA COM SUCESSO!" -ForegroundColor Green
     Write-Host "  Release: $($release.html_url)" -ForegroundColor Green

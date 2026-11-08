@@ -50,7 +50,10 @@ class PdfViewerActivity : BaseActivity() {
     private lateinit var tvLoadingProgress: TextView
     private lateinit var btnCancelDownload: Button
 
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
     private val mainHandler = Handler(Looper.getMainLooper())
     private var downloadCall: Call? = null
 

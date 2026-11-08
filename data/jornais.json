@@ -1,0 +1,59 @@
+{
+  "updated_at": "2026-11-08 15:30",
+  "jornais": [
+    {
+      "id": "desportivo_guimaraes",
+      "nome": "Desportivo de Guimarães",
+      "categoria": "Desporto",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261103_PT__Desportivo_de_Guimar_es.pdf"
+    },
+    {
+      "id": "ataque_jn",
+      "nome": "Ataque (Jornal de Notícias)",
+      "categoria": "Desporto",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261003_PT__Ataque_JN.pdf"
+    },
+    {
+      "id": "diario_minho",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 28,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261103_PT__Di_rio_do_Minho.pdf"
+    },
+    {
+      "id": "viva_douro",
+      "nome": "Viva Douro",
+      "categoria": "Generalistas",
+      "data": "08 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20260900_PT__Viva_Douro.pdf"
+    },
+    {
+      "id": "jornal_abrantes",
+      "nome": "Jornal de Abrantes",
+      "categoria": "Generalistas",
+      "data": "08 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20260900_PT__Jornal_de_Abrantes.pdf"
+    },
+    {
+      "id": "pontofinal",
+      "nome": "Ponto Final",
+      "categoria": "Internacionais",
+      "data": "08 Nov",
+      "pais": "MO",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261103_MO__Ponto_Final.pdf"
+    }
+  ]
+}

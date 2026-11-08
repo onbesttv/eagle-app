@@ -1,68 +1,59 @@
 {
-  "updated_at": "2026-11-08",
+  "updated_at": "2026-11-08 15:30",
   "jornais": [
-    {
-      "id": "abola",
-      "nome": "A Bola",
-      "categoria": "Desporto",
-      "data": "Hoje, 08 Nov",
-      "pais": "PT",
-      "paginas": 48,
-      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_1.pdf"
-    },
-    {
-      "id": "record",
-      "nome": "Record",
-      "categoria": "Desporto",
-      "data": "Hoje, 08 Nov",
-      "pais": "PT",
-      "paginas": 44,
-      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_2.pdf"
-    },
-    {
-      "id": "ojogo",
-      "nome": "O Jogo",
-      "categoria": "Desporto",
-      "data": "Hoje, 08 Nov",
-      "pais": "PT",
-      "paginas": 40,
-      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_3.pdf"
-    },
-    {
-      "id": "cm",
-      "nome": "Correio da Manhã",
-      "categoria": "Generalistas",
-      "data": "Hoje, 08 Nov",
-      "pais": "PT",
-      "paginas": 52,
-      "pdf_url": ""
-    },
     {
       "id": "desportivo_guimaraes",
       "nome": "Desportivo de Guimarães",
       "categoria": "Desporto",
-      "data": "03 Nov",
+      "data": "Hoje, 08 Nov",
       "pais": "PT",
       "paginas": 24,
-      "pdf_url": "https://api.telegram.org/file/bot8950857913:AAET9WUycHOiRtrAUAhNk4yEeZKlMXQNH2M/documents/file_0.pdf"
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261103_PT__Desportivo_de_Guimar_es.pdf"
     },
     {
-      "id": "opais",
-      "nome": "O País",
-      "categoria": "Internacionais",
-      "data": "03 Nov",
-      "pais": "MZ",
+      "id": "ataque_jn",
+      "nome": "Ataque (Jornal de Notícias)",
+      "categoria": "Desporto",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
       "paginas": 32,
-      "pdf_url": ""
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261003_PT__Ataque_JN.pdf"
+    },
+    {
+      "id": "diario_minho",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "Hoje, 08 Nov",
+      "pais": "PT",
+      "paginas": 28,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261103_PT__Di_rio_do_Minho.pdf"
+    },
+    {
+      "id": "viva_douro",
+      "nome": "Viva Douro",
+      "categoria": "Generalistas",
+      "data": "08 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20260900_PT__Viva_Douro.pdf"
+    },
+    {
+      "id": "jornal_abrantes",
+      "nome": "Jornal de Abrantes",
+      "categoria": "Generalistas",
+      "data": "08 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20260900_PT__Jornal_de_Abrantes.pdf"
     },
     {
       "id": "pontofinal",
       "nome": "Ponto Final",
       "categoria": "Internacionais",
-      "data": "03 Nov",
+      "data": "08 Nov",
       "pais": "MO",
       "paginas": 16,
-      "pdf_url": ""
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/download/v5.6/_20261103_MO__Ponto_Final.pdf"
     }
   ]
 }
