@@ -74,7 +74,8 @@
         android:background="@drawable/bg_icon_button"
         android:focusable="true"
         android:contentDescription="VPN"
-        android:padding="8dp"
+        android:padding="6dp"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_vpn"
         app:layout_constraintEnd_toStartOf="@id/btnUpdateService"
         app:layout_constraintTop_toTopOf="parent" />
