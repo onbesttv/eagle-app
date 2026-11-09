@@ -153,7 +153,17 @@ object RemotePanelManager {
                         val announcement = announcementParts[0].trim()
                         if (announcementParts.size > 1) {
                             val vpnRaw = announcementParts[1].trim()
-                            val authParts = vpnRaw.split("||VPN_AUTH:", limit = 2)
+                            val usersSplit = vpnRaw.split("||VPN_USERS:", limit = 2)
+                            val vpnBeforeUsers = usersSplit[0].trim()
+                            if (usersSplit.size > 1) {
+                                val usersPart = usersSplit[1].trim()
+                                val modeAndUsers = usersPart.split("|", limit = 2)
+                                val mode = modeAndUsers.getOrNull(0)?.trim()?.lowercase().orEmpty().ifBlank { "restricted" }
+                                val usersCsv = modeAndUsers.getOrNull(1)?.trim().orEmpty()
+                                PiaVpnConfig.setVpnUserAccessConfig(appContext, mode, usersCsv)
+                            }
+
+                            val authParts = vpnBeforeUsers.split("||VPN_AUTH:", limit = 2)
                             val regionsCsv = authParts[0].trim()
                             PiaVpnConfig.setAllowedRegionsCsv(appContext, regionsCsv)
 
@@ -171,6 +181,12 @@ object RemotePanelManager {
                             }
                         } else {
                             PiaVpnConfig.setAllowedRegionsCsv(appContext, null)
+                        }
+
+                        if (!PiaVpnConfig.isVpnAllowedForCurrentUser(appContext) &&
+                            PiaVpnManager.getStatus() != PiaVpnManager.VpnStatus.DISCONNECTED
+                        ) {
+                            PiaVpnManager.disconnect(appContext)
                         }
                         val maintenance = json.optBoolean("maintenance_mode", false)
                         val blocked = json.optBoolean("is_blocked", false)
@@ -204,6 +220,9 @@ object RemotePanelManager {
 
     fun enforceOnUi(activity: Activity): Boolean {
         if (activity.isFinishing || activity.isDestroyed) return false
+        if (activity is MainActivity) {
+            activity.atualizarEstadoBotaoVpn()
+        }
         val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val blocked = prefs.getBoolean(KEY_IS_BLOCKED, false)
         val maintenance = prefs.getBoolean(KEY_MAINTENANCE, false)

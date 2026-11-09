@@ -11,6 +11,8 @@ object PiaVpnConfig {
     private const val KEY_REGION_ID = "pia_region_id"
     private const val KEY_AUTO_CONNECT = "pia_auto_connect"
     private const val KEY_ALLOWED_REGIONS = "pia_allowed_regions_csv"
+    private const val KEY_VPN_ACCESS_MODE = "pia_vpn_access_mode"
+    private const val KEY_VPN_ALLOWED_USERS = "pia_vpn_allowed_users_csv"
 
     // Credenciais Próprias da PIA VPN (App Master / Eagle e Godinho TV)
     const val MASTER_USERNAME = "p7426501"
@@ -102,5 +104,42 @@ object PiaVpnConfig {
         } else {
             getPrefs(context).edit().remove(KEY_ALLOWED_REGIONS).apply()
         }
+    }
+
+    fun setVpnUserAccessConfig(context: Context, mode: String?, usersCsv: String?) {
+        val cleanMode = mode?.trim()?.lowercase().orEmpty().ifBlank { "restricted" }
+        val cleanUsers = usersCsv?.trim()?.lowercase().orEmpty()
+        getPrefs(context).edit()
+            .putString(KEY_VPN_ACCESS_MODE, cleanMode)
+            .putString(KEY_VPN_ALLOWED_USERS, cleanUsers)
+            .apply()
+    }
+
+    fun isVpnAllowedForCurrentUser(context: Context): Boolean {
+        val isEagleMaster = RemotePanelManager.getResellerId(context).equals("master", ignoreCase = true)
+        if (!isEagleMaster) {
+            return true
+        }
+        val prefs = getPrefs(context)
+        val mode = prefs.getString(KEY_VPN_ACCESS_MODE, "restricted")?.trim()?.lowercase() ?: "restricted"
+        if (mode == "all") {
+            return true
+        }
+        IptvServiceConfig.initialize(context)
+        val activeSrv = IptvServiceConfig.activeServiceId(context)
+        val srvUser = IptvServiceConfig.username(context, activeSrv).trim().lowercase()
+        val legacyUser = context.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+            .getString("SAVED_USER", "")?.trim()?.lowercase().orEmpty()
+        val currentUser = if (srvUser.isNotBlank()) srvUser else legacyUser
+        if (currentUser.isBlank()) {
+            return false
+        }
+        val allowedUsers = prefs.getString(KEY_VPN_ALLOWED_USERS, "")
+            .orEmpty()
+            .split(",")
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+            .toSet()
+        return allowedUsers.contains(currentUser) || (legacyUser.isNotBlank() && allowedUsers.contains(legacyUser))
     }
 }

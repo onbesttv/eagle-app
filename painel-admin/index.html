@@ -600,6 +600,30 @@
                 <button type="button" class="btn" id="btnSaveVpn" onclick="saveVpnCountries()">💾 Guardar Países da VPN</button>
             </div>
         </div>
+
+        <!-- Card de Controlo de Acesso à VPN por Utilizador (Exclusivo Master / App Eagle) -->
+        <div class="card" id="vpnUserAccessCard" style="display: none; margin-top: 20px;">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">👤 Controlo de Acesso à VPN por Utilizador (Exclusivo App Eagle)</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        No modo <strong>Restrito</strong>, o botão da VPN na App Eagle fica inativo por defeito para todos os clientes e só fica ativo nos utilizadores que autorizares abaixo (ou diretamente na tabela de dispositivos).
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-outline btn-sm" id="btnVpnModeRestricted" onclick="setVpnAccessMode('restricted')">🔒 Restrito por Utilizador</button>
+                    <button type="button" class="btn btn-outline btn-sm" id="btnVpnModeAll" onclick="setVpnAccessMode('all')">🔓 Liberar para Todos (Modo Jogo)</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; margin-bottom: 14px;">
+                <input type="text" id="newVpnUserInput" placeholder="Escreve o username do cliente (ex: joao123)..." style="max-width: 320px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addVpnUserFromInput();}">
+                <button type="button" class="btn btn-sm" onclick="addVpnUserFromInput()">➕ Autorizar VPN neste User</button>
+                <span id="vpnUsersStatusBadge" class="badge badge-online" style="margin-left: auto; padding: 6px 12px; font-size: 12px;">0 utilizadores com VPN ativa</span>
+            </div>
+
+            <div id="vpnAllowedUsersList" style="display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px;"></div>
+        </div>
     </div>
 
     <!-- ABA 3: GESTÃO DE REVENDEDORES (Apenas Master) -->
@@ -730,12 +754,178 @@
         { id: "poland", name: "Polónia", flag: "🇵🇱", defaultOn: false }
     ];
     let selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+    let vpnAccessMode = "restricted";
+    let allowedVpnUsers = new Set();
 
     const VPN_ACCOUNTS = {
         master: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Eagle Master & Godinho TV)" },
         godinho_tv: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Godinho TV)" },
         tv_fabio: { user: "p6255571", pass: "EqwvpMqb6e", label: "Conta Fpinto (tv_fabio)" }
     };
+
+    function isUserVpnEnabled(username) {
+        if (!username) return false;
+        if (vpnAccessMode === "all") return true;
+        return allowedVpnUsers.has(String(username).trim().toLowerCase());
+    }
+
+    function renderVpnAllowedUsers() {
+        const card = document.getElementById("vpnUserAccessCard");
+        if (!card) return;
+        card.style.display = isMasterRole ? "block" : "none";
+        if (!isMasterRole) return;
+
+        const btnRestricted = document.getElementById("btnVpnModeRestricted");
+        const btnAll = document.getElementById("btnVpnModeAll");
+        if (btnRestricted && btnAll) {
+            if (vpnAccessMode === "all") {
+                btnAll.style.borderColor = "var(--success)";
+                btnAll.style.color = "#34d399";
+                btnAll.style.background = "rgba(16, 185, 129, 0.14)";
+                btnRestricted.style.borderColor = "";
+                btnRestricted.style.color = "";
+                btnRestricted.style.background = "";
+            } else {
+                btnRestricted.style.borderColor = "var(--accent)";
+                btnRestricted.style.color = "#60a5fa";
+                btnRestricted.style.background = "rgba(59, 130, 246, 0.16)";
+                btnAll.style.borderColor = "";
+                btnAll.style.color = "";
+                btnAll.style.background = "";
+            }
+        }
+
+        const badge = document.getElementById("vpnUsersStatusBadge");
+        if (badge) {
+            if (vpnAccessMode === "all") {
+                badge.className = "badge badge-online";
+                badge.textContent = "🔓 VPN Liberada para Todos (Modo Jogo)";
+            } else {
+                badge.className = allowedVpnUsers.size > 0 ? "badge badge-online" : "badge badge-offline";
+                badge.textContent = `🔒 ${allowedVpnUsers.size} utilizador(es) com VPN ativa`;
+            }
+        }
+
+        const container = document.getElementById("vpnAllowedUsersList");
+        if (!container) return;
+
+        // Junta utilizadores já autorizados + utilizadores conhecidos da App Eagle (master)
+        const eagleUsersMap = new Map();
+        Array.from(allowedVpnUsers).forEach(u => {
+            if (u) eagleUsersMap.set(u, true);
+        });
+        allDevices.forEach(d => {
+            const devRes = (d.reseller_id || "master").toLowerCase();
+            const u = (d.username || "").trim().toLowerCase();
+            if (devRes === "master" && u && !eagleUsersMap.has(u)) {
+                eagleUsersMap.set(u, false);
+            }
+        });
+
+        const allKnownUsers = Array.from(eagleUsersMap.keys());
+        if (allKnownUsers.length === 0) {
+            container.innerHTML = `<span style="font-size: 12px; color: var(--text-muted);">Ainda não há utilizadores autorizados. Escreve um username acima ou clica no botão "🔒 VPN: OFF" na tabela de dispositivos!</span>`;
+            return;
+        }
+
+        container.innerHTML = allKnownUsers.map(u => {
+            const isActive = allowedVpnUsers.has(u);
+            return `
+                <div class="vpn-country-chip ${isActive ? 'active' : ''}" onclick="toggleUserVpn('${escapeHtml(u)}')" style="min-width: 150px;">
+                    <span>👤 <strong>${escapeHtml(u)}</strong></span>
+                    <span class="vpn-check">${isActive ? 'ON' : 'OFF'}</span>
+                </div>
+            `;
+        }).join("");
+    }
+
+    async function setVpnAccessMode(mode) {
+        if (!isMasterRole) return;
+        vpnAccessMode = mode === "all" ? "all" : "restricted";
+        renderVpnAllowedUsers();
+        renderDevices();
+        await saveVpnConfigSilent(vpnAccessMode === "all"
+            ? "🔓 VPN liberada para todos os clientes Eagle!"
+            : "🔒 VPN restrita apenas aos utilizadores autorizados!");
+    }
+
+    async function addVpnUserFromInput() {
+        if (!isMasterRole) return;
+        const inp = document.getElementById("newVpnUserInput");
+        if (!inp) return;
+        const u = inp.value.trim().toLowerCase().replace(/[,|]/g, "");
+        if (!u) return;
+        inp.value = "";
+        vpnAccessMode = "restricted";
+        allowedVpnUsers.add(u);
+        renderVpnAllowedUsers();
+        renderDevices();
+        await saveVpnConfigSilent(`🛡️ VPN ativada para o utilizador "${u}"!`);
+    }
+
+    async function toggleUserVpn(username) {
+        if (!isMasterRole) return;
+        const u = String(username || "").trim().toLowerCase().replace(/[,|]/g, "");
+        if (!u) return;
+        vpnAccessMode = "restricted";
+        let enabledNow = false;
+        if (allowedVpnUsers.has(u)) {
+            allowedVpnUsers.delete(u);
+            enabledNow = false;
+        } else {
+            allowedVpnUsers.add(u);
+            enabledNow = true;
+        }
+        renderVpnAllowedUsers();
+        renderDevices();
+        await saveVpnConfigSilent(enabledNow
+            ? `🛡️ VPN ativada na App Eagle para "${u}"!`
+            : `🔒 VPN desativada na App Eagle para "${u}"!`);
+    }
+
+    function buildEncodedAnnouncement() {
+        const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
+        const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
+        const vpnUser = (document.getElementById("cfgVpnUser") ? document.getElementById("cfgVpnUser").value.trim() : "");
+        const vpnPass = (document.getElementById("cfgVpnPass") ? document.getElementById("cfgVpnPass").value.trim() : "");
+        const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
+        const vpnUsersPart = isMasterRole
+            ? `||VPN_USERS:${vpnAccessMode}|${Array.from(allowedVpnUsers).join(",")}`
+            : "";
+        return `${cleanAnnouncement} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}`.trim();
+    }
+
+    async function saveVpnConfigSilent(toastMessage) {
+        const bestUrl = document.getElementById("cfgBestUrl").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const announcement = buildEncodedAnnouncement();
+        const maintenance = document.getElementById("cfgMaintenance").checked;
+        try {
+            if (multiResellerEnabled) {
+                await rpcCall("panel_save_own_config", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: announcement,
+                    p_maintenance_mode: maintenance,
+                    p_new_password: ""
+                });
+            } else {
+                await rpcCall("admin_save_config", {
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: announcement,
+                    p_maintenance_mode: maintenance,
+                    p_new_password: ""
+                });
+            }
+            if (toastMessage) showToast(toastMessage);
+        } catch (err) {
+            showToast("Erro ao guardar permissão de VPN.", true);
+        }
+    }
 
     function toggleVpnPassVisibility() {
         const inp = document.getElementById("cfgVpnPass");
@@ -944,7 +1134,20 @@
 
             if (vpnSplit.length > 1 && vpnSplit[1].trim()) {
                 const vpnPayload = vpnSplit[1].trim();
-                const authSplit = vpnPayload.split("||VPN_AUTH:");
+                const usersSplit = vpnPayload.split("||VPN_USERS:");
+                const vpnBeforeUsers = (usersSplit[0] || "").trim();
+                if (usersSplit.length > 1) {
+                    const usersPart = (usersSplit[1] || "").trim();
+                    const modeAndUsers = usersPart.split("|", 2);
+                    vpnAccessMode = ((modeAndUsers[0] || "").trim().toLowerCase() === "all") ? "all" : "restricted";
+                    const parsedUsers = (modeAndUsers[1] || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+                    allowedVpnUsers = new Set(parsedUsers);
+                } else {
+                    vpnAccessMode = "restricted";
+                    allowedVpnUsers = new Set();
+                }
+
+                const authSplit = vpnBeforeUsers.split("||VPN_AUTH:");
                 const ids = (authSplit[0] || "").trim().split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
                 if (ids.length > 0) {
                     selectedVpnCountries = new Set(ids);
@@ -960,6 +1163,8 @@
                 }
             } else {
                 selectedVpnCountries = new Set(AVAILABLE_VPN_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+                vpnAccessMode = "restricted";
+                allowedVpnUsers = new Set();
             }
 
             const userInp = document.getElementById("cfgVpnUser");
@@ -990,6 +1195,7 @@
             allDevices = Array.isArray(data.devices) ? data.devices : [];
             allResellers = Array.isArray(data.resellers) ? data.resellers : [];
 
+            renderVpnAllowedUsers();
             if (isMasterRole) {
                 populateResellerFilter();
                 renderResellers();
@@ -1122,6 +1328,16 @@
                 : `<span class="badge badge-best">StreamPlay</span>`;
 
             const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
+            const isEagleMasterDev = isMasterRole && devReseller.toLowerCase() === "master" && !!d.username;
+            const userVpnOn = isEagleMasterDev && isUserVpnEnabled(d.username);
+            const vpnToggleBtn = !isEagleMasterDev
+                ? ""
+                : (vpnAccessMode === "all"
+                    ? `<button class="btn btn-outline btn-sm" style="margin-right:6px; border-color: var(--success); color: #34d399; background: rgba(16, 185, 129, 0.14);" onclick="toggleUserVpn('${escapeHtml(d.username)}')" title="Modo Jogo ativo (clica para ativar apenas neste user)">🛡️ VPN: TODOS</button>`
+                    : (userVpnOn
+                        ? `<button class="btn btn-outline btn-sm" style="margin-right:6px; border-color: var(--success); color: #34d399; background: rgba(16, 185, 129, 0.14);" onclick="toggleUserVpn('${escapeHtml(d.username)}')" title="Clica para desativar a VPN neste utilizador">🛡️ VPN: ON</button>`
+                        : `<button class="btn btn-outline btn-sm" style="margin-right:6px; color: var(--text-muted);" onclick="toggleUserVpn('${escapeHtml(d.username)}')" title="Clica para ativar a VPN neste utilizador">🔒 VPN: OFF</button>`));
+
             const blockBtn = d.is_blocked
                 ? `<button class="btn btn-success btn-sm" onclick="toggleBlock('${escapeHtml(d.device_id)}', false)">Desbloquear</button>`
                 : `<button class="btn btn-danger btn-sm" onclick="toggleBlock('${escapeHtml(d.device_id)}', true)">Bloquear</button>`;
@@ -1139,7 +1355,7 @@
                     <td>${escapeHtml(d.app_version || "1.0")}</td>
                     <td title="${escapeHtml(d.last_seen)}">${formatRelativeTime(d.last_seen)}</td>
                     <td style="text-align: right; white-space: nowrap;">
-                        ${blockBtn}
+                        ${vpnToggleBtn}${blockBtn}
                         <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}')">🗑️</button>
                     </td>
                 </tr>
@@ -1273,12 +1489,7 @@
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
         const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
-        const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
-        const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
-        const vpnUser = (document.getElementById("cfgVpnUser") ? document.getElementById("cfgVpnUser").value.trim() : "");
-        const vpnPass = (document.getElementById("cfgVpnPass") ? document.getElementById("cfgVpnPass").value.trim() : "");
-        const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
-        const announcement = `${cleanAnnouncement} ||VPN:${vpnCsv}${vpnAuthPart}`.trim();
+        const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         const newPass = document.getElementById("cfgNewPassword").value.trim();
 

@@ -66,6 +66,13 @@ class VpnActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (!PiaVpnConfig.isVpnAllowedForCurrentUser(this)) {
+            if (PiaVpnManager.getStatus() != PiaVpnManager.VpnStatus.DISCONNECTED) {
+                PiaVpnManager.disconnect(this)
+            }
+            finish()
+            return
+        }
         setContentView(R.layout.activity_vpn)
 
         btnBackVpn = findViewById(R.id.btnBackVpn)

@@ -95,9 +95,7 @@ class MainActivity : BaseActivity() {
             val ivCatchUp = catchUpLayout?.getChildAt(0) as? ImageView
             ivCatchUp?.imageTintList = null
         } else {
-            btnVpn.setOnClickListener {
-                startActivity(Intent(this, VpnActivity::class.java))
-            }
+            atualizarEstadoBotaoVpn()
         }
 
         // Destaque visual e sombra ao navegar com comando da Box
@@ -149,18 +147,58 @@ class MainActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvSeriesTitle)?.text = getString(R.string.series)
         findViewById<TextView>(R.id.tvCatchUpTitle)?.text = getString(R.string.catch_up)
 
-        // Atualiza ícone da VPN conforme o estado de proteção (sem estragar o PNG multi-cor do ícone)
-        val isVpnConnected = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED
-        val btnVpn = findViewById<ImageButton>(R.id.btnVpn)
-        btnVpn?.imageTintList = null
-        btnVpn?.colorFilter = null
-        btnVpn?.backgroundTintList = if (isVpnConnected) ColorStateList.valueOf(0xFF15803D.toInt()) else null
+        // Atualiza estado e ícone da VPN conforme permissão do utilizador no painel e estado de ligação
+        atualizarEstadoBotaoVpn()
 
         // Garante que ao regressar ao ecrã inicial o foco volta para o LIVE TV caso estivesse no botão de definições
         val cardLiveTv = findViewById<CardView>(R.id.cardLiveTv)
         cardLiveTv?.post {
             if (currentFocus == null || currentFocus?.id == R.id.btnSettings) {
                 cardLiveTv.requestFocus()
+            }
+        }
+    }
+
+    fun atualizarEstadoBotaoVpn() {
+        val btnVpn = findViewById<ImageButton>(R.id.btnVpn) ?: return
+        val hideVpn = RemotePanelManager.getResellerId(this).equals("pereira_tv", ignoreCase = true)
+        if (hideVpn) {
+            btnVpn.visibility = android.view.View.GONE
+            btnVpn.isFocusable = false
+            btnVpn.isClickable = false
+            return
+        }
+
+        val vpnAllowed = PiaVpnConfig.isVpnAllowedForCurrentUser(this)
+        if (!vpnAllowed) {
+            if (PiaVpnManager.getStatus() != PiaVpnManager.VpnStatus.DISCONNECTED) {
+                PiaVpnManager.disconnect(this)
+            }
+            if (btnVpn.hasFocus()) {
+                findViewById<CardView>(R.id.cardLiveTv)?.requestFocus()
+            }
+            btnVpn.visibility = android.view.View.VISIBLE
+            btnVpn.alpha = 0.32f
+            btnVpn.isEnabled = false
+            btnVpn.isClickable = false
+            btnVpn.isFocusable = false
+            btnVpn.isFocusableInTouchMode = false
+            btnVpn.imageTintList = null
+            btnVpn.colorFilter = null
+            btnVpn.backgroundTintList = null
+            btnVpn.setOnClickListener(null)
+        } else {
+            val isVpnConnected = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED
+            btnVpn.visibility = android.view.View.VISIBLE
+            btnVpn.alpha = 1.0f
+            btnVpn.isEnabled = true
+            btnVpn.isClickable = true
+            btnVpn.isFocusable = true
+            btnVpn.imageTintList = null
+            btnVpn.colorFilter = null
+            btnVpn.backgroundTintList = if (isVpnConnected) ColorStateList.valueOf(0xFF15803D.toInt()) else null
+            btnVpn.setOnClickListener {
+                startActivity(Intent(this, VpnActivity::class.java))
             }
         }
     }
