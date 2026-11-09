@@ -10,8 +10,8 @@ android {
         applicationId = "com.example.myapplication"
         minSdk = 21
         targetSdk = 35
-        versionCode = 58
-        versionName = "6.3"
+        versionCode = 59
+        versionName = "6.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -44,8 +44,8 @@ android {
         create("godinho_tv") {
             dimension = "reseller"
             applicationId = "com.eagle.godinho_tv"
-            versionCode = 11
-            versionName = "1.1"
+            versionCode = 12
+            versionName = "1.2"
             resValue("string", "app_name", "GodinhoTV")
             resValue("string", "reseller_id", "godinho_tv")
         }

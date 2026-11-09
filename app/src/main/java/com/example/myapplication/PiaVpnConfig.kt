@@ -115,16 +115,28 @@ object PiaVpnConfig {
             .apply()
     }
 
+    fun applyRemoteVpnKillIfNeeded(context: Context, killTimestamp: Long): Boolean {
+        if (killTimestamp <= 0L) return false
+        val prefs = getPrefs(context)
+        val lastKill = prefs.getLong("pia_last_vpn_kill_ts", 0L)
+        if (killTimestamp > lastKill) {
+            prefs.edit()
+                .putLong("pia_last_vpn_kill_ts", killTimestamp)
+                .putBoolean(KEY_AUTO_CONNECT, false)
+                .apply()
+            PiaVpnManager.forceDisconnect(context)
+            return true
+        }
+        return false
+    }
+
     fun isVpnAllowedForCurrentUser(context: Context): Boolean {
-        val isEagleMaster = RemotePanelManager.getResellerId(context).equals("master", ignoreCase = true)
-        if (!isEagleMaster) {
+        val resId = RemotePanelManager.getResellerId(context).trim().lowercase()
+        val hasPerUserVpnControl = (resId == "master" || resId == "godinho_tv")
+        if (!hasPerUserVpnControl) {
             return true
         }
         val prefs = getPrefs(context)
-        val mode = prefs.getString(KEY_VPN_ACCESS_MODE, "restricted")?.trim()?.lowercase() ?: "restricted"
-        if (mode == "all") {
-            return true
-        }
         IptvServiceConfig.initialize(context)
         val activeSrv = IptvServiceConfig.activeServiceId(context)
         val srvUser = IptvServiceConfig.username(context, activeSrv).trim().lowercase()

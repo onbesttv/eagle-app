@@ -11,7 +11,7 @@ open class BaseActivity : AppCompatActivity() {
         override fun run() {
             if (!isFinishing && !isDestroyed) {
                 RemotePanelManager.syncAndEnforce(this@BaseActivity)
-                heartbeatHandler.postDelayed(this, 60_000L) // Atualiza estado online a cada 60s mesmo durante reprodução
+                heartbeatHandler.postDelayed(this, 15_000L) // Sincroniza a cada 15s em tempo real
             }
         }
     }

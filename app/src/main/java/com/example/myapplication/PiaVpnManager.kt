@@ -242,11 +242,20 @@ object PiaVpnManager {
     }
 
     fun disconnect(context: Context, onComplete: (() -> Unit)? = null) {
+        PiaVpnConfig.setAutoConnect(context, false)
         if (status == VpnStatus.DISCONNECTED) {
             onComplete?.invoke()
             return
         }
-        updateState(VpnStatus.DISCONNECTING, "A desligar VPN…")
+        forceDisconnect(context, onComplete)
+    }
+
+    fun forceDisconnect(context: Context, onComplete: (() -> Unit)? = null) {
+        PiaVpnConfig.setAutoConnect(context, false)
+        val wasActive = status != VpnStatus.DISCONNECTED
+        if (wasActive) {
+            updateState(VpnStatus.DISCONNECTING, "A desligar VPN…")
+        }
         thread {
             try {
                 init(context)

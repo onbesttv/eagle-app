@@ -153,7 +153,14 @@ object RemotePanelManager {
                         val announcement = announcementParts[0].trim()
                         if (announcementParts.size > 1) {
                             val vpnRaw = announcementParts[1].trim()
-                            val usersSplit = vpnRaw.split("||VPN_USERS:", limit = 2)
+                            val killSplit = vpnRaw.split("||VPN_KILL:", limit = 2)
+                            val vpnBeforeKill = killSplit[0].trim()
+                            if (killSplit.size > 1) {
+                                val killTs = killSplit[1].trim().takeWhile { it.isDigit() }.toLongOrNull() ?: 0L
+                                PiaVpnConfig.applyRemoteVpnKillIfNeeded(appContext, killTs)
+                            }
+
+                            val usersSplit = vpnBeforeKill.split("||VPN_USERS:", limit = 2)
                             val vpnBeforeUsers = usersSplit[0].trim()
                             if (usersSplit.size > 1) {
                                 val usersPart = usersSplit[1].trim()
@@ -222,6 +229,9 @@ object RemotePanelManager {
         if (activity.isFinishing || activity.isDestroyed) return false
         if (activity is MainActivity) {
             activity.atualizarEstadoBotaoVpn()
+        } else if (activity is VpnActivity && !PiaVpnConfig.isVpnAllowedForCurrentUser(activity)) {
+            activity.finish()
+            return true
         }
         val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val blocked = prefs.getBoolean(KEY_IS_BLOCKED, false)
