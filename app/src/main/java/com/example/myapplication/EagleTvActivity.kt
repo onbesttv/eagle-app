@@ -1033,6 +1033,20 @@ class EagleTvActivity : BaseActivity() {
         val keyCode = event.keyCode
         val isDown = event.action == KeyEvent.ACTION_DOWN
 
+        // Bloqueio de navegação no Menu Lateral: não permitir saltar para fora ao andar para baixo em Definições,
+        // para cima em TV Direto, ou para a esquerda no rail.
+        if (isDown) {
+            if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && navSettings.hasFocus()) {
+                return true
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_UP && navLiveTv.hasFocus()) {
+                return true
+            }
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && layoutLeftRail.hasFocus()) {
+                return true
+            }
+        }
+
         // 1. Zapping numérico (teclas 0 a 9 do comando da Box) em Live TV
         if (isDown && activeSection == WorkspaceSection.LIVE_TV && !etCatalogSearch.hasFocus()) {
             val digit = when (keyCode) {
