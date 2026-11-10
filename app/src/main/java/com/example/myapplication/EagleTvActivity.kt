@@ -254,10 +254,15 @@ class EagleTvActivity : BaseActivity() {
     private var lastRailFocusId = R.id.navLiveTv
     private var hasSavedFocus = false
 
-    private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 6) {
+    private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 8) {
         if (targetPos < 0) return
         val count = rv.adapter?.itemCount ?: 0
-        if (count == 0) return
+        if (count == 0) {
+            if (retries > 0) {
+                rv.postDelayed({ focarRecyclerViewPosicao(rv, targetPos, retries - 1) }, 60)
+            }
+            return
+        }
         val safePos = targetPos.coerceIn(0, count - 1)
         rv.scrollToPosition(safePos)
         rv.post {
@@ -659,9 +664,27 @@ class EagleTvActivity : BaseActivity() {
             }
         }
 
-        navLiveTv.setOnClickListener { selecionarSecao(WorkspaceSection.LIVE_TV) }
-        navMovies.setOnClickListener { selecionarSecao(WorkspaceSection.MOVIES) }
-        navSeries.setOnClickListener { selecionarSecao(WorkspaceSection.SERIES) }
+        navLiveTv.setOnClickListener {
+            selecionarSecao(WorkspaceSection.LIVE_TV)
+            rvLiveGroups.postDelayed({
+                val pos = (liveGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvLiveGroups, pos)
+            }, 80)
+        }
+        navMovies.setOnClickListener {
+            selecionarSecao(WorkspaceSection.MOVIES)
+            rvCatalogGroups.postDelayed({
+                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+            }, 80)
+        }
+        navSeries.setOnClickListener {
+            selecionarSecao(WorkspaceSection.SERIES)
+            rvCatalogGroups.postDelayed({
+                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+            }, 80)
+        }
 
         navEpgGuide.setOnClickListener {
             // O Guia TV é a própria vista de TV em Direto: foca diretamente o programa atual no guia EPG
@@ -677,12 +700,31 @@ class EagleTvActivity : BaseActivity() {
                 focarRecyclerViewPosicao(target, targetPos)
             }, 200)
         }
-        navCatchUp.setOnClickListener { selecionarSecao(WorkspaceSection.CATCHUP) }
-        navSports.setOnClickListener { selecionarSecao(WorkspaceSection.SPORTS) }
-        navNewspapers.setOnClickListener { selecionarSecao(WorkspaceSection.NEWSPAPERS) }
+        navCatchUp.setOnClickListener {
+            selecionarSecao(WorkspaceSection.CATCHUP)
+            rvCatalogGroups.postDelayed({
+                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+            }, 80)
+        }
+        navSports.setOnClickListener {
+            selecionarSecao(WorkspaceSection.SPORTS)
+            rvCatalogGroups.postDelayed({
+                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+            }, 80)
+        }
+        navNewspapers.setOnClickListener {
+            selecionarSecao(WorkspaceSection.NEWSPAPERS)
+            rvCatalogGroups.postDelayed({
+                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+            }, 80)
+        }
         navVpn.setOnClickListener {
             if (PiaVpnConfig.isVpnAllowedForCurrentUser(this)) {
                 selecionarSecao(WorkspaceSection.VPN)
+                btnToggleVpn.postDelayed({ btnToggleVpn.requestFocus() }, 80)
             } else {
                 Toast.makeText(this, "VPN não ativa para esta conta no painel.", Toast.LENGTH_SHORT).show()
             }
@@ -699,6 +741,9 @@ class EagleTvActivity : BaseActivity() {
         }
         navSettings.setOnClickListener {
             selecionarSecao(WorkspaceSection.SETTINGS)
+            rvSettingsGrid.postDelayed({
+                focarRecyclerViewPosicao(rvSettingsGrid, 0)
+            }, 80)
         }
 
         atualizarEstilosMenuLateral()
@@ -781,13 +826,6 @@ class EagleTvActivity : BaseActivity() {
             WorkspaceSection.LIVE_TV -> {
                 layoutLiveTvColumns.visibility = View.VISIBLE
                 currentPlayingChannel?.let { atualizarPainelTopoCanal(it) }
-                rvLiveChannels.post {
-                    if (currentStreamId != -1) {
-                        focarCanalNaListaPrincipal(currentStreamId)
-                    } else {
-                        rvLiveGroups.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
-                    }
-                }
             }
             WorkspaceSection.MOVIES -> {
                 layoutCatalogSection.visibility = View.VISIBLE
@@ -4070,8 +4108,15 @@ class EagleTvActivity : BaseActivity() {
                     atualizarEstiloItem(prev)
                     atualizarEstiloItem(selectedPosition)
                     onSelect(id, name)
-                    holder.itemView.post {
-                        holder.itemView.requestFocus()
+                    if (this@GroupListAdapter === liveGroupAdapter) {
+                        rvLiveChannels.postDelayed({
+                            val channelPos = (liveChannelAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                            focarRecyclerViewPosicao(rvLiveChannels, channelPos)
+                        }, 100)
+                    } else {
+                        rvCatalogGrid.postDelayed({
+                            focarRecyclerViewPosicao(rvCatalogGrid, 0)
+                        }, 100)
                     }
                 }
             }
