@@ -42,6 +42,7 @@ import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -52,7 +53,6 @@ class EagleTvActivity : BaseActivity() {
         LIVE_TV,
         MOVIES,
         SERIES,
-        GLOBAL_SEARCH,
         SPORTS,
         NEWSPAPERS,
         CATCHUP
@@ -103,7 +103,6 @@ class EagleTvActivity : BaseActivity() {
     private lateinit var navSeries: TextView
     private lateinit var navEpgGuide: TextView
     private lateinit var navCatchUp: TextView
-    private lateinit var navSearch: TextView
     private lateinit var navSports: TextView
     private lateinit var navNewspapers: TextView
     private lateinit var navVpn: TextView
@@ -203,14 +202,81 @@ class EagleTvActivity : BaseActivity() {
     private var currentSeriesCategoryItems = listOf<SeriesItem>()
     private var currentSeriesCategoryId = ""
 
-    private var currentSearchFilterId = "ALL"
-
     private var liveGroupAdapter: GroupListAdapter? = null
     private var overlayGroupAdapter: GroupListAdapter? = null
     private var liveChannelAdapter: TiviChannelAdapter? = null
     private var overlayChannelAdapter: TiviChannelAdapter? = null
     private var catalogGroupAdapter: GroupListAdapter? = null
     private var catalogPosterAdapter: CatalogPosterAdapter? = null
+
+    // Controlo de Retenção e Restauração de Foco (D-Pad / TV Box)
+    enum class LastFocusArea {
+        NAV_RAIL,
+        LIVE_GROUPS,
+        LIVE_CHANNELS,
+        CHANNEL_SCHEDULE,
+        CATALOG_GROUPS,
+        CATALOG_GRID
+    }
+
+    private var lastFocusArea = LastFocusArea.LIVE_CHANNELS
+    private var lastLiveChannelPos = 0
+    private var lastLiveGroupPos = 0
+    private var lastSchedulePos = 0
+    private var lastCatalogGroupPos = 0
+    private var lastCatalogGridPos = 0
+    private var lastRailFocusId = R.id.navLiveTv
+    private var hasSavedFocus = false
+
+    private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 6) {
+        if (targetPos < 0) return
+        val count = rv.adapter?.itemCount ?: 0
+        if (count == 0) return
+        val safePos = targetPos.coerceIn(0, count - 1)
+        rv.scrollToPosition(safePos)
+        rv.post {
+            val vh = rv.findViewHolderForAdapterPosition(safePos)
+            if (vh != null) {
+                vh.itemView.requestFocus()
+            } else if (retries > 0) {
+                rv.postDelayed({ focarRecyclerViewPosicao(rv, safePos, retries - 1) }, 50)
+            }
+        }
+    }
+
+    private fun restaurarFocoSalvo() {
+        when (lastFocusArea) {
+            LastFocusArea.CHANNEL_SCHEDULE -> {
+                if (activeSection == WorkspaceSection.LIVE_TV && (rvChannelSchedule.adapter?.itemCount ?: 0) > 0) {
+                    focarRecyclerViewPosicao(rvChannelSchedule, lastSchedulePos)
+                } else {
+                    focarRecyclerViewPosicao(rvLiveChannels, lastLiveChannelPos)
+                }
+            }
+            LastFocusArea.LIVE_CHANNELS -> {
+                val streamPos = if (currentStreamId != -1) {
+                    val idx = currentGroupChannels.indexOfFirst { it.streamId == currentStreamId }
+                    if (idx >= 0) idx else lastLiveChannelPos
+                } else {
+                    lastLiveChannelPos
+                }
+                liveChannelAdapter?.selecionarCanalPorId(currentStreamId)
+                focarRecyclerViewPosicao(rvLiveChannels, streamPos)
+            }
+            LastFocusArea.LIVE_GROUPS -> {
+                focarRecyclerViewPosicao(rvLiveGroups, lastLiveGroupPos)
+            }
+            LastFocusArea.CATALOG_GRID -> {
+                focarRecyclerViewPosicao(rvCatalogGrid, lastCatalogGridPos)
+            }
+            LastFocusArea.CATALOG_GROUPS -> {
+                focarRecyclerViewPosicao(rvCatalogGroups, lastCatalogGroupPos)
+            }
+            LastFocusArea.NAV_RAIL -> {
+                findViewById<View>(lastRailFocusId)?.requestFocus()
+            }
+        }
+    }
 
     // Zapping numérico (0-9)
     private var numericBuffer = StringBuilder()
@@ -293,6 +359,9 @@ class EagleTvActivity : BaseActivity() {
                     isFullScreen -> {
                         sairDeFullscreen()
                     }
+                    catchupViewingPrograms && activeSection == WorkspaceSection.CATCHUP -> {
+                        voltarParaListaCanaisCatchUp()
+                    }
                     activeSection != WorkspaceSection.LIVE_TV -> {
                         selecionarSecao(WorkspaceSection.LIVE_TV)
                     }
@@ -317,6 +386,11 @@ class EagleTvActivity : BaseActivity() {
         }
         if (activeSection == WorkspaceSection.MOVIES || activeSection == WorkspaceSection.SERIES) {
             catalogPosterAdapter?.notifyDataSetChanged()
+        }
+        if (!isFullScreen && hasSavedFocus) {
+            uiHandler.postDelayed({
+                restaurarFocoSalvo()
+            }, 120)
         }
     }
 
@@ -354,7 +428,6 @@ class EagleTvActivity : BaseActivity() {
         navSeries = findViewById(R.id.navSeries)
         navEpgGuide = findViewById(R.id.navEpgGuide)
         navCatchUp = findViewById(R.id.navCatchUp)
-        navSearch = findViewById(R.id.navSearch)
         navSports = findViewById(R.id.navSports)
         navNewspapers = findViewById(R.id.navNewspapers)
         navVpn = findViewById(R.id.navVpn)
@@ -459,25 +532,36 @@ class EagleTvActivity : BaseActivity() {
     private fun configurarMenuLateral() {
         val navButtons = listOf(
             navLiveTv, navMovies, navSeries, navEpgGuide, navCatchUp,
-            navSearch, navSports, navNewspapers, navVpn, navRefresh, navSettings
+            navSports, navNewspapers, navVpn, navRefresh, navSettings
         )
 
         navButtons.forEach { btn ->
-            btn.setOnFocusChangeListener { _, _ -> atualizarEstilosMenuLateral() }
+            btn.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    lastFocusArea = LastFocusArea.NAV_RAIL
+                    lastRailFocusId = btn.id
+                }
+                atualizarEstilosMenuLateral()
+            }
         }
 
         navLiveTv.setOnClickListener { selecionarSecao(WorkspaceSection.LIVE_TV) }
         navMovies.setOnClickListener { selecionarSecao(WorkspaceSection.MOVIES) }
         navSeries.setOnClickListener { selecionarSecao(WorkspaceSection.SERIES) }
-        navSearch.setOnClickListener { selecionarSecao(WorkspaceSection.GLOBAL_SEARCH) }
 
         navEpgGuide.setOnClickListener {
-            // O Guia TV é a própria vista de TV em Direto: grupos, canais e guia do canal
+            // O Guia TV é a própria vista de TV em Direto: foca diretamente o programa atual no guia EPG
+            lastFocusArea = LastFocusArea.CHANNEL_SCHEDULE
             selecionarSecao(WorkspaceSection.LIVE_TV)
             rvChannelSchedule.postDelayed({
                 val target = if ((rvChannelSchedule.adapter?.itemCount ?: 0) > 0) rvChannelSchedule else rvLiveChannels
-                target.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
-            }, 250)
+                val targetPos = if (target == rvChannelSchedule) {
+                    (rvChannelSchedule.adapter as? ChannelScheduleAdapter)?.posicaoProgramaAtual() ?: 0
+                } else {
+                    liveChannelAdapter?.posicaoSelecionada()?.coerceAtLeast(0) ?: 0
+                }
+                focarRecyclerViewPosicao(target, targetPos)
+            }, 200)
         }
         navCatchUp.setOnClickListener { selecionarSecao(WorkspaceSection.CATCHUP) }
         navSports.setOnClickListener { selecionarSecao(WorkspaceSection.SPORTS) }
@@ -511,7 +595,6 @@ class EagleTvActivity : BaseActivity() {
             navLiveTv to (activeSection == WorkspaceSection.LIVE_TV),
             navMovies to (activeSection == WorkspaceSection.MOVIES),
             navSeries to (activeSection == WorkspaceSection.SERIES),
-            navSearch to (activeSection == WorkspaceSection.GLOBAL_SEARCH),
             navEpgGuide to false,
             navCatchUp to (activeSection == WorkspaceSection.CATCHUP),
             navSports to (activeSection == WorkspaceSection.SPORTS),
@@ -574,9 +657,9 @@ class EagleTvActivity : BaseActivity() {
             WorkspaceSection.CATCHUP -> {
                 layoutLiveTvColumns.visibility = View.GONE
                 layoutCatalogSection.visibility = View.VISIBLE
-                configurarCatalogoParaSecao(grelha = false, pesquisa = false)
-                tvCatalogGroupsHeader.text = "CANAIS COM GRAVAÇÃO"
-                definirTopoInformativo("⏪ Gravações / Catch-Up", "Revê programas que já passaram", "Escolhe um canal à esquerda e depois o programa que queres rever.")
+                configurarCatalogoParaSecao(grelha = false, pesquisa = true)
+                tvCatalogGroupsHeader.text = "ESCOLHER DATA"
+                definirTopoInformativo("⏪ Gravações", "Revê programas dos últimos 8 dias", "Escolhe a data à esquerda, depois o canal e o programa gravado.")
                 iniciarSecaoCatchUp()
             }
             WorkspaceSection.LIVE_TV -> {
@@ -606,14 +689,6 @@ class EagleTvActivity : BaseActivity() {
                 tvCatalogGroupsHeader.text = "PASTAS DE SÉRIES"
                 etCatalogSearch.hint = "🔍 Pesquisar séries nesta pasta..."
                 iniciarSecaoSeries()
-            }
-            WorkspaceSection.GLOBAL_SEARCH -> {
-                layoutLiveTvColumns.visibility = View.GONE
-                layoutCatalogSection.visibility = View.VISIBLE
-                btnCatalogSort.visibility = View.GONE
-                tvCatalogGroupsHeader.text = "FILTRO DE PESQUISA"
-                etCatalogSearch.hint = "🔍 Escreve o nome do canal, filme ou série..."
-                iniciarSecaoPesquisaGlobal()
             }
         }
     }
@@ -808,9 +883,7 @@ class EagleTvActivity : BaseActivity() {
             ViewGroup.LayoutParams.MATCH_PARENT
         )
 
-        if (activeSection == WorkspaceSection.LIVE_TV && currentStreamId != -1) {
-            focarCanalNaListaPrincipal(currentStreamId)
-        }
+        restaurarFocoSalvo()
     }
 
     private fun mostrarOsdFullscreen(focusQuickActions: Boolean = false) {
@@ -1037,10 +1110,41 @@ class EagleTvActivity : BaseActivity() {
                             return true
                         }
                         rvLiveChannels.hasFocus() && (rvChannelSchedule.adapter?.itemCount ?: 0) > 0 -> {
-                            rvChannelSchedule.scrollToPosition(0)
-                            rvChannelSchedule.post {
-                                rvChannelSchedule.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                            val targetPos = (rvChannelSchedule.adapter as? ChannelScheduleAdapter)?.posicaoProgramaAtual() ?: 0
+                            focarRecyclerViewPosicao(rvChannelSchedule, targetPos)
+                            return true
+                        }
+                    }
+                }
+            } else if (isDown && activeSection != WorkspaceSection.LIVE_TV) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    when {
+                        rvCatalogGrid.hasFocus() -> {
+                            val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                            focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                            return true
+                        }
+                        rvCatalogGroups.hasFocus() -> {
+                            when (activeSection) {
+                                WorkspaceSection.MOVIES -> navMovies.requestFocus()
+                                WorkspaceSection.SERIES -> navSeries.requestFocus()
+                                WorkspaceSection.CATCHUP -> navCatchUp.requestFocus()
+                                WorkspaceSection.SPORTS -> navSports.requestFocus()
+                                WorkspaceSection.NEWSPAPERS -> navNewspapers.requestFocus()
+                                else -> navLiveTv.requestFocus()
                             }
+                            return true
+                        }
+                    }
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    when {
+                        layoutLeftRail.hasFocus() -> {
+                            val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                            focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                            return true
+                        }
+                        rvCatalogGroups.hasFocus() && (rvCatalogGrid.adapter?.itemCount ?: 0) > 0 -> {
+                            focarRecyclerViewPosicao(rvCatalogGrid, 0)
                             return true
                         }
                     }
@@ -1241,6 +1345,9 @@ class EagleTvActivity : BaseActivity() {
         liveChannelAdapter = TiviChannelAdapter(
             list = canais,
             onClick = { canal, num ->
+                lastFocusArea = LastFocusArea.LIVE_CHANNELS
+                lastLiveChannelPos = currentGroupChannels.indexOf(canal).coerceAtLeast(0)
+                hasSavedFocus = true
                 if (currentStreamId == canal.streamId) {
                     entrarEmFullscreen()
                 } else {
@@ -1548,10 +1655,22 @@ class EagleTvActivity : BaseActivity() {
         return archiveVal || durationVal > 0
     }
 
+    private fun parseProgramDate(raw: String?, timestamp: String?): Date? {
+        if (!raw.isNullOrBlank()) {
+            val formats = listOf("yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss", "yyyy/MM/dd HH:mm:ss")
+            for (pattern in formats) {
+                try {
+                    return SimpleDateFormat(pattern, Locale.getDefault()).parse(raw)
+                } catch (_: Exception) {}
+            }
+        }
+        val seconds = timestamp?.toLongOrNull() ?: return null
+        return Date(if (seconds > 100_000_000_000L) seconds else seconds * 1000L)
+    }
+
     private fun reproduzirProgramaCatchUp(canal: LiveStream, program: EpgProgram) {
-        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val startDate = try { sdf.parse(program.start.orEmpty()) } catch (_: Exception) { null }
-        val endDate = try { sdf.parse(program.end.orEmpty()) } catch (_: Exception) { null }
+        val startDate = parseProgramDate(program.start, program.startTimestamp)
+        val endDate = parseProgramDate(program.end, program.stopTimestamp)
         if (startDate == null || endDate == null || endDate.time <= startDate.time) {
             Toast.makeText(this, "Horário indisponível para Catch-Up", Toast.LENGTH_SHORT).show()
             return
@@ -1571,7 +1690,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     // =========================================================================
-    // SECÇÃO 2: FILMES (VOD), SÉRIES E PESQUISA GLOBAL (ESTILO MYTVONLINE3)
+    // SECÇÃO 2: FILMES (VOD) E SÉRIES (ESTILO MYTVONLINE3)
     // =========================================================================
 
     private fun configurarPesquisaEOrdenacao() {
@@ -1580,7 +1699,7 @@ class EagleTvActivity : BaseActivity() {
                 when (activeSection) {
                     WorkspaceSection.MOVIES -> atualizarGrelhaFilmes()
                     WorkspaceSection.SERIES -> atualizarGrelhaSeries()
-                    WorkspaceSection.GLOBAL_SEARCH -> executarPesquisaGlobal()
+                    WorkspaceSection.CATCHUP -> if (!catchupViewingPrograms) atualizarListaCanaisCatchUp()
                     else -> {}
                 }
             }
@@ -1883,60 +2002,6 @@ class EagleTvActivity : BaseActivity() {
         }
         val items = filtradas.map { CatalogPosterItem.Series(it) }
         mostrarItensNoCatalogo(items)
-    }
-
-    private fun iniciarSecaoPesquisaGlobal() {
-        val filtros = listOf(
-            "ALL" to "🌟 Tudo (TV + VOD)",
-            "CHANNELS" to "📺 Canais de TV",
-            "MOVIES" to "🎬 Filmes",
-            "SERIES" to "🎞️ Séries"
-        )
-        currentSearchFilterId = "ALL"
-        catalogGroupAdapter = GroupListAdapter(
-            items = filtros,
-            initialSelected = 0,
-            countProvider = { 0 },
-            onSelect = { id, _ ->
-                currentSearchFilterId = id
-                executarPesquisaGlobal()
-            }
-        )
-        rvCatalogGroups.adapter = catalogGroupAdapter
-
-        carregarTodosFilmesEmCache()
-        carregarTodasSeriesEmCache()
-        executarPesquisaGlobal()
-        etCatalogSearch.post { etCatalogSearch.requestFocus() }
-    }
-
-    private fun executarPesquisaGlobal() {
-        val q = etCatalogSearch.text?.toString()?.trim()?.lowercase().orEmpty()
-        if (q.length < 2) {
-            tvCatalogEmpty.text = "Digita pelo menos 2 letras para pesquisar em Canais, Filmes e Séries."
-            tvCatalogEmpty.visibility = View.VISIBLE
-            rvCatalogGrid.adapter = null
-            return
-        }
-
-        val resultados = mutableListOf<CatalogPosterItem>()
-        if (currentSearchFilterId == "ALL" || currentSearchFilterId == "CHANNELS") {
-            allLiveStreamsCache.filter { it.name.lowercase().contains(q) }
-                .take(30)
-                .forEach { resultados.add(CatalogPosterItem.Channel(it)) }
-        }
-        if (currentSearchFilterId == "ALL" || currentSearchFilterId == "MOVIES") {
-            allMoviesCache.filter { it.name.lowercase().contains(q) }
-                .take(40)
-                .forEach { resultados.add(CatalogPosterItem.Movie(it)) }
-        }
-        if (currentSearchFilterId == "ALL" || currentSearchFilterId == "SERIES") {
-            allSeriesCache.filter { it.name.lowercase().contains(q) }
-                .take(40)
-                .forEach { resultados.add(CatalogPosterItem.Series(it)) }
-        }
-
-        mostrarItensNoCatalogo(resultados)
     }
 
     private fun mostrarItensNoCatalogo(items: List<CatalogPosterItem>) {
@@ -2312,46 +2377,127 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
-    // --- GRAVAÇÕES / CATCH-UP ---
+    // --- GRAVAÇÕES / CATCH-UP COM ESCOLHA DE DATA ---
+    private var catchupDaysList = listOf<Pair<String, String>>()
+    private var selectedCatchUpDateKey = ""
+    private var selectedCatchUpDateLabel = ""
+    private var catchupAllChannels = listOf<LiveStream>()
+    private var catchupFilteredChannels = listOf<LiveStream>()
+    private var catchupViewingPrograms = false
+    private var currentCatchUpChannel: LiveStream? = null
+    private var lastCatchUpChannelPos = 0
+
     private fun iniciarSecaoCatchUp() {
-        tvCatalogEmpty.text = "A procurar canais com gravação..."
+        catchupViewingPrograms = false
+        currentCatchUpChannel = null
+        tvCatalogEmpty.text = "A carregar dias e canais com gravação..."
         tvCatalogEmpty.visibility = View.VISIBLE
         rvCatalogGrid.adapter = null
         rvCatalogGroups.adapter = null
 
+        // 1. Gerar os últimos 8 dias (Hoje, Ontem, Anteontem, etc.)
+        val today = Calendar.getInstance()
+        val dias = (0 until 8).map { offset ->
+            val cal = (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -offset) }
+            val dateKey = SimpleDateFormat("yyyyMMdd", Locale.US).format(cal.time)
+            val label = when (offset) {
+                0 -> "Hoje (${SimpleDateFormat("dd/MM", Locale.getDefault()).format(cal.time)})"
+                1 -> "Ontem (${SimpleDateFormat("dd/MM", Locale.getDefault()).format(cal.time)})"
+                2 -> "Anteontem (${SimpleDateFormat("dd/MM", Locale.getDefault()).format(cal.time)})"
+                else -> {
+                    val weekDay = SimpleDateFormat("EEEE, dd/MM", Locale("pt", "PT")).format(cal.time)
+                    weekDay.replaceFirstChar { it.uppercase() }
+                }
+            }
+            dateKey to label
+        }
+        catchupDaysList = dias
+        selectedCatchUpDateKey = dias[0].first
+        selectedCatchUpDateLabel = dias[0].second
+
+        tvCatalogGroupsHeader.text = "ESCOLHER DATA"
+        catalogGroupAdapter = GroupListAdapter(
+            items = dias,
+            initialSelected = 0,
+            countProvider = { 0 },
+            onSelect = { id, label ->
+                selectedCatchUpDateKey = id
+                selectedCatchUpDateLabel = label
+                val ch = currentCatchUpChannel
+                if (catchupViewingPrograms && ch != null) {
+                    abrirProgramasDoCanalCatchUp(ch, selectedCatchUpDateKey, selectedCatchUpDateLabel)
+                } else {
+                    atualizarListaCanaisCatchUp()
+                }
+            }
+        )
+        rvCatalogGroups.adapter = catalogGroupAdapter
+
         garantirCanaisEmCache {
             if (activeSection != WorkspaceSection.CATCHUP) return@garantirCanaisEmCache
-            val comArquivo = allLiveStreamsCache.filter { temCatchUp(it) }
-            if (comArquivo.isEmpty()) {
-                tvCatalogEmpty.text = "O serviço não indicou canais com Catch-Up disponível."
-                tvCatalogEmpty.visibility = View.VISIBLE
-                return@garantirCanaisEmCache
-            }
-            catalogGroupAdapter = GroupListAdapter(
-                items = comArquivo.map { it.streamId.toString() to it.name },
-                initialSelected = 0,
-                countProvider = { 0 },
-                onSelect = { id, _ ->
-                    comArquivo.firstOrNull { it.streamId.toString() == id }?.let { carregarCatchUpDoCanal(it) }
-                }
-            )
-            rvCatalogGroups.adapter = catalogGroupAdapter
-            carregarCatchUpDoCanal(comArquivo[0])
+            catchupAllChannels = allLiveStreamsCache.filter { temCatchUp(it) }
+            atualizarListaCanaisCatchUp()
         }
     }
 
-    private fun carregarCatchUpDoCanal(canal: LiveStream) {
+    private fun atualizarListaCanaisCatchUp() {
+        catchupViewingPrograms = false
+        if (catchupAllChannels.isEmpty()) {
+            tvCatalogEmpty.text = "O serviço não disponibiliza canais com gravação (Catch-Up)."
+            tvCatalogEmpty.visibility = View.VISIBLE
+            rvCatalogGrid.adapter = null
+            return
+        }
+
+        val q = etCatalogSearch.text?.toString()?.trim()?.lowercase().orEmpty()
+        catchupFilteredChannels = if (q.isBlank()) {
+            catchupAllChannels
+        } else {
+            catchupAllChannels.filter { it.name.lowercase().contains(q) }
+        }
+
+        definirTopoInformativo(
+            "⏪ Gravações • $selectedCatchUpDateLabel",
+            "${catchupFilteredChannels.size} canais disponíveis",
+            "Escolhe o canal para ver os programas gravados nesta data."
+        )
+
+        if (catchupFilteredChannels.isEmpty()) {
+            tvCatalogEmpty.text = "Nenhum canal encontrado para a pesquisa '$q'."
+            tvCatalogEmpty.visibility = View.VISIBLE
+            rvCatalogGrid.adapter = null
+        } else {
+            tvCatalogEmpty.visibility = View.GONE
+            rvCatalogGrid.adapter = CatchUpChannelAdapter(catchupFilteredChannels, selectedCatchUpDateLabel) { canal ->
+                lastCatchUpChannelPos = catchupFilteredChannels.indexOf(canal).coerceAtLeast(0)
+                abrirProgramasDoCanalCatchUp(canal, selectedCatchUpDateKey, selectedCatchUpDateLabel)
+            }
+        }
+    }
+
+    private fun abrirProgramasDoCanalCatchUp(canal: LiveStream, dateKey: String, dateLabel: String) {
         val requestId = ++catchupRequestId
-        tvCatalogEmpty.text = "A carregar programação de ${canal.name}..."
+        catchupViewingPrograms = true
+        currentCatchUpChannel = canal
+        tvCatalogEmpty.text = "A carregar gravações de ${canal.name} ($dateLabel)..."
         tvCatalogEmpty.visibility = View.VISIBLE
         rvCatalogGrid.adapter = null
+
+        definirTopoInformativo(
+            "⏪ ${canal.name}",
+            "Gravações de $dateLabel",
+            "Pressiona no programa que queres rever. Pressiona VOLTAR para escolher outro canal."
+        )
 
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_simple_data_table&stream_id=${canal.streamId}"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    if (requestId == catchupRequestId) tvCatalogEmpty.text = "Não foi possível carregar a programação."
+                    if (requestId == catchupRequestId && activeSection == WorkspaceSection.CATCHUP) {
+                        tvCatalogEmpty.text = "Não foi possível carregar a programação de ${canal.name}."
+                        tvCatalogEmpty.visibility = View.VISIBLE
+                    }
                 }
             }
 
@@ -2359,31 +2505,119 @@ class EagleTvActivity : BaseActivity() {
                 val json = response.body?.string() ?: return
                 try {
                     val epg = gson.fromJson(json, EpgResponse::class.java)
-                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                     val now = System.currentTimeMillis()
-                    val passados = (epg?.epgListings ?: emptyList())
-                        .filter { p ->
-                            val e = try { sdf.parse(p.end.orEmpty())?.time } catch (_: Exception) { null }
-                            e != null && e < now
-                        }
-                        .sortedByDescending { p -> try { sdf.parse(p.start.orEmpty())?.time } catch (_: Exception) { null } ?: 0L }
+                    val matching = (epg?.epgListings ?: emptyList()).filter { program ->
+                        val start = parseProgramDate(program.start, program.startTimestamp)
+                        val end = parseProgramDate(program.end, program.stopTimestamp)
+                        start != null && end != null &&
+                                SimpleDateFormat("yyyyMMdd", Locale.US).format(start) == dateKey &&
+                                end.time <= now
+                    }.sortedByDescending { parseProgramDate(it.start, it.startTimestamp)?.time ?: 0L }
+
                     runOnUiThread {
                         if (requestId != catchupRequestId || activeSection != WorkspaceSection.CATCHUP) return@runOnUiThread
-                        if (passados.isEmpty()) {
-                            tvCatalogEmpty.text = "Sem programas gravados para este canal."
+                        if (matching.isEmpty()) {
+                            tvCatalogEmpty.text = "Sem programas gravados para ${canal.name} em $dateLabel."
                             tvCatalogEmpty.visibility = View.VISIBLE
                         } else {
                             tvCatalogEmpty.visibility = View.GONE
-                            rvCatalogGrid.adapter = ChannelScheduleAdapter(canal, passados)
+                            rvCatalogGrid.adapter = ChannelScheduleAdapter(canal, matching)
+                            rvCatalogGrid.post {
+                                focarRecyclerViewPosicao(rvCatalogGrid, 0)
+                            }
                         }
                     }
                 } catch (_: Exception) {
                     runOnUiThread {
-                        if (requestId == catchupRequestId) tvCatalogEmpty.text = "Catch-Up indisponível para este canal."
+                        if (requestId == catchupRequestId && activeSection == WorkspaceSection.CATCHUP) {
+                            tvCatalogEmpty.text = "Catch-Up indisponível para este canal nesta data."
+                            tvCatalogEmpty.visibility = View.VISIBLE
+                        }
                     }
                 }
             }
         })
+    }
+
+    private fun voltarParaListaCanaisCatchUp() {
+        catchupViewingPrograms = false
+        atualizarListaCanaisCatchUp()
+        rvCatalogGrid.post {
+            focarRecyclerViewPosicao(rvCatalogGrid, lastCatchUpChannelPos)
+        }
+    }
+
+    inner class CatchUpChannelAdapter(
+        private val list: List<LiveStream>,
+        private val dateLabel: String,
+        private val onClick: (LiveStream) -> Unit
+    ) : RecyclerView.Adapter<CatchUpChannelAdapter.ViewHolder>() {
+
+        inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val tvNum: TextView = v.findViewById(R.id.tvChannelNumber)
+            val ivLogo: ImageView = v.findViewById(R.id.ivChannelLogo)
+            val tvName: TextView = v.findViewById(R.id.tvChannelName)
+            val tvCatchup: TextView = v.findViewById(R.id.tvCatchupBadge)
+            val tvSub: TextView = v.findViewById(R.id.tvInlineEpgTitle)
+            val tvPlaying: TextView = v.findViewById(R.id.tvPlayingBadge)
+            val tvFav: TextView = v.findViewById(R.id.tvFavStar)
+            val pbEpg: ProgressBar = v.findViewById(R.id.pbInlineEpg)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_eagletv_channel, parent, false)
+            return ViewHolder(v)
+        }
+
+        override fun getItemCount(): Int = list.size
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val canal = list[position]
+            holder.tvNum.text = (position + 1).toString()
+            holder.tvName.text = canal.name
+            holder.tvCatchup.visibility = View.VISIBLE
+            holder.tvCatchup.text = "⏪ GRAVAÇÃO"
+            holder.tvSub.visibility = View.VISIBLE
+            holder.tvSub.text = "Carrega para ver gravações de $dateLabel"
+            holder.tvPlaying.visibility = View.GONE
+            holder.tvFav.visibility = View.GONE
+            holder.pbEpg.visibility = View.GONE
+
+            if (!canal.streamIcon.isNullOrBlank()) {
+                Glide.with(holder.itemView.context).load(canal.streamIcon).dontAnimate().into(holder.ivLogo)
+            } else {
+                holder.ivLogo.setImageResource(R.mipmap.ic_launcher)
+            }
+
+            val updateStyle: (Boolean) -> Unit = { hasFocus ->
+                holder.itemView.background = GradientDrawable().apply {
+                    cornerRadius = dp(9).toFloat()
+                    if (hasFocus) {
+                        setColor(0xFF1A365D.toInt())
+                        setStroke(dp(2), 0xFF00E5FF.toInt())
+                    } else {
+                        setColor(0xFF0B1728.toInt())
+                        setStroke(dp(1), 0x3338BDF8)
+                    }
+                }
+                holder.tvNum.setTextColor(if (hasFocus) 0xFF00E5FF.toInt() else 0xFF64748B.toInt())
+            }
+            updateStyle(holder.itemView.hasFocus())
+            holder.itemView.setOnFocusChangeListener { _, hasFocus ->
+                updateStyle(hasFocus)
+                if (hasFocus) {
+                    lastFocusArea = LastFocusArea.CATALOG_GRID
+                    lastCatalogGridPos = holder.bindingAdapterPosition
+                    hasSavedFocus = true
+                }
+            }
+            holder.itemView.setOnClickListener {
+                lastFocusArea = LastFocusArea.CATALOG_GRID
+                lastCatalogGridPos = holder.bindingAdapterPosition
+                hasSavedFocus = true
+                onClick(canal)
+            }
+        }
     }
 
     inner class SportsMatchAdapter(
@@ -2415,7 +2649,19 @@ class EagleTvActivity : BaseActivity() {
             holder.tvAway.text = m.equipaFora
             holder.tvChannel.text = if (m.canal.isNotBlank()) m.canal else "A anunciar"
             holder.tvDay.setTextColor(if (m.destaque) 0xFF38BDF8.toInt() else 0xFF94A3B8.toInt())
-            holder.itemView.setOnClickListener { onClick(m) }
+            holder.itemView.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    lastFocusArea = LastFocusArea.CATALOG_GRID
+                    lastCatalogGridPos = holder.bindingAdapterPosition
+                    hasSavedFocus = true
+                }
+            }
+            holder.itemView.setOnClickListener {
+                lastFocusArea = LastFocusArea.CATALOG_GRID
+                lastCatalogGridPos = holder.bindingAdapterPosition
+                hasSavedFocus = true
+                onClick(m)
+            }
         }
     }
 
@@ -2452,7 +2698,19 @@ class EagleTvActivity : BaseActivity() {
             } else {
                 holder.ivCover.visibility = View.GONE
             }
-            holder.itemView.setOnClickListener { onClick(n) }
+            holder.itemView.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    lastFocusArea = LastFocusArea.CATALOG_GRID
+                    lastCatalogGridPos = holder.bindingAdapterPosition
+                    hasSavedFocus = true
+                }
+            }
+            holder.itemView.setOnClickListener {
+                lastFocusArea = LastFocusArea.CATALOG_GRID
+                lastCatalogGridPos = holder.bindingAdapterPosition
+                hasSavedFocus = true
+                onClick(n)
+            }
         }
     }
 
@@ -2641,7 +2899,19 @@ class EagleTvActivity : BaseActivity() {
             }
 
             updateStyle(holder.itemView.hasFocus())
-            holder.itemView.setOnFocusChangeListener { _, hasFocus -> updateStyle(hasFocus) }
+            holder.itemView.setOnFocusChangeListener { _, hasFocus ->
+                updateStyle(hasFocus)
+                if (hasFocus) {
+                    if (this@GroupListAdapter === liveGroupAdapter) {
+                        lastFocusArea = LastFocusArea.LIVE_GROUPS
+                        lastLiveGroupPos = holder.bindingAdapterPosition
+                    } else {
+                        lastFocusArea = LastFocusArea.CATALOG_GROUPS
+                        lastCatalogGroupPos = holder.bindingAdapterPosition
+                    }
+                    hasSavedFocus = true
+                }
+            }
 
             holder.itemView.setOnClickListener {
                 val pos = holder.bindingAdapterPosition
@@ -2764,6 +3034,11 @@ class EagleTvActivity : BaseActivity() {
             holder.itemView.setOnFocusChangeListener { _, hasFocus ->
                 updateStyle(hasFocus)
                 if (hasFocus) {
+                    if (this@TiviChannelAdapter === liveChannelAdapter) {
+                        lastFocusArea = LastFocusArea.LIVE_CHANNELS
+                        lastLiveChannelPos = holder.bindingAdapterPosition
+                        hasSavedFocus = true
+                    }
                     onFocused(canal)
                 }
             }
@@ -2789,6 +3064,17 @@ class EagleTvActivity : BaseActivity() {
 
         private val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         private val hasArchive = temCatchUp(channel)
+
+        fun posicaoProgramaAtual(): Int {
+            val now = System.currentTimeMillis()
+            val nowIndex = programs.indexOfFirst { p ->
+                val s = try { sdf.parse(p.start.orEmpty())?.time } catch (_: Exception) { null }
+                val e = try { sdf.parse(p.end.orEmpty())?.time } catch (_: Exception) { null }
+                s != null && e != null && now in s..e
+            }
+            if (nowIndex >= 0) return nowIndex
+            return lastSchedulePos.coerceIn(0, (programs.size - 1).coerceAtLeast(0))
+        }
 
         inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
             val tvTime: TextView = v.findViewById(R.id.tvSlotTime)
@@ -2866,9 +3152,30 @@ class EagleTvActivity : BaseActivity() {
                 }
             }
             updateBg(holder.itemView.hasFocus())
-            holder.itemView.setOnFocusChangeListener { _, hasFocus -> updateBg(hasFocus) }
+            holder.itemView.setOnFocusChangeListener { _, hasFocus ->
+                updateBg(hasFocus)
+                if (hasFocus) {
+                    if (activeSection == WorkspaceSection.LIVE_TV) {
+                        lastFocusArea = LastFocusArea.CHANNEL_SCHEDULE
+                        lastSchedulePos = holder.bindingAdapterPosition
+                    } else {
+                        lastFocusArea = LastFocusArea.CATALOG_GRID
+                        lastCatalogGridPos = holder.bindingAdapterPosition
+                    }
+                    hasSavedFocus = true
+                }
+            }
 
             holder.itemView.setOnClickListener {
+                if (activeSection == WorkspaceSection.LIVE_TV) {
+                    lastFocusArea = LastFocusArea.CHANNEL_SCHEDULE
+                    lastSchedulePos = holder.bindingAdapterPosition
+                } else {
+                    lastFocusArea = LastFocusArea.CATALOG_GRID
+                    lastCatalogGridPos = holder.bindingAdapterPosition
+                }
+                hasSavedFocus = true
+
                 when {
                     isPast && hasArchive -> reproduzirProgramaCatchUp(channel, p)
                     isNow -> {
@@ -3053,10 +3360,18 @@ class EagleTvActivity : BaseActivity() {
             holder.itemView.setOnFocusChangeListener { _, hasFocus ->
                 updateStyle(hasFocus)
                 if (hasFocus) {
+                    lastFocusArea = LastFocusArea.CATALOG_GRID
+                    lastCatalogGridPos = holder.bindingAdapterPosition
+                    hasSavedFocus = true
                     onFocused(item)
                 }
             }
-            holder.itemView.setOnClickListener { onClick(item) }
+            holder.itemView.setOnClickListener {
+                lastFocusArea = LastFocusArea.CATALOG_GRID
+                lastCatalogGridPos = holder.bindingAdapterPosition
+                hasSavedFocus = true
+                onClick(item)
+            }
             holder.itemView.setOnLongClickListener {
                 onLongClick(item)
                 true
