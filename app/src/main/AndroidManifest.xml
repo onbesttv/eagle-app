@@ -51,6 +51,12 @@
         </activity>
 
         <activity
+            android:name=".EagleTvActivity"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode" />
+
+        <activity
             android:name=".ServiceSelectionActivity"
             android:exported="false"
             android:screenOrientation="sensorLandscape" />

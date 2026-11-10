@@ -1,0 +1,1206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootEagleTv"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#050911"
+    android:keepScreenOn="true">
+
+    <!-- CONTENTOR PRINCIPAL: BARRA LATERAL RETRÁTIL + ÁREA DE TRABALHO -->
+    <LinearLayout
+        android:id="@+id/layoutWorkspaceContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <!-- ================================================================== -->
+        <!-- 1. MENU LATERAL ESQUERDO ESTILO TIVIMATE / FORMULER MYTVONLINE3    -->
+        <!-- ================================================================== -->
+        <LinearLayout
+            android:id="@+id/layoutLeftRail"
+            android:layout_width="168dp"
+            android:layout_height="match_parent"
+            android:background="#070D17"
+            android:orientation="vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="8dp">
+
+            <!-- Cabeçalho da Marca Eagle TV + Relógio -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="6dp">
+
+                <ImageView
+                    android:id="@+id/ivRailLogo"
+                    android:layout_width="76dp"
+                    android:layout_height="34dp"
+                    android:scaleType="fitStart"
+                    android:src="@drawable/eagle_wordmark" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="end"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvRailClock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="14:30"
+                        android:textColor="#F8FAFC"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvRailEditionBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PRO TV"
+                        android:textColor="#00E5FF"
+                        android:textSize="8.5sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Pill do Servidor Ativo -->
+            <TextView
+                android:id="@+id/tvRailActiveServer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:background="#0F1C2E"
+                android:gravity="center"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="4dp"
+                android:singleLine="true"
+                android:text="● STREAMPLAY"
+                android:textColor="#38BDF8"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="6dp"
+                android:background="#152338" />
+
+            <!-- Itens do Menu Lateral -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layoutNavItems"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/navLiveTv"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="📺  TV em Direto"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navMovies"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="🎬  Filmes"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navSeries"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="🎞️  Séries"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navEpgGuide"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="📅  Guia TV (EPG)"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navCatchUp"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="⏪  Gravações / Catch-Up"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="38dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="🔍  Pesquisa Global"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="5dp"
+                        android:background="#152338" />
+
+                    <TextView
+                        android:id="@+id/navSports"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="⚽  Jogos do Dia"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navNewspapers"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="📰  Jornais"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navVpn"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="🛡️  VPN: OFF"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navRefresh"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:layout_marginBottom="3dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="🔄  Atualizar Lista"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/navSettings"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="10dp"
+                        android:singleLine="true"
+                        android:text="⚙️  Definições"
+                        android:textColor="#CBD5E1"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+            </ScrollView>
+
+        </LinearLayout>
+
+        <!-- Linha divisória vertical subtil -->
+        <View
+            android:id="@+id/viewRailDivider"
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#16243A" />
+
+        <!-- ================================================================== -->
+        <!-- 2. ÁREA PRINCIPAL DIREITA (TOPO PIP + HERO INFO + GRELHAS ABAIXO)  -->
+        <!-- ================================================================== -->
+        <LinearLayout
+            android:id="@+id/layoutRightWorkspace"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- SECÇÃO DE TOPO: MINI-PLAYER PIP AO VIVO + PAINEL DE INFORMAÇÃO / HERO -->
+            <LinearLayout
+                android:id="@+id/layoutTopPreviewRow"
+                android:layout_width="match_parent"
+                android:layout_height="196dp"
+                android:background="#08101D"
+                android:orientation="horizontal"
+                android:padding="10dp">
+
+                <!-- Contentor do Player (em modo normal = PiP 310dp; em modo fullscreen = 100% do ecrã) -->
+                <FrameLayout
+                    android:id="@+id/framePlayerWrapper"
+                    android:layout_width="310dp"
+                    android:layout_height="match_parent"
+                    android:background="#000000"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <androidx.media3.ui.PlayerView
+                        android:id="@+id/eaglePlayerView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        app:use_controller="false" />
+
+                    <!-- Badge no canto do Mini-Player -->
+                    <LinearLayout
+                        android:id="@+id/layoutMiniPlayerBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|start"
+                        android:layout_margin="8dp"
+                        android:background="#B3060E1A"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="● LIVE"
+                            android:textColor="#10B981"
+                            android:textSize="9.5sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvMiniPlayerHint"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:text="OK ➔ Ecrã Inteiro"
+                            android:textColor="#CBD5E1"
+                            android:textSize="9.5sp" />
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Painel Superior Direito: Detalhes do Canal / EPG (ou Hero Preview de Filme/Série) -->
+                <LinearLayout
+                    android:id="@+id/layoutTopProgramDetails"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <!-- Linha 1: Logo + Nome do Canal / Filme + Badges -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/ivTopHeaderLogo"
+                            android:layout_width="42dp"
+                            android:layout_height="36dp"
+                            android:layout_marginEnd="10dp"
+                            android:scaleType="fitCenter"
+                            android:src="@mipmap/ic_launcher" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvTopHeaderTitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:singleLine="true"
+                                android:text="Seleciona um canal"
+                                android:textColor="#FFFFFF"
+                                android:textSize="17sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tvTopHeaderSubtitle"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:singleLine="true"
+                                android:text="Guia TV &amp; EPG em Tempo Real"
+                                android:textColor="#00E5FF"
+                                android:textSize="12.5sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/tvTopFavBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:background="#26FBBF24"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
+                            android:text="★ FAVORITO"
+                            android:textColor="#FBBF24"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tvTopCatchupBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:background="#2638BDF8"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
+                            android:text="⏪ CATCH-UP"
+                            android:textColor="#38BDF8"
+                            android:textSize="10sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tvTopLiveBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:background="#2610B981"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="3dp"
+                            android:text="EM DIRETO"
+                            android:textColor="#10B981"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Linha 2: Horário + Barra de Progresso do Programa -->
+                    <LinearLayout
+                        android:id="@+id/layoutTopProgressRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvTopProgramTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="10dp"
+                            android:text="--:-- ➔ --:--"
+                            android:textColor="#94A3B8"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <ProgressBar
+                            android:id="@+id/pbTopProgram"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="0dp"
+                            android:layout_height="6dp"
+                            android:layout_weight="1"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressBackgroundTint="#1E293B"
+                            android:progressTint="#00E5FF" />
+
+                        <TextView
+                            android:id="@+id/tvTopProgramPercent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text=""
+                            android:textColor="#38BDF8"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Linha 3: Descrição / Sinopse -->
+                    <TextView
+                        android:id="@+id/tvTopProgramDesc"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="5dp"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="3"
+                        android:text="Usa as setas do comando para navegar nos grupos e canais. Carrega OK num canal em reprodução para abrir em Ecrã Inteiro, ou mantém OK premido para adicionar aos Favoritos."
+                        android:textColor="#CBD5E1"
+                        android:textSize="11.5sp" />
+
+                    <!-- Linha 4: Próximo Programa + Atalhos de Comando -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvTopNextProgram"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:text=""
+                            android:textColor="#7DD3FC"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvTopRemoteHints"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="[OK] Ecrã Inteiro  •  [Long OK] ★ Fav  •  [0-9] Canal"
+                            android:textColor="#64748B"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <View
+                android:id="@+id/viewTopHorizontalDivider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#16243A" />
+
+            <!-- ============================================================== -->
+            <!-- SECÇÃO INFERIOR A: MODO LIVE TV (3 COLUNAS TIVIMATE / FORMULER)-->
+            <!-- ============================================================== -->
+            <LinearLayout
+                android:id="@+id/layoutLiveTvColumns"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <!-- COLUNA 1: GRUPOS / CATEGORIAS (24%) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.25"
+                    android:background="#060C16"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:background="#0A1322"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:letterSpacing="0.08"
+                            android:text="GRUPOS"
+                            android:textColor="#38BDF8"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvLiveGroupsCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#64748B"
+                            android:textSize="10.5sp" />
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvLiveGroups"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingVertical="4dp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#142238" />
+
+                <!-- COLUNA 2: LISTA DE CANAIS COM EPG INLINE (43%) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.43"
+                    android:background="#08101C"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:background="#0C1728"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <TextView
+                            android:id="@+id/tvLiveChannelListHeader"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:letterSpacing="0.06"
+                            android:singleLine="true"
+                            android:text="CANAIS"
+                            android:textColor="#F8FAFC"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvLiveChannelsCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=""
+                            android:textColor="#38BDF8"
+                            android:textSize="10.5sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvLiveChannels"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingVertical="4dp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#142238" />
+
+                <!-- COLUNA 3: TIMELINE EPG DO CANAL SELECIONADO + CATCH-UP (32%) -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.32"
+                    android:background="#060C16"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="34dp"
+                        android:background="#0A1322"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <TextView
+                            android:id="@+id/tvChannelScheduleHeader"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:letterSpacing="0.06"
+                            android:singleLine="true"
+                            android:text="GUIA DO CANAL"
+                            android:textColor="#38BDF8"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvEmptyChannelSchedule"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="20dp"
+                        android:text="Sem guia detalhado para este canal."
+                        android:textColor="#64748B"
+                        android:textSize="11.5sp"
+                        android:visibility="gone" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvChannelSchedule"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingVertical="4dp" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ============================================================== -->
+            <!-- SECÇÃO INFERIOR B: MODO CATÁLOGO VOD / SÉRIES / PESQUISA       -->
+            <!-- ============================================================== -->
+            <LinearLayout
+                android:id="@+id/layoutCatalogSection"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <!-- Coluna Esquerda do Catálogo: Categorias de Filmes / Séries / Filtro Pesquisa -->
+                <LinearLayout
+                    android:id="@+id/layoutCatalogGroupsCol"
+                    android:layout_width="220dp"
+                    android:layout_height="match_parent"
+                    android:background="#060C16"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvCatalogGroupsHeader"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="#0A1322"
+                        android:gravity="center_vertical"
+                        android:letterSpacing="0.08"
+                        android:paddingHorizontal="12dp"
+                        android:text="CATEGORIAS"
+                        android:textColor="#38BDF8"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvCatalogGroups"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:paddingVertical="4dp" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="match_parent"
+                    android:background="#142238" />
+
+                <!-- Coluna Direita do Catálogo: Barra de Pesquisa/Ordenação + Grelha de Posters -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="#08101C"
+                    android:orientation="vertical">
+
+                    <!-- Barra de Pesquisa e Ordenação -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="46dp"
+                        android:background="#0C1728"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
+
+                        <EditText
+                            android:id="@+id/etCatalogSearch"
+                            android:layout_width="0dp"
+                            android:layout_height="34dp"
+                            android:layout_weight="1"
+                            android:background="#132238"
+                            android:hint="🔍 Filtrar por nome..."
+                            android:imeOptions="actionSearch"
+                            android:inputType="text"
+                            android:paddingHorizontal="12dp"
+                            android:singleLine="true"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#64748B"
+                            android:textSize="12.5sp" />
+
+                        <Button
+                            android:id="@+id/btnCatalogSort"
+                            android:layout_width="wrap_content"
+                            android:layout_height="34dp"
+                            android:layout_marginStart="10dp"
+                            android:backgroundTint="#1E3A5F"
+                            android:focusable="true"
+                            android:paddingHorizontal="12dp"
+                            android:text="Ordenar: Padrão"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11.5sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvCatalogEmpty"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:padding="28dp"
+                        android:text="Nenhum resultado encontrado."
+                        android:textColor="#94A3B8"
+                        android:textSize="13sp"
+                        android:visibility="gone" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvCatalogGrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:clipToPadding="false"
+                        android:padding="10dp" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ====================================================================== -->
+    <!-- 3. GAVETA TRANSPARENTE TIVIMATE / FORMULER EM MODO FULLSCREEN          -->
+    <!--    (Aparece sobre o vídeo em ecrã inteiro ao carregar OK ou ESQUERDA)  -->
+    <!-- ====================================================================== -->
+    <LinearLayout
+        android:id="@+id/layoutFullscreenOverlayGuide"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <!-- Coluna 1 Flutuante: Grupos (Vidro Escuro Translúcido) -->
+        <LinearLayout
+            android:layout_width="225dp"
+            android:layout_height="match_parent"
+            android:background="#D9050B14"
+            android:orientation="vertical"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="14dp"
+                android:paddingBottom="8dp"
+                android:text="GRUPOS DE CANAIS"
+                android:textColor="#00E5FF"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvOverlayGroups"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="#4038BDF8" />
+
+        <!-- Coluna 2 Flutuante: Canais do Grupo com EPG Inline -->
+        <LinearLayout
+            android:layout_width="340dp"
+            android:layout_height="match_parent"
+            android:background="#CC081120"
+            android:orientation="vertical"
+            android:paddingVertical="10dp">
+
+            <TextView
+                android:id="@+id/tvOverlayGroupTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="14dp"
+                android:paddingBottom="8dp"
+                android:singleLine="true"
+                android:text="CANAIS"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvOverlayChannels"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false" />
+        </LinearLayout>
+
+        <!-- Área restante transparente (clicar fecha a gaveta) -->
+        <View
+            android:id="@+id/viewOverlayDismissTarget"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true" />
+    </LinearLayout>
+
+    <!-- ====================================================================== -->
+    <!-- 4. BARRA DE ÚLTIMOS CANAIS VISTOS (HISTORY BAR FORMULER / TIVIMATE)    -->
+    <!-- ====================================================================== -->
+    <LinearLayout
+        android:id="@+id/layoutRecentChannelsBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="20dp"
+        android:background="#E607101E"
+        android:orientation="vertical"
+        android:padding="14dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="🕒  ÚLTIMOS CANAIS VISTOS (ZAPPING RÁPIDO)"
+                android:textColor="#00E5FF"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="[VOLTAR] Fechar"
+                android:textColor="#94A3B8"
+                android:textSize="10.5sp" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvRecentChannels"
+            android:layout_width="match_parent"
+            android:layout_height="66dp"
+            android:clipToPadding="false" />
+    </LinearLayout>
+
+    <!-- ====================================================================== -->
+    <!-- 5. INFOBAR OSD INFERIOR ESTILO FORMULER MYTVONLINE / TIVIMATE          -->
+    <!-- ====================================================================== -->
+    <LinearLayout
+        android:id="@+id/layoutFullscreenOsd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginHorizontal="22dp"
+        android:layout_marginBottom="18dp"
+        android:background="#E6060D1A"
+        android:orientation="vertical"
+        android:paddingHorizontal="18dp"
+        android:paddingVertical="14dp"
+        android:visibility="gone">
+
+        <!-- Topo do OSD: Número + Logo + Nome do Canal + Badges + Relógio -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvOsdChannelNumber"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:text="001"
+                android:textColor="#00E5FF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/ivOsdChannelLogo"
+                android:layout_width="46dp"
+                android:layout_height="38dp"
+                android:layout_marginEnd="12dp"
+                android:scaleType="fitCenter"
+                android:src="@mipmap/ic_launcher" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvOsdChannelName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="SPORT TV 1 HD"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvOsdCurrentProgram"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="Emissão em direto"
+                    android:textColor="#7DD3FC"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvOsdFavBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:background="#33FBBF24"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:text="★ FAV"
+                android:textColor="#FBBF24"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvOsdClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="14:35"
+                android:textColor="#F8FAFC"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Barra de Progresso EPG no OSD -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvOsdProgramTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:text="--:-- ➔ --:--"
+                android:textColor="#94A3B8"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/pbOsdProgram"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="6dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="0"
+                android:progressBackgroundTint="#1E293B"
+                android:progressTint="#00E5FF" />
+
+            <TextView
+                android:id="@+id/tvOsdNextProgram"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:maxWidth="260dp"
+                android:singleLine="true"
+                android:text=""
+                android:textColor="#CBD5E1"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Botões de Ação Rápida no OSD (Navegáveis com Comando e Toque) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/btnOsdChannelList"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="#1A365D"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="📋 Lista de Canais"
+                android:textColor="#FFFFFF"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnOsdRecentChannels"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="#152844"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="🕒 Recentes"
+                android:textColor="#E2E8F0"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnOsdToggleFav"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="#152844"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="★ Favorito"
+                android:textColor="#FBBF24"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnOsdAspectRatio"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="#152844"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="📐 Ecrã: Original"
+                android:textColor="#E2E8F0"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnOsdExitFullscreen"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="#152844"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingHorizontal="12dp"
+                android:text="🗗 Guia + Mini-Player"
+                android:textColor="#38BDF8"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:text="[▲/▼] Mudar Canal  •  [OK] Lista"
+                android:textColor="#64748B"
+                android:textSize="10.5sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ====================================================================== -->
+    <!-- 6. VISOR NUMÉRICO DE CANAL (QUANDO DIGITA 0-9 NO COMANDO DA BOX)       -->
+    <!-- ====================================================================== -->
+    <TextView
+        android:id="@+id/tvNumericZapOsd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="28dp"
+        android:background="#E6060E1C"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
+        android:text="# 001"
+        android:textColor="#00E5FF"
+        android:textSize="26sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
+</FrameLayout>

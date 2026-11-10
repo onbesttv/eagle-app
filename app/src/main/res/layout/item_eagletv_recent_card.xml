@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="168dp"
+    android:layout_height="62dp"
+    android:layout_marginEnd="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp"
+    android:focusable="true"
+    android:clickable="true">
+
+    <ImageView
+        android:id="@+id/ivRecentLogo"
+        android:layout_width="36dp"
+        android:layout_height="32dp"
+        android:layout_marginEnd="9dp"
+        android:scaleType="fitCenter"
+        android:src="@mipmap/ic_launcher" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvRecentName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Sport TV 1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvRecentSub"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:text="Visto recentemente"
+            android:textColor="#38BDF8"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+</LinearLayout>

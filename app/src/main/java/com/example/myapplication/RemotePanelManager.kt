@@ -229,6 +229,8 @@ object RemotePanelManager {
         if (activity.isFinishing || activity.isDestroyed) return false
         if (activity is MainActivity) {
             activity.atualizarEstadoBotaoVpn()
+        } else if (activity is EagleTvActivity) {
+            activity.atualizarEstadoServidorEVpn()
         } else if (activity is VpnActivity && !PiaVpnConfig.isVpnAllowedForCurrentUser(activity)) {
             activity.finish()
             return true

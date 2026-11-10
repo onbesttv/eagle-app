@@ -34,6 +34,6 @@ object AppUpdateConfig {
     fun getLatestReleaseApiUrl(context: Context): String {
         val owner = getGithubOwner(context)
         val repo = getGithubRepo(context)
-        return "https://api.github.com/repos/$owner/$repo/releases?per_page=15"
+        return "https://api.github.com/repos/$owner/$repo/releases?per_page=100"
     }
 }

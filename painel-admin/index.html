@@ -485,7 +485,7 @@
                     </div>
                 </div>
                 <div class="form-grid">
-                    <div class="form-group">
+                    <div class="form-group" id="announcementGroup">
                         <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
                         <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
                     </div>
@@ -548,7 +548,7 @@
     <!-- ABA 2: GERIR VPN (Master e Revendedores) -->
     <div id="tabContentVpn" style="display: none;">
         <!-- Card de Credenciais da VPN -->
-        <div class="card" style="margin-bottom: 20px;">
+        <div class="card" id="vpnCredentialsCard" style="margin-bottom: 20px;">
             <div class="card-header">
                 <div>
                     <div class="card-title">🔐 Conta & Credenciais PIA VPN na App</div>
@@ -782,8 +782,10 @@
         const titleEl = document.getElementById("vpnUserAccessTitle");
         if (titleEl) {
             titleEl.textContent = isMasterRole
-                ? "👤 Controlo de Acesso à VPN por Utilizador (App Eagle & Godinho TV)"
-                : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)";
+                ? "👤 Controlo de Acesso à VPN por Utilizador (App Eagle)"
+                : (currentResellerId === "tv_fabio"
+                    ? "👤 Controlo de Acesso à VPN por Utilizador (Fpinto TV)"
+                    : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)");
         }
 
         const killBtn = document.getElementById("btnKillAllVpn");
@@ -802,15 +804,18 @@
         const container = document.getElementById("vpnAllowedUsersList");
         if (!container) return;
 
+        const MASTER_OWN_USERS = new Set(["xsrupyh"]);
         const usersMap = new Map();
         Array.from(allowedVpnUsers).forEach(u => {
-            if (u) usersMap.set(u, true);
+            if (u && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
+                usersMap.set(u, true);
+            }
         });
         allDevices.forEach(d => {
             const devRes = (d.reseller_id || "master").toLowerCase();
             const u = (d.username || "").trim().toLowerCase();
-            const isTargetDev = isMasterRole ? (devRes === "master" || devRes === "godinho_tv") : (devRes === currentResellerId);
-            if (isTargetDev && u && !usersMap.has(u)) {
+            const isTargetDev = devRes === currentResellerId;
+            if (isTargetDev && u && (isMasterRole || !MASTER_OWN_USERS.has(u)) && !usersMap.has(u)) {
                 usersMap.set(u, false);
             }
         });
@@ -954,16 +959,6 @@
                     p_maintenance_mode: maintenance,
                     p_new_password: ""
                 });
-                // Se for o Master a alterar utilizadores de VPN, sincroniza também com o painel godinho_tv
-                if (isMasterRole) {
-                    const godinho = allResellers.find(r => r.reseller_id === "godinho_tv");
-                    if (godinho) {
-                        await syncResellerVpnMetadata(godinho, {
-                            usersCsv: Array.from(allowedVpnUsers).join(","),
-                            killTs: vpnKillTimestamp
-                        });
-                    }
-                }
             } else {
                 await rpcCall("admin_save_config", {
                     p_password: adminPassword,
@@ -1193,6 +1188,7 @@
             document.getElementById("filterBtnBest2").style.display = hasBest2InApp ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
+            document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
             document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
             document.getElementById("maintenanceSwitchLabel").style.display = isMasterRole ? "flex" : "none";
             document.getElementById("dnsCardTitle").textContent = isMasterRole
@@ -1256,6 +1252,10 @@
                 vpnKillTimestamp = 0;
             }
 
+            const credCard = document.getElementById("vpnCredentialsCard");
+            if (credCard) {
+                credCard.style.display = (currentResellerId === "godinho_tv") ? "none" : "block";
+            }
             const userInp = document.getElementById("cfgVpnUser");
             const passInp = document.getElementById("cfgVpnPass");
             if (userInp) userInp.value = vpnUser;
@@ -1281,8 +1281,16 @@
                 ? "Última alteração: " + new Date(data.updated_at).toLocaleString("pt-PT")
                 : "";
 
-            allDevices = Array.isArray(data.devices) ? data.devices : [];
+            const rawDevices = Array.isArray(data.devices) ? data.devices : [];
+            allDevices = isMasterRole
+                ? rawDevices
+                : rawDevices.filter(d => (d.username || "").trim().toLowerCase() !== "xsrupyh");
             allResellers = Array.isArray(data.resellers) ? data.resellers : [];
+
+            if (!isMasterRole && allowedVpnUsers.has("xsrupyh")) {
+                allowedVpnUsers.delete("xsrupyh");
+                saveVpnConfigSilent();
+            }
 
             renderVpnAllowedUsers();
             if (isMasterRole) {
@@ -1418,10 +1426,7 @@
 
             const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
             const devResLower = devReseller.toLowerCase();
-            const isTargetVpnDev = !!d.username && (
-                (isMasterRole && (devResLower === "master" || devResLower === "godinho_tv")) ||
-                (currentResellerId === "godinho_tv" && devResLower === "godinho_tv")
-            );
+            const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && devResLower === currentResellerId;
             const userVpnOn = isTargetVpnDev && isUserVpnEnabled(d.username);
             const vpnToggleBtn = !isTargetVpnDev
                 ? ""

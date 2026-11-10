@@ -154,7 +154,7 @@ if ($Publicar) {
     } else {
         throw "Nao foi possivel detetar versionName em app/build.gradle.kts"
     }
-    $tag = if ($cleanId -eq "godinho_tv") { "v${versionName}-${cleanId}" } else { "v$versionName" }
+    $tag = "v$versionName"
     Write-Host "`n[*] A publicar '$cleanId.apk' na Release Isolada $tag (prerelease) do GitHub..." -ForegroundColor Yellow
 
     $credRaw = ("protocol=https`nhost=github.com`nusername=onbesttv`n`n" | git credential fill | Out-String)

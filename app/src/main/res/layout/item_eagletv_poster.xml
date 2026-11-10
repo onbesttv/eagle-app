@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    android:clickable="true"
+    android:focusable="true"
+    android:orientation="vertical"
+    android:padding="5dp">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="156dp"
+        app:cardBackgroundColor="#0D1829"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="0dp">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:id="@+id/ivPosterThumb"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@mipmap/ic_launcher" />
+
+            <!-- Favorito no canto superior esquerdo -->
+            <TextView
+                android:id="@+id/tvPosterFav"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="6dp"
+                android:background="#CC050B14"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="★"
+                android:textColor="#FBBF24"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Rating / Tipo no canto superior direito -->
+            <TextView
+                android:id="@+id/tvPosterBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_margin="6dp"
+                android:background="#CC050B14"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="★ 8.0"
+                android:textColor="#00E5FF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Barra de Progresso "Continuar a Ver" -->
+            <ProgressBar
+                android:id="@+id/pbPosterResume"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_gravity="bottom"
+                android:max="100"
+                android:progress="50"
+                android:progressBackgroundTint="#33000000"
+                android:progressTint="#00E5FF"
+                android:visibility="gone" />
+
+        </FrameLayout>
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/tvPosterTitle"
+        android:layout_width="match_parent"
+        android:layout_height="34dp"
+        android:layout_marginTop="5dp"
+        android:ellipsize="end"
+        android:gravity="center_horizontal|top"
+        android:maxLines="2"
+        android:text="Título"
+        android:textColor="#E2E8F0"
+        android:textSize="11.5sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

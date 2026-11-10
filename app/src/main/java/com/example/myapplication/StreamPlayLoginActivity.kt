@@ -236,7 +236,8 @@ class StreamPlayLoginActivity : BaseActivity() {
     }
 
     private fun openMainActivity() {
-        startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK))
+        val target = if (EagleTvConfig.isEagleTvEdition(this)) EagleTvActivity::class.java else MainActivity::class.java
+        startActivity(Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK))
         finish()
     }
 }

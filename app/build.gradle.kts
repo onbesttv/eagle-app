@@ -25,6 +25,15 @@ android {
             resValue("string", "reseller_id", "master")
         }
 
+        create("eagle_tv") {
+            dimension = "reseller"
+            applicationId = "com.eagle.tv"
+            versionCode = 1
+            versionName = "1.0"
+            resValue("string", "app_name", "Eagle TV")
+            resValue("string", "reseller_id", "eagle_tv")
+        }
+
         create("tv_fabio") {
             dimension = "reseller"
             applicationId = "com.eagle.tv_fabio"
@@ -44,8 +53,8 @@ android {
         create("godinho_tv") {
             dimension = "reseller"
             applicationId = "com.eagle.godinho_tv"
-            versionCode = 12
-            versionName = "1.2"
+            versionCode = 60
+            versionName = "6.4"
             resValue("string", "app_name", "GodinhoTV")
             resValue("string", "reseller_id", "godinho_tv")
         }
