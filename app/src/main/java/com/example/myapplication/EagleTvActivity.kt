@@ -1,11 +1,13 @@
 package com.example.myapplication
 
 import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -13,10 +15,13 @@ import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Base64
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -1206,7 +1211,22 @@ class EagleTvActivity : BaseActivity() {
                 }
             } else if (isDown && activeSection == WorkspaceSection.SETTINGS) {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
-                    if (rvSettingsGrid.hasFocus()) {
+                    val focusedChild = rvSettingsGrid.findFocus()
+                    val pos = if (focusedChild != null) {
+                        rvSettingsGrid.getChildAdapterPosition(rvSettingsGrid.findContainingItemView(focusedChild) ?: focusedChild)
+                    } else -1
+
+                    if (pos != -1) {
+                        if (pos % 2 == 0) {
+                            // Está na coluna da esquerda (pos 0, 2, 4, 6): volta para Definições no menu lateral
+                            navSettings.requestFocus()
+                            return true
+                        } else {
+                            // Está na coluna da direita (pos 1, 3, 5): move para o cartão da esquerda na mesma linha!
+                            focarRecyclerViewPosicao(rvSettingsGrid, pos - 1)
+                            return true
+                        }
+                    } else if (rvSettingsGrid.hasFocus()) {
                         navSettings.requestFocus()
                         return true
                     }
@@ -1215,13 +1235,41 @@ class EagleTvActivity : BaseActivity() {
                         focarRecyclerViewPosicao(rvSettingsGrid, 0)
                         return true
                     }
+                    val focusedChild = rvSettingsGrid.findFocus()
+                    val pos = if (focusedChild != null) {
+                        rvSettingsGrid.getChildAdapterPosition(rvSettingsGrid.findContainingItemView(focusedChild) ?: focusedChild)
+                    } else -1
+
+                    if (pos != -1) {
+                        val totalCount = rvSettingsGrid.adapter?.itemCount ?: 0
+                        if (pos % 2 == 0 && pos + 1 < totalCount) {
+                            // Está na coluna da esquerda e tem cartão à direita: move para a coluna da direita!
+                            focarRecyclerViewPosicao(rvSettingsGrid, pos + 1)
+                            return true
+                        } else {
+                            // Já está na coluna da direita (ou pos 6 sem item à direita): bloqueia para não saltar fora
+                            return true
+                        }
+                    }
                 }
             } else if (isDown && activeSection != WorkspaceSection.LIVE_TV) {
                 if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                     when {
                         rvCatalogGrid.hasFocus() -> {
-                            val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
-                            focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                            val lm = rvCatalogGrid.layoutManager
+                            val spanCount = if (lm is GridLayoutManager) lm.spanCount else 1
+                            val focusedChild = rvCatalogGrid.findFocus()
+                            val pos = if (focusedChild != null) {
+                                rvCatalogGrid.getChildAdapterPosition(rvCatalogGrid.findContainingItemView(focusedChild) ?: focusedChild)
+                            } else 0
+
+                            if (spanCount > 1 && pos % spanCount != 0) {
+                                // Move para a coluna anterior na mesma grelha
+                                focarRecyclerViewPosicao(rvCatalogGrid, pos - 1)
+                                return true
+                            }
+                            val groupPos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                            focarRecyclerViewPosicao(rvCatalogGroups, groupPos)
                             return true
                         }
                         rvCatalogGroups.hasFocus() -> {
@@ -3286,20 +3334,233 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
+    private fun criarDialogoTvElegante(
+        titulo: String,
+        icone: String = ""
+    ): Pair<Dialog, LinearLayout> {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setCancelable(true)
+
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                setColor(0xFF09111D.toInt())
+                cornerRadius = dp(14).toFloat()
+                setStroke(dp(1), 0xFF19324F.toInt())
+            }
+            setPadding(dp(22), dp(18), dp(22), dp(18))
+            elevation = dp(16).toFloat()
+        }
+
+        val layoutHeader = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(12))
+        }
+
+        if (icone.isNotBlank()) {
+            val tvIcon = TextView(this).apply {
+                text = icone
+                textSize = 20f
+                setPadding(0, 0, dp(10), 0)
+            }
+            layoutHeader.addView(tvIcon)
+        }
+
+        val tvTitle = TextView(this).apply {
+            text = titulo
+            textSize = 17f
+            setTextColor(Color.WHITE)
+            setTypeface(null, Typeface.BOLD)
+        }
+        layoutHeader.addView(tvTitle)
+        root.addView(layoutHeader)
+
+        val divider = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)).apply {
+                setMargins(0, 0, 0, dp(14))
+            }
+            setBackgroundColor(0xFF162942.toInt())
+        }
+        root.addView(divider)
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        root.addView(content)
+
+        dialog.setContentView(root)
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            val width = (resources.displayMetrics.widthPixels * 0.52f).toInt().coerceIn(dp(360), dp(560))
+            setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            setDimAmount(0.72f)
+        }
+
+        return Pair(dialog, content)
+    }
+
+    private fun criarBotaoTvDialogo(
+        texto: String,
+        destaque: Boolean = false,
+        perigo: Boolean = false,
+        onClick: () -> Unit
+    ): Button {
+        return Button(this).apply {
+            text = texto
+            textSize = 13.5f
+            setTypeface(null, Typeface.BOLD)
+            isFocusable = true
+            isClickable = true
+            isAllCaps = false
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(42)
+            ).apply {
+                setMargins(0, dp(4), 0, dp(4))
+            }
+
+            val normalBg = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                when {
+                    perigo -> {
+                        setColor(0xFF2A1215.toInt())
+                        setStroke(dp(1), 0xFF5C1D24.toInt())
+                    }
+                    destaque -> {
+                        setColor(0xFF132B47.toInt())
+                        setStroke(dp(1), 0xFF0284C7.toInt())
+                    }
+                    else -> {
+                        setColor(0xFF0F1D30.toInt())
+                        setStroke(dp(1), 0xFF1B2F4A.toInt())
+                    }
+                }
+            }
+
+            val focusedBg = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                when {
+                    perigo -> {
+                        setColor(0xFFDC2626.toInt())
+                        setStroke(dp(2), 0xFFFCA5A5.toInt())
+                    }
+                    destaque -> {
+                        setColor(0xFF0284C7.toInt())
+                        setStroke(dp(2), 0xFF00E5FF.toInt())
+                    }
+                    else -> {
+                        setColor(0xFF183B63.toInt())
+                        setStroke(dp(2), 0xFF00E5FF.toInt())
+                    }
+                }
+            }
+
+            background = normalBg
+            setTextColor(
+                when {
+                    perigo -> 0xFFF87171.toInt()
+                    destaque -> 0xFF00E5FF.toInt()
+                    else -> 0xFFCBD5E1.toInt()
+                }
+            )
+
+            setOnFocusChangeListener { _, hasFocus ->
+                background = if (hasFocus) focusedBg else normalBg
+                setTextColor(
+                    if (hasFocus) Color.WHITE else when {
+                        perigo -> 0xFFF87171.toInt()
+                        destaque -> 0xFF00E5FF.toInt()
+                        else -> 0xFFCBD5E1.toInt()
+                    }
+                )
+                animate().scaleX(if (hasFocus) 1.02f else 1.0f).scaleY(if (hasFocus) 1.02f else 1.0f).setDuration(100).start()
+            }
+
+            setOnClickListener { onClick() }
+        }
+    }
+
     private fun mostrarDialogoConta() {
-        val dialog = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("👤 A Minha Conta")
-            .setMessage("A carregar detalhes da conta...")
-            .setPositiveButton("OK", null)
-            .create()
+        val (dialog, content) = criarDialogoTvElegante("A Minha Conta", "👤")
+
+        val tvStatusMsg = TextView(this).apply {
+            text = "A carregar detalhes da conta…"
+            setTextColor(0xFF94A3B8.toInt())
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setPadding(0, dp(16), 0, dp(20))
+        }
+        val pbLoading = ProgressBar(this).apply {
+            indeterminateTintList = ColorStateList.valueOf(0xFF00E5FF.toInt())
+            layoutParams = LinearLayout.LayoutParams(dp(36), dp(36)).apply {
+                gravity = Gravity.CENTER
+            }
+        }
+        val layoutLoading = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            addView(pbLoading)
+            addView(tvStatusMsg)
+        }
+        content.addView(layoutLoading)
+
+        val layoutRows = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        content.addView(layoutRows)
+
+        val btnClose = criarBotaoTvDialogo("FECHAR", destaque = true) { dialog.dismiss() }
+        content.addView(btnClose)
         dialog.show()
+        btnClose.requestFocus()
+
+        fun criarLinhaInfo(rotulo: String, valor: String, icone: String = "", corValor: Int = Color.WHITE) {
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(6).toFloat()
+                    setColor(0xFF0D1829.toInt())
+                }
+                setPadding(dp(12), dp(8), dp(12), dp(8))
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    setMargins(0, 0, 0, dp(6))
+                }
+            }
+            val tvLabel = TextView(this).apply {
+                text = if (icone.isNotBlank()) "$icone  $rotulo" else rotulo
+                setTextColor(0xFF94A3B8.toInt())
+                textSize = 13f
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f)
+            }
+            val tvVal = TextView(this).apply {
+                text = valor
+                setTextColor(corValor)
+                textSize = 13.5f
+                setTypeface(null, Typeface.BOLD)
+            }
+            row.addView(tvLabel)
+            row.addView(tvVal)
+            layoutRows.addView(row)
+        }
 
         val url = "$baseUrl/player_api.php?username=$user&password=$pass"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    dialog.setMessage("Utilizador: $user\nServidor: $baseUrl\nNão foi possível obter dados adicionais.")
+                    layoutLoading.visibility = View.GONE
+                    layoutRows.removeAllViews()
+                    criarLinhaInfo("Utilizador", user, "👤")
+                    criarLinhaInfo("Servidor", baseUrl, "🌐")
+                    criarLinhaInfo("Estado", "Sem ligação", "⚠️", 0xFFF87171.toInt())
+                    layoutRows.visibility = View.VISIBLE
+                    btnClose.requestFocus()
                 }
             }
 
@@ -3324,20 +3585,27 @@ class EagleTvActivity : BaseActivity() {
                         "Ilimitada / Vitalícia"
                     }
 
-                    val msg = """
-                        👤 Utilizador: $user
-                        ● Estado: $status
-                        📅 Validade: $expFormatted
-                        🔗 Ligações: $activeConn / $maxConn ativas
-                        🌐 Servidor: ${IptvServiceConfig.displayName(IptvServiceConfig.activeServiceId(this@EagleTvActivity))}
-                    """.trimIndent()
+                    val serverDisplay = IptvServiceConfig.displayName(IptvServiceConfig.activeServiceId(this@EagleTvActivity))
 
                     runOnUiThread {
-                        dialog.setMessage(msg)
+                        layoutLoading.visibility = View.GONE
+                        layoutRows.removeAllViews()
+                        criarLinhaInfo("Utilizador", user, "👤")
+                        criarLinhaInfo("Estado", status, "●", if (status.equals("Active", true)) 0xFF34D399.toInt() else 0xFFFBBF24.toInt())
+                        criarLinhaInfo("Validade", expFormatted, "📅")
+                        criarLinhaInfo("Ligações", "$activeConn / $maxConn ativas", "🔗")
+                        criarLinhaInfo("Servidor", serverDisplay, "🌐", 0xFF38BDF8.toInt())
+                        layoutRows.visibility = View.VISIBLE
+                        btnClose.requestFocus()
                     }
                 } catch (_: Exception) {
                     runOnUiThread {
-                        dialog.setMessage("Utilizador: $user\nServidor: $baseUrl")
+                        layoutLoading.visibility = View.GONE
+                        layoutRows.removeAllViews()
+                        criarLinhaInfo("Utilizador", user, "👤")
+                        criarLinhaInfo("Servidor", baseUrl, "🌐")
+                        layoutRows.visibility = View.VISIBLE
+                        btnClose.requestFocus()
                     }
                 }
             }
@@ -3345,75 +3613,103 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun mostrarDialogoIdioma() {
-        val idiomas = arrayOf("Português (Padrão)", "English", "Español", "Français")
-        val codes = arrayOf("pt", "en", "es", "fr")
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("🌐 Escolher Idioma")
-            .setItems(idiomas) { _, which ->
-                val code = codes[which]
+        val (dialog, content) = criarDialogoTvElegante("Escolher Idioma", "🌐")
+        val idiomas = listOf(
+            "🇵🇹  Português (Padrão)" to "pt",
+            "🇬🇧  English" to "en",
+            "🇪🇸  Español" to "es",
+            "🇫🇷  Français" to "fr"
+        )
+        val currentLocale = androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags()
+
+        idiomas.forEachIndexed { index, (label, code) ->
+            val isCurrent = if (currentLocale.isBlank()) code == "pt" else currentLocale.startsWith(code)
+            val btn = criarBotaoTvDialogo(if (isCurrent) "$label  ✓" else label, destaque = isCurrent) {
                 androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
                     androidx.core.os.LocaleListCompat.forLanguageTags(code)
                 )
-                Toast.makeText(this, "Idioma alterado para ${idiomas[which]}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Idioma alterado para $label", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
                 iniciarSecaoDefinicoes()
             }
-            .setNegativeButton("Cancelar", null)
-            .show()
+            content.addView(btn)
+            if (isCurrent || index == 0) {
+                btn.post { btn.requestFocus() }
+            }
+        }
+
+        val btnCancel = criarBotaoTvDialogo("CANCELAR") { dialog.dismiss() }
+        content.addView(btnCancel)
+        dialog.show()
     }
 
     private fun mostrarDialogoFormatoHora() {
-        val opcoes = arrayOf("24 Horas (ex: 20:30)", "12 Horas (ex: 08:30 PM)")
-        val valores = arrayOf("24 Hr", "12 Hr")
+        val (dialog, content) = criarDialogoTvElegante("Formato de Hora", "🕒")
         val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-        val current = if (prefs.getString("time_format", "24 Hr") == "12 Hr") 1 else 0
+        val current = prefs.getString("time_format", "24 Hr") ?: "24 Hr"
 
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("🕒 Formato de Hora")
-            .setSingleChoiceItems(opcoes, current) { d, which ->
-                prefs.edit().putString("time_format", valores[which]).apply()
-                atualizarRelogio()
-                Toast.makeText(this, "Formato guardado!", Toast.LENGTH_SHORT).show()
-                d.dismiss()
-                iniciarSecaoDefinicoes()
-            }
-            .show()
-    }
+        val op24 = criarBotaoTvDialogo(
+            if (current == "24 Hr") "24 Horas (ex: 20:30)  ✓" else "24 Horas (ex: 20:30)",
+            destaque = current == "24 Hr"
+        ) {
+            prefs.edit().putString("time_format", "24 Hr").apply()
+            atualizarRelogio()
+            Toast.makeText(this, "Formato alterado para 24 Horas", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+            iniciarSecaoDefinicoes()
+        }
+        content.addView(op24)
 
-    private fun mostrarDialogoFormatoStream() {
-        val opcoes = arrayOf("MPEG-TS (.ts) - Recomendado para TV Box", "HLS (.m3u8) - Streaming Adaptativo")
-        val valores = arrayOf("MPEGTS", "HLS")
-        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-        val current = if (prefs.getString("stream_type", "MPEGTS") == "HLS") 1 else 0
+        val op12 = criarBotaoTvDialogo(
+            if (current == "12 Hr") "12 Horas (ex: 08:30 PM)  ✓" else "12 Horas (ex: 08:30 PM)",
+            destaque = current == "12 Hr"
+        ) {
+            prefs.edit().putString("time_format", "12 Hr").apply()
+            atualizarRelogio()
+            Toast.makeText(this, "Formato alterado para 12 Horas", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+            iniciarSecaoDefinicoes()
+        }
+        content.addView(op12)
 
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("📺 Formato de Stream")
-            .setSingleChoiceItems(opcoes, current) { d, which ->
-                prefs.edit().putString("stream_type", valores[which]).apply()
-                Toast.makeText(this, "Formato alterado para ${valores[which]}", Toast.LENGTH_SHORT).show()
-                d.dismiss()
-                iniciarSecaoDefinicoes()
-            }
-            .show()
+        val btnCancel = criarBotaoTvDialogo("CANCELAR") { dialog.dismiss() }
+        content.addView(btnCancel)
+
+        dialog.show()
+        if (current == "24 Hr") op24.requestFocus() else op12.requestFocus()
     }
 
     private fun mostrarDialogoLogout() {
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("🚪 Terminar Sessão")
-            .setMessage("Tens a certeza que queres terminar sessão e aceder com outra conta?")
-            .setPositiveButton("Sim, Sair") { _, _ ->
-                getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-                    .edit()
-                    .putBoolean("auto_login", false)
-                    .remove("SAVED_USER")
-                    .remove("SAVED_PASS")
-                    .apply()
-                startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                })
-                finish()
-            }
-            .setNegativeButton("Cancelar", null)
-            .show()
+        val (dialog, content) = criarDialogoTvElegante("Terminar Sessão", "🚪")
+
+        val tvMsg = TextView(this).apply {
+            text = "Tens a certeza que queres terminar sessão e aceder com outra conta?"
+            setTextColor(0xFFE2E8F0.toInt())
+            textSize = 14f
+            setPadding(0, dp(4), 0, dp(14))
+        }
+        content.addView(tvMsg)
+
+        val btnSair = criarBotaoTvDialogo("SIM, TERMINAR SESSÃO", perigo = true) {
+            dialog.dismiss()
+            getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("auto_login", false)
+                .remove("SAVED_USER")
+                .remove("SAVED_PASS")
+                .apply()
+            startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            })
+            finish()
+        }
+        content.addView(btnSair)
+
+        val btnCancel = criarBotaoTvDialogo("CANCELAR", destaque = true) { dialog.dismiss() }
+        content.addView(btnCancel)
+
+        dialog.show()
+        btnCancel.requestFocus()
     }
 
     inner class EagleSettingsAdapter(
@@ -3464,12 +3760,26 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun mostrarDialogoSaida() {
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("Sair da Eagle TV")
-            .setMessage("Queres fechar a aplicação Eagle TV?")
-            .setNegativeButton("Cancelar", null)
-            .setPositiveButton("Sair") { _, _ -> finishAffinity() }
-            .show()
+        val (dialog, content) = criarDialogoTvElegante("Sair da Eagle TV", "🚪")
+        val tvMsg = TextView(this).apply {
+            text = "Tens a certeza que queres fechar a aplicação?"
+            setTextColor(0xFFE2E8F0.toInt())
+            textSize = 14.5f
+            setPadding(0, dp(4), 0, dp(14))
+        }
+        content.addView(tvMsg)
+
+        val btnSair = criarBotaoTvDialogo("SIM, SAIR", perigo = true) {
+            dialog.dismiss()
+            finishAffinity()
+        }
+        content.addView(btnSair)
+
+        val btnCancel = criarBotaoTvDialogo("CANCELAR", destaque = true) { dialog.dismiss() }
+        content.addView(btnCancel)
+
+        dialog.show()
+        btnCancel.requestFocus()
     }
 
     // =========================================================================
