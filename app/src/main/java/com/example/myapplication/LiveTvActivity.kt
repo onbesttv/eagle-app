@@ -528,9 +528,18 @@ class LiveTvActivity : BaseActivity() {
         })
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (player != null) {
+            player?.playWhenReady = true
+        }
+    }
+
     override fun onStop() {
         super.onStop()
-        player?.pause()
+        if (isFinishing) {
+            player?.pause()
+        }
     }
 
     override fun onDestroy() {

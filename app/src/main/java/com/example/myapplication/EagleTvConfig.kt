@@ -23,6 +23,7 @@ object EagleTvConfig {
     private val gson = Gson()
 
     fun isEagleTvEdition(context: Context): Boolean {
+        if (context.packageName.equals("com.eagle.tv", ignoreCase = true)) return true
         return try {
             val rid = context.getString(R.string.reseller_id).trim().lowercase()
             rid == "eagle_tv"
