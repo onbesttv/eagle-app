@@ -109,7 +109,7 @@ class NewspapersActivity : BaseActivity() {
     }
 
     private fun fetchRemoteNewspapers() {
-        val remoteUrl = "https://raw.githubusercontent.com/onbesttv/eagle-app/main/data/jornais.json"
+        val remoteUrl = "https://raw.githubusercontent.com/onbesttv/eagle-app/main/data/jornais.json?v=${System.currentTimeMillis()}"
         val request = Request.Builder().url(remoteUrl).build()
 
         client.newCall(request).enqueue(object : Callback {

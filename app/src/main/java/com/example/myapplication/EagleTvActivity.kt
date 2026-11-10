@@ -2745,7 +2745,7 @@ class EagleTvActivity : BaseActivity() {
         mostrarJornais()
 
         val request = Request.Builder()
-            .url("https://raw.githubusercontent.com/onbesttv/eagle-app/main/data/jornais.json")
+            .url("https://raw.githubusercontent.com/onbesttv/eagle-app/main/data/jornais.json?v=${System.currentTimeMillis()}")
             .build()
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {}
