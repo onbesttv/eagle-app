@@ -312,6 +312,34 @@
         .badge-offline { background: rgba(148,163,184,0.14); color: #94a3b8; }
         .badge-blocked { background: rgba(239,68,68,0.2); color: #f87171; }
         .badge-reseller { background: rgba(245,158,11,0.18); color: #fbbf24; text-transform: none; }
+        .badge-xciptv {
+            background: rgba(245, 158, 11, 0.16);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            text-transform: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .badge-xciptv:hover {
+            background: rgba(245, 158, 11, 0.28);
+            border-color: rgba(245, 158, 11, 0.6);
+            transform: scale(1.03);
+        }
+        .badge-mytvonline {
+            background: rgba(0, 229, 255, 0.16);
+            color: #00e5ff;
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+            text-transform: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .badge-mytvonline:hover {
+            background: rgba(0, 229, 255, 0.28);
+            border-color: rgba(0, 229, 255, 0.7);
+            box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
+            transform: scale(1.03);
+        }
 
         /* Modal */
         .modal-backdrop {
@@ -512,9 +540,11 @@
             <div class="filters-bar">
                 <input type="text" id="searchInput" placeholder="Pesquisar utilizador, modelo ou ID..." oninput="renderDevices()">
                 <select id="resellerFilterSelect" style="display: none;" onchange="renderDevices()">
-                    <option value="all">Todas as Revendas + Master</option>
+                    <option value="all">Todas as Apps (Master + Revendas)</option>
                 </select>
                 <button class="pill-btn active" data-filter="all" onclick="setFilter('all', this)">Todos</button>
+                <button class="pill-btn" id="filterBtnXciptv" data-filter="xciptv" style="display: none;" onclick="setFilter('xciptv', this)">📺 Eagle XCIPTV</button>
+                <button class="pill-btn" id="filterBtnMytvonline" data-filter="mytvonline" style="display: none;" onclick="setFilter('mytvonline', this)">🦅 Eagle MyTvOnline</button>
                 <button class="pill-btn" data-filter="online" onclick="setFilter('online', this)">Online</button>
                 <button class="pill-btn" id="filterBtnBest" data-filter="best" onclick="setFilter('best', this)">StreamPlay</button>
                 <button class="pill-btn" id="filterBtnBest2" data-filter="best2" onclick="setFilter('best2', this)">Templarios</button>
@@ -1186,6 +1216,8 @@
             document.getElementById("best2UrlGroup").style.display = hasBest2InApp ? "block" : "none";
             document.getElementById("filterBtnBest").style.display = hasBest2InApp ? "inline-block" : "none";
             document.getElementById("filterBtnBest2").style.display = hasBest2InApp ? "inline-block" : "none";
+            document.getElementById("filterBtnXciptv").style.display = isMasterRole ? "inline-block" : "none";
+            document.getElementById("filterBtnMytvonline").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
@@ -1300,6 +1332,7 @@
                 switchTab("main");
             }
 
+            lastDashboardData = data;
             updateStats(data);
             renderDevices();
             document.getElementById("lastSyncLabel").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-PT");
@@ -1309,17 +1342,84 @@
         }
     }
 
+    let lastDashboardData = null;
+
+    function getManualAppTags() {
+        try {
+            return JSON.parse(localStorage.getItem("eagle_custom_app_tags") || "{}");
+        } catch {
+            return {};
+        }
+    }
+
+    function getDeviceAppType(d) {
+        if (!d) return "xciptv";
+        const manual = getManualAppTags();
+        if (d.device_id && manual[d.device_id]) {
+            return manual[d.device_id];
+        }
+        const r = (d.reseller_id || "master").toLowerCase();
+        if (r === "eagle_tv" || r === "eagle_mytvonline" || r === "mytvonline") {
+            return "mytvonline";
+        }
+        if (r === "master" || r === "eagle_xciptv" || r === "xciptv") {
+            return "xciptv";
+        }
+        return r;
+    }
+
+    function toggleDeviceAppType(deviceId) {
+        if (!isMasterRole) return;
+        const dev = allDevices.find(d => d.device_id === deviceId);
+        if (!dev) return;
+        const currentType = getDeviceAppType(dev);
+        const newType = (currentType === "mytvonline") ? "xciptv" : "mytvonline";
+        const tags = getManualAppTags();
+        tags[deviceId] = newType;
+        localStorage.setItem("eagle_custom_app_tags", JSON.stringify(tags));
+        showToast(newType === "mytvonline" ? "🦅 Alterado para Eagle MyTvOnline!" : "📺 Alterado para Eagle XCIPTV!");
+        renderDevices();
+        updateStats();
+    }
+
+    function renderAppBadge(d) {
+        const appType = getDeviceAppType(d);
+        if (appType === "mytvonline") {
+            return `<span class="badge badge-mytvonline" ${isMasterRole ? `onclick="toggleDeviceAppType('${escapeHtml(d.device_id)}')" title="Clica para alternar entre Eagle XCIPTV e Eagle MyTvOnline"` : ''}>🦅 Eagle MyTvOnline</span>`;
+        } else if (appType === "xciptv") {
+            return `<span class="badge badge-xciptv" ${isMasterRole ? `onclick="toggleDeviceAppType('${escapeHtml(d.device_id)}')" title="Clica para alternar entre Eagle XCIPTV e Eagle MyTvOnline"` : ''}>📺 Eagle XCIPTV</span>`;
+        } else {
+            const found = allResellers.find(r => (r.reseller_id || '').toLowerCase() === appType.toLowerCase());
+            const label = found ? found.brand_name : (d.reseller_id || appType);
+            return `<span class="badge badge-reseller">${escapeHtml(label)}</span>`;
+        }
+    }
+
     function populateResellerFilter() {
         const sel = document.getElementById("resellerFilterSelect");
         const prev = sel.value || "all";
-        sel.innerHTML = `<option value="all">Todas as Apps (Master + Revendas)</option><option value="master">Apenas App Master</option>` +
-            allResellers.filter(r => r.reseller_id !== "master").map(r =>
-                `<option value="${escapeHtml(r.reseller_id)}">Revenda: ${escapeHtml(r.brand_name)} (${escapeHtml(r.reseller_id)})</option>`
+        let html = `
+            <option value="all">Todas as Apps (Master + Revendas)</option>
+            <option value="xciptv">📺 Eagle XCIPTV</option>
+            <option value="mytvonline">🦅 Eagle MyTvOnline</option>
+        `;
+        const otherResellers = allResellers.filter(r => r.reseller_id !== "master" && r.reseller_id !== "eagle_tv" && r.reseller_id !== "xciptv" && r.reseller_id !== "mytvonline");
+        if (otherResellers.length > 0) {
+            html += otherResellers.map(r =>
+                `<option value="${escapeHtml(r.reseller_id)}">🤝 Revenda: ${escapeHtml(r.brand_name || r.reseller_id)}</option>`
             ).join("");
+        }
+        const known = new Set(["master", "eagle_tv", "xciptv", "mytvonline", "eagle_xciptv", "eagle_mytvonline", ...allResellers.map(r => (r.reseller_id || "").toLowerCase())]);
+        const extras = [...new Set(allDevices.map(d => (d.reseller_id || "master").toLowerCase()))].filter(id => !known.has(id));
+        for (const ext of extras) {
+            html += `<option value="${escapeHtml(ext)}">📱 ${escapeHtml(ext)}</option>`;
+        }
+        sel.innerHTML = html;
         sel.value = prev;
     }
 
     function updateStats(data) {
+        if (!data) data = lastDashboardData || {};
         const now = Date.now();
         const total = allDevices.length;
         const online = allDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000).length;
@@ -1327,6 +1427,8 @@
         const bestCount = allDevices.filter(d => (d.active_service || "best").toLowerCase() === "best").length;
         const best2Count = allDevices.filter(d => (d.active_service || "").toLowerCase() === "best2").length;
         const blockedCount = allDevices.filter(d => d.is_blocked).length;
+        const xciptvCount = allDevices.filter(d => getDeviceAppType(d) === "xciptv").length;
+        const mytvonlineCount = allDevices.filter(d => getDeviceAppType(d) === "mytvonline").length;
 
         document.getElementById("statTotal").textContent = data.max_devices > 0 ? `${total} / ${data.max_devices}` : total;
         document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
@@ -1336,6 +1438,10 @@
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
             document.getElementById("statServices").textContent = "StreamPlay";
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
+        } else if (isMasterRole) {
+            document.getElementById("statServicesLabel").textContent = "Apps Eagle Ativas";
+            document.getElementById("statServices").textContent = `${xciptvCount} / ${mytvonlineCount}`;
+            document.getElementById("statServicesSub").textContent = `📺 ${xciptvCount} XCIPTV · 🦅 ${mytvonlineCount} MyTvOnline`;
         } else {
             document.getElementById("statServicesLabel").textContent = "Distribuição de Serviço";
             document.getElementById("statServices").textContent = `${bestCount} / ${best2Count}`;
@@ -1391,15 +1497,26 @@
             const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
             const srv = (d.active_service || "best").toLowerCase();
             const devReseller = (d.reseller_id || "master").toLowerCase();
+            const appType = getDeviceAppType(d);
 
-            if (resellerFilter !== "all" && devReseller !== resellerFilter) return false;
+            if (resellerFilter !== "all") {
+                if (resellerFilter === "xciptv" && appType !== "xciptv") return false;
+                else if (resellerFilter === "mytvonline" && appType !== "mytvonline") return false;
+                else if (resellerFilter === "master" && appType !== "xciptv") return false;
+                else if (resellerFilter === "eagle_tv" && appType !== "mytvonline") return false;
+                else if (resellerFilter !== "xciptv" && resellerFilter !== "mytvonline" && resellerFilter !== "master" && resellerFilter !== "eagle_tv" && devReseller !== resellerFilter) return false;
+            }
+
+            if (currentFilter === "xciptv" && appType !== "xciptv") return false;
+            if (currentFilter === "mytvonline" && appType !== "mytvonline") return false;
             if (currentFilter === "online" && !isOnline) return false;
             if (currentFilter === "best" && srv !== "best") return false;
             if (currentFilter === "best2" && srv !== "best2") return false;
             if (currentFilter === "blocked" && !d.is_blocked) return false;
 
             if (q) {
-                const hay = `${d.username || ""} ${d.device_name || ""} ${d.device_id || ""} ${devReseller}`.toLowerCase();
+                const appNameText = appType === "mytvonline" ? "eagle mytvonline mytv" : (appType === "xciptv" ? "eagle xciptv xc" : appType);
+                const hay = `${d.username || ""} ${d.device_name || ""} ${d.device_id || ""} ${devReseller} ${appNameText}`.toLowerCase();
                 if (!hay.includes(q)) return false;
             }
             return true;
@@ -1442,7 +1559,7 @@
                 <tr>
                     <td>${statusBadge}</td>
                     <td>${userLabel}</td>
-                    <td><span class="badge badge-reseller">${escapeHtml(devReseller)}</span></td>
+                    <td>${renderAppBadge(d)}</td>
                     <td>${srvBadge}</td>
                     <td>
                         <div>${escapeHtml(d.device_name || "Android TV")}</div>
