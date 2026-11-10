@@ -253,6 +253,7 @@ class EagleTvActivity : BaseActivity() {
     private var lastCatalogGridPos = 0
     private var lastRailFocusId = R.id.navLiveTv
     private var hasSavedFocus = false
+    private var focarConteudoAoCarregar = false
 
     private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 8) {
         if (targetPos < 0) return
@@ -796,10 +797,16 @@ class EagleTvActivity : BaseActivity() {
         atualizarEstilosMenuLateral()
         configurarCatalogoParaSecao(grelha = true, pesquisa = true)
 
-        layoutLiveTvColumns.visibility = View.GONE
-        layoutCatalogSection.visibility = View.GONE
-        layoutVpnSection.visibility = View.GONE
-        layoutSettingsSection.visibility = View.GONE
+        val isLiveTv = (sec == WorkspaceSection.LIVE_TV)
+        val isCatalog = (sec == WorkspaceSection.MOVIES || sec == WorkspaceSection.SERIES ||
+                sec == WorkspaceSection.CATCHUP || sec == WorkspaceSection.SPORTS || sec == WorkspaceSection.NEWSPAPERS)
+        val isVpn = (sec == WorkspaceSection.VPN)
+        val isSettings = (sec == WorkspaceSection.SETTINGS)
+
+        layoutLiveTvColumns.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        layoutCatalogSection.visibility = if (isCatalog) View.VISIBLE else View.GONE
+        layoutVpnSection.visibility = if (isVpn) View.VISIBLE else View.GONE
+        layoutSettingsSection.visibility = if (isSettings) View.VISIBLE else View.GONE
 
         when (sec) {
             WorkspaceSection.SPORTS -> {
@@ -1575,7 +1582,9 @@ class EagleTvActivity : BaseActivity() {
                 val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_streams&category_id=$groupId"
                 val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
                 client.newCall(req).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {}
+                    override fun onFailure(call: Call, e: IOException) {
+                        focarConteudoAoCarregar = false
+                    }
                     override fun onResponse(call: Call, response: Response) {
                         val json = response.body?.string() ?: return
                         try {
@@ -1657,6 +1666,17 @@ class EagleTvActivity : BaseActivity() {
         if (currentStreamId != -1) {
             liveChannelAdapter?.selecionarCanalPorId(currentStreamId)
             overlayChannelAdapter?.selecionarCanalPorId(currentStreamId)
+        }
+
+        if (focarConteudoAoCarregar) {
+            focarConteudoAoCarregar = false
+            rvLiveChannels.post {
+                val targetPos = if (currentStreamId != -1) {
+                    val idx = canais.indexOfFirst { it.streamId == currentStreamId }
+                    if (idx >= 0) idx else 0
+                } else 0
+                focarRecyclerViewPosicao(rvLiveChannels, targetPos)
+            }
         }
 
         if (iniciarCanal && currentStreamId == -1 && canais.isNotEmpty()) {
@@ -2003,13 +2023,17 @@ class EagleTvActivity : BaseActivity() {
     private fun iniciarSecaoFilmes() {
         etCatalogSearch.setText("")
         if (allVodCategories.isNotEmpty()) {
-            montarCategoriasFilmes(allVodCategories)
+            if (rvCatalogGroups.adapter !== catalogGroupAdapter || catalogGroupAdapter == null) {
+                montarCategoriasFilmes(allVodCategories)
+            }
             return
         }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_categories"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
+            override fun onFailure(call: Call, e: IOException) {
+                focarConteudoAoCarregar = false
+            }
             override fun onResponse(call: Call, response: Response) {
                 val json = response.body?.string() ?: return
                 try {
@@ -2024,6 +2048,10 @@ class EagleTvActivity : BaseActivity() {
                     runOnUiThread {
                         if (activeSection == WorkspaceSection.MOVIES) {
                             montarCategoriasFilmes(completas)
+                            rvCatalogGroups.post {
+                                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                            }
                         }
                     }
                     carregarTodosFilmesEmCache()
@@ -2118,7 +2146,9 @@ class EagleTvActivity : BaseActivity() {
                 val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams&category_id=$catId"
                 val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
                 client.newCall(req).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {}
+                    override fun onFailure(call: Call, e: IOException) {
+                        focarConteudoAoCarregar = false
+                    }
                     override fun onResponse(call: Call, response: Response) {
                         val json = response.body?.string() ?: return
                         try {
@@ -2155,13 +2185,17 @@ class EagleTvActivity : BaseActivity() {
     private fun iniciarSecaoSeries() {
         etCatalogSearch.setText("")
         if (allSeriesCategories.isNotEmpty()) {
-            montarCategoriasSeries(allSeriesCategories)
+            if (rvCatalogGroups.adapter !== catalogGroupAdapter || catalogGroupAdapter == null) {
+                montarCategoriasSeries(allSeriesCategories)
+            }
             return
         }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series_categories"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
+            override fun onFailure(call: Call, e: IOException) {
+                focarConteudoAoCarregar = false
+            }
             override fun onResponse(call: Call, response: Response) {
                 val json = response.body?.string() ?: return
                 try {
@@ -2175,6 +2209,10 @@ class EagleTvActivity : BaseActivity() {
                     runOnUiThread {
                         if (activeSection == WorkspaceSection.SERIES) {
                             montarCategoriasSeries(completas)
+                            rvCatalogGroups.post {
+                                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                            }
                         }
                     }
                     carregarTodasSeriesEmCache()
@@ -2254,7 +2292,9 @@ class EagleTvActivity : BaseActivity() {
                 val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series&category_id=$catId"
                 val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
                 client.newCall(req).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {}
+                    override fun onFailure(call: Call, e: IOException) {
+                        focarConteudoAoCarregar = false
+                    }
                     override fun onResponse(call: Call, response: Response) {
                         val json = response.body?.string() ?: return
                         try {
@@ -2346,6 +2386,15 @@ class EagleTvActivity : BaseActivity() {
             }
         )
         rvCatalogGrid.adapter = catalogPosterAdapter
+
+        if (focarConteudoAoCarregar) {
+            focarConteudoAoCarregar = false
+            if (items.isNotEmpty()) {
+                rvCatalogGrid.post {
+                    focarRecyclerViewPosicao(rvCatalogGrid, 0)
+                }
+            }
+        }
     }
 
     private fun atualizarHeroPreviewCatalogo(item: CatalogPosterItem) {
@@ -4107,17 +4156,9 @@ class EagleTvActivity : BaseActivity() {
                     selectedPosition = pos
                     atualizarEstiloItem(prev)
                     atualizarEstiloItem(selectedPosition)
+                    focarConteudoAoCarregar = true
+                    holder.itemView.requestFocus()
                     onSelect(id, name)
-                    if (this@GroupListAdapter === liveGroupAdapter) {
-                        rvLiveChannels.postDelayed({
-                            val channelPos = (liveChannelAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
-                            focarRecyclerViewPosicao(rvLiveChannels, channelPos)
-                        }, 100)
-                    } else {
-                        rvCatalogGrid.postDelayed({
-                            focarRecyclerViewPosicao(rvCatalogGrid, 0)
-                        }, 100)
-                    }
                 }
             }
         }
