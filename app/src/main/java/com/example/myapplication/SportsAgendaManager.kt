@@ -67,33 +67,39 @@ object SportsAgendaManager {
     fun filterActiveMatches(matches: List<SportsMatch>): List<SportsMatch> {
         val calendar = Calendar.getInstance()
         val currentMinutes = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
+        val todayDay = calendar.get(Calendar.DAY_OF_MONTH)
 
         return matches.filter { match ->
             val day = match.data.trim().lowercase()
 
-            // Se for hoje, verifica se já terminou
-            if (day.contains("hoje") || day.contains("decorrer")) {
-                val timeParts = match.hora.split(":")
-                if (timeParts.size >= 2) {
-                    val gameHour = timeParts[0].toIntOrNull() ?: 0
-                    val gameMinute = timeParts[1].toIntOrNull() ?: 0
-                    val gameMinutes = gameHour * 60 + gameMinute
+            val timeParts = match.hora.split(":")
+            val gameHour = timeParts.getOrNull(0)?.toIntOrNull() ?: 0
+            val gameMinute = timeParts.getOrNull(1)?.toIntOrNull() ?: 0
+            val gameMinutes = gameHour * 60 + gameMinute
 
-                    // Jogo dura ~135 minutos (90m + intervalo + descontos)
-                    // Se o jogo começou há mais de 135 minutos, já acabou
-                    if (currentMinutes > gameMinutes + 135) {
-                        return@filter false
-                    }
+            // Verifica se a data corresponde a hoje (ex: "10 nov", "11 nov", ou contém "hoje")
+            val dayNumber = day.split(" ").firstOrNull()?.toIntOrNull()
+            val isToday = day.contains("hoje") || (dayNumber != null && dayNumber == todayDay)
+
+            if (isToday) {
+                // Jogo dura ~135 minutos (90m + intervalo + descontos)
+                // Se o jogo começou há mais de 135 minutos, já acabou
+                if (currentMinutes > gameMinutes + 135) {
+                    return@filter false
                 }
                 return@filter true
             }
 
-            // Ignora dias anteriores (ex: se ficou "ontem" ou datas antigas)
+            // Ignora dias anteriores do mês
+            if (dayNumber != null && dayNumber < todayDay) {
+                return@filter false
+            }
+
             if (day.contains("ontem")) {
                 return@filter false
             }
 
-            // Jogos futuros (Amanhã, Quarta, Quinta, Sexta, Sábado, Domingo, etc.)
+            // Jogos futuros (amanhã, próximos dias do calendário)
             true
         }
     }
@@ -185,16 +191,14 @@ object SportsAgendaManager {
             val hora = if (timeMatcher.find()) timeMatcher.group(1).orEmpty() else ""
 
             val isToday = dateRaw.contains("gametoday", ignoreCase = true) || cleanDate.contains("hoje", ignoreCase = true)
-            val dia = when {
-                isToday -> "Hoje"
-                cleanDate.contains("seg", ignoreCase = true) -> "Segunda"
-                cleanDate.contains("ter", ignoreCase = true) -> "Terça"
-                cleanDate.contains("qua", ignoreCase = true) -> "Quarta"
-                cleanDate.contains("qui", ignoreCase = true) -> "Quinta"
-                cleanDate.contains("sex", ignoreCase = true) -> "Sexta"
-                cleanDate.contains("sáb", ignoreCase = true) || cleanDate.contains("sab", ignoreCase = true) -> "Sábado"
-                cleanDate.contains("dom", ignoreCase = true) -> "Domingo"
-                else -> cleanDate.split(" ").firstOrNull()?.trim() ?: "Hoje"
+            val dateMatcherNum = Pattern.compile("\\b(\\d{1,2}\\s+[a-zA-Záéíóúçãõ]+)\\b").matcher(cleanDate)
+            val dia = if (dateMatcherNum.find()) {
+                dateMatcherNum.group(1).orEmpty()
+            } else if (isToday) {
+                val cal = Calendar.getInstance()
+                "${cal.get(Calendar.DAY_OF_MONTH)} Nov"
+            } else {
+                cleanDate.split(" ").firstOrNull()?.trim() ?: "Hoje"
             }
 
             // Equipas

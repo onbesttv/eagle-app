@@ -1,9 +1,9 @@
 {
-  "updated_at": "2026-11-10T22:42:15.533Z",
+  "updated_at": "2026-11-10T23:08:37.693Z",
   "jogos": [
     {
       "id": "1",
-      "data": "Quarta",
+      "data": "11 Nov",
       "hora": "11:00",
       "liga": "FEMININO, SUB16",
       "equipa_casa": "Portugal",
@@ -13,7 +13,17 @@
     },
     {
       "id": "2",
-      "data": "Quarta",
+      "data": "11 Nov",
+      "hora": "15:00",
+      "liga": "SUB17, Qual. Euro",
+      "equipa_casa": "Portugal",
+      "equipa_fora": "Andorra",
+      "canal": "Canal 11",
+      "destaque": false
+    },
+    {
+      "id": "3",
+      "data": "11 Nov",
       "hora": "18:00",
       "liga": "FEMININO, E. Cup",
       "equipa_casa": "Torreense",
@@ -22,8 +32,8 @@
       "destaque": true
     },
     {
-      "id": "3",
-      "data": "Quarta",
+      "id": "4",
+      "data": "11 Nov",
       "hora": "20:00",
       "liga": "FEMININO, L. Campe&#245;es",
       "equipa_casa": "Benfica",
@@ -32,8 +42,8 @@
       "destaque": false
     },
     {
-      "id": "4",
-      "data": "Quinta",
+      "id": "5",
+      "data": "12 Nov",
       "hora": "16:00",
       "liga": "CAN África, Qual.",
       "equipa_casa": "Madagáscar",
@@ -42,8 +52,8 @@
       "destaque": false
     },
     {
-      "id": "5",
-      "data": "Quinta",
+      "id": "6",
+      "data": "12 Nov",
       "hora": "17:00",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Turquia",
@@ -52,8 +62,8 @@
       "destaque": true
     },
     {
-      "id": "6",
-      "data": "Quinta",
+      "id": "7",
+      "data": "12 Nov",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Itália",
@@ -62,8 +72,8 @@
       "destaque": true
     },
     {
-      "id": "7",
-      "data": "Quinta",
+      "id": "8",
+      "data": "12 Nov",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Chéquia",
@@ -72,8 +82,8 @@
       "destaque": false
     },
     {
-      "id": "8",
-      "data": "Quinta",
+      "id": "9",
+      "data": "12 Nov",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Inglaterra",
@@ -82,8 +92,8 @@
       "destaque": false
     },
     {
-      "id": "9",
-      "data": "Quinta",
+      "id": "10",
+      "data": "12 Nov",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Vários",
@@ -92,8 +102,8 @@
       "destaque": false
     },
     {
-      "id": "10",
-      "data": "Sexta",
+      "id": "11",
+      "data": "13 Nov",
       "hora": "13:00",
       "liga": "CAN África, Qual.",
       "equipa_casa": "Moçambique",
@@ -102,8 +112,8 @@
       "destaque": true
     },
     {
-      "id": "11",
-      "data": "Sexta",
+      "id": "12",
+      "data": "13 Nov",
       "hora": "16:00",
       "liga": "CAN África, Qual.",
       "equipa_casa": "Cabo Verde",
@@ -112,8 +122,8 @@
       "destaque": false
     },
     {
-      "id": "12",
-      "data": "Sexta",
+      "id": "13",
+      "data": "13 Nov",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Sérvia",
@@ -122,8 +132,8 @@
       "destaque": true
     },
     {
-      "id": "13",
-      "data": "Sábado",
+      "id": "14",
+      "data": "14 Nov",
       "hora": "10:15",
       "liga": "Jogo Preparação",
       "equipa_casa": "Japão",
@@ -132,8 +142,8 @@
       "destaque": false
     },
     {
-      "id": "14",
-      "data": "Sábado",
+      "id": "15",
+      "data": "14 Nov",
       "hora": "19:00",
       "liga": "CAN África, Qual.",
       "equipa_casa": "Angola",
@@ -142,8 +152,8 @@
       "destaque": false
     },
     {
-      "id": "15",
-      "data": "Sábado",
+      "id": "16",
+      "data": "14 Nov",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Portugal",
@@ -152,8 +162,8 @@
       "destaque": false
     },
     {
-      "id": "16",
-      "data": "Sábado",
+      "id": "17",
+      "data": "14 Nov",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Vários",
@@ -162,8 +172,8 @@
       "destaque": false
     },
     {
-      "id": "17",
-      "data": "Domingo",
+      "id": "18",
+      "data": "15 Nov",
       "hora": "20:30",
       "liga": "Futsal",
       "equipa_casa": "Sporting",
@@ -172,8 +182,8 @@
       "destaque": false
     },
     {
-      "id": "18",
-      "data": "Segunda",
+      "id": "19",
+      "data": "16 Nov",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Vários",
@@ -182,8 +192,8 @@
       "destaque": false
     },
     {
-      "id": "19",
-      "data": "Terça",
+      "id": "20",
+      "data": "17 Nov",
       "hora": "10:00",
       "liga": "Jogo Preparação",
       "equipa_casa": "Singapura",
@@ -192,8 +202,8 @@
       "destaque": false
     },
     {
-      "id": "20",
-      "data": "Terça",
+      "id": "21",
+      "data": "17 Nov",
       "hora": "19:00",
       "liga": "CAN África, Qual.",
       "equipa_casa": "Libéria",
@@ -202,8 +212,8 @@
       "destaque": false
     },
     {
-      "id": "21",
-      "data": "Terça",
+      "id": "22",
+      "data": "17 Nov",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "País Gales",
@@ -212,8 +222,8 @@
       "destaque": false
     },
     {
-      "id": "22",
-      "data": "Terça",
+      "id": "23",
+      "data": "17 Nov",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Vários",
@@ -222,8 +232,8 @@
       "destaque": false
     },
     {
-      "id": "23",
-      "data": "Sexta",
+      "id": "24",
+      "data": "20 Nov",
       "hora": "20:45",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "FC Porto",
@@ -232,8 +242,8 @@
       "destaque": true
     },
     {
-      "id": "24",
-      "data": "Sábado",
+      "id": "25",
+      "data": "21 Nov",
       "hora": "18:00",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "Sporting",
@@ -242,8 +252,8 @@
       "destaque": true
     },
     {
-      "id": "25",
-      "data": "Sábado",
+      "id": "26",
+      "data": "21 Nov",
       "hora": "20:30",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "V. Guimarães",
@@ -252,8 +262,8 @@
       "destaque": true
     },
     {
-      "id": "26",
-      "data": "Domingo",
+      "id": "27",
+      "data": "22 Nov",
       "hora": "20:45",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "Torreense",
@@ -262,8 +272,8 @@
       "destaque": true
     },
     {
-      "id": "27",
-      "data": "Terça",
+      "id": "28",
+      "data": "24 Nov",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Feyenoord",
@@ -272,8 +282,8 @@
       "destaque": false
     },
     {
-      "id": "28",
-      "data": "Quarta",
+      "id": "29",
+      "data": "25 Nov",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Sporting",
@@ -282,8 +292,8 @@
       "destaque": false
     },
     {
-      "id": "29",
-      "data": "Quinta",
+      "id": "30",
+      "data": "26 Nov",
       "hora": "17:45",
       "liga": "Liga Europa",
       "equipa_casa": "Plzen",
@@ -292,8 +302,8 @@
       "destaque": false
     },
     {
-      "id": "30",
-      "data": "Domingo",
+      "id": "31",
+      "data": "29 Nov",
       "hora": "20:30",
       "liga": "Liga Portugal",
       "equipa_casa": "FC Porto",
@@ -302,8 +312,8 @@
       "destaque": true
     },
     {
-      "id": "31",
-      "data": "Segunda",
+      "id": "32",
+      "data": "30 Nov",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Benfica",
@@ -312,8 +322,8 @@
       "destaque": true
     },
     {
-      "id": "32",
-      "data": "Segunda",
+      "id": "33",
+      "data": "30 Nov",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Casa Pia",
@@ -322,8 +332,8 @@
       "destaque": true
     },
     {
-      "id": "33",
-      "data": "Sexta",
+      "id": "34",
+      "data": "4 Dez",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Sporting",
@@ -332,8 +342,8 @@
       "destaque": true
     },
     {
-      "id": "34",
-      "data": "Sábado",
+      "id": "35",
+      "data": "5 Dez",
       "hora": "15:30",
       "liga": "Liga Portugal",
       "equipa_casa": "Nacional",
@@ -342,8 +352,8 @@
       "destaque": true
     },
     {
-      "id": "35",
-      "data": "Sábado",
+      "id": "36",
+      "data": "5 Dez",
       "hora": "18:00",
       "liga": "Liga Portugal",
       "equipa_casa": "S. Clara",
@@ -352,8 +362,8 @@
       "destaque": true
     },
     {
-      "id": "36",
-      "data": "Terça",
+      "id": "37",
+      "data": "8 Dez",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Roma",
@@ -362,8 +372,8 @@
       "destaque": false
     },
     {
-      "id": "37",
-      "data": "Quarta",
+      "id": "38",
+      "data": "9 Dez",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Liverpool",
@@ -372,8 +382,8 @@
       "destaque": false
     },
     {
-      "id": "38",
-      "data": "Quinta",
+      "id": "39",
+      "data": "10 Dez",
       "hora": "20:00",
       "liga": "Liga Europa",
       "equipa_casa": "Benfica",
@@ -382,8 +392,8 @@
       "destaque": false
     },
     {
-      "id": "39",
-      "data": "Sábado",
+      "id": "40",
+      "data": "12 Dez",
       "hora": "20:30",
       "liga": "Liga Portugal",
       "equipa_casa": "Gil Vicente",
@@ -392,8 +402,8 @@
       "destaque": true
     },
     {
-      "id": "40",
-      "data": "Domingo",
+      "id": "41",
+      "data": "13 Dez",
       "hora": "20:30",
       "liga": "Liga Portugal",
       "equipa_casa": "FC Porto",
@@ -402,8 +412,8 @@
       "destaque": true
     },
     {
-      "id": "41",
-      "data": "Segunda",
+      "id": "42",
+      "data": "14 Dez",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Benfica",
@@ -412,8 +422,8 @@
       "destaque": true
     },
     {
-      "id": "42",
-      "data": "Domingo",
+      "id": "43",
+      "data": "27 Dez",
       "hora": "",
       "liga": "Liga Portugal",
       "equipa_casa": "Benfica",
@@ -422,8 +432,8 @@
       "destaque": true
     },
     {
-      "id": "43",
-      "data": "Terça",
+      "id": "44",
+      "data": "19 Jan",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "FC Porto",
@@ -432,8 +442,8 @@
       "destaque": false
     },
     {
-      "id": "44",
-      "data": "Quarta",
+      "id": "45",
+      "data": "20 Jan",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Sporting",
@@ -442,8 +452,8 @@
       "destaque": false
     },
     {
-      "id": "45",
-      "data": "Quinta",
+      "id": "46",
+      "data": "21 Jan",
       "hora": "17:45",
       "liga": "Liga Europa",
       "equipa_casa": "NEC",
@@ -452,8 +462,8 @@
       "destaque": false
     },
     {
-      "id": "46",
-      "data": "Quarta",
+      "id": "47",
+      "data": "27 Jan",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Man. City",
@@ -462,8 +472,8 @@
       "destaque": false
     },
     {
-      "id": "47",
-      "data": "Quarta",
+      "id": "48",
+      "data": "27 Jan",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "LASK L.",
@@ -472,8 +482,8 @@
       "destaque": false
     },
     {
-      "id": "48",
-      "data": "Quinta",
+      "id": "49",
+      "data": "28 Jan",
       "hora": "20:00",
       "liga": "Liga Europa",
       "equipa_casa": "Benfica",

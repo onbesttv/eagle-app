@@ -72,19 +72,12 @@ async function main() {
     const timeMatch = cleanDate.match(/\b(\d{1,2}:\d{2})\b/);
     const hora = timeMatch ? timeMatch[1] : '';
 
-    // Determine Day label
+    // Extract exact calendar date (ex: "10 Nov", "11 Nov", "12 Nov")
+    const dateMatch = cleanDate.match(/\b(\d{1,2}\s+[a-zA-Záéíóúçãõ]+)\b/);
+    const day = dateMatch ? dateMatch[1] : 'Hoje';
+
+    // Determine if today
     const isToday = colDate.includes('gametoday') || cleanDate.toLowerCase().includes('hoje');
-    let day = 'Hoje';
-    if (!isToday) {
-      if (cleanDate.toLowerCase().includes('seg')) day = 'Segunda';
-      else if (cleanDate.toLowerCase().includes('ter')) day = 'Terça';
-      else if (cleanDate.toLowerCase().includes('qua')) day = 'Quarta';
-      else if (cleanDate.toLowerCase().includes('qui')) day = 'Quinta';
-      else if (cleanDate.toLowerCase().includes('sex')) day = 'Sexta';
-      else if (cleanDate.toLowerCase().includes('sáb') || cleanDate.toLowerCase().includes('sab')) day = 'Sábado';
-      else if (cleanDate.toLowerCase().includes('dom')) day = 'Domingo';
-      else day = cleanDate.split(' ')[0] || 'Brevemente';
-    }
 
     // Filter out games that already finished today (more than 2h15m after start)
     if (isToday && hora) {

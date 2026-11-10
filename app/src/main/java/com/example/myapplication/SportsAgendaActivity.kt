@@ -23,7 +23,6 @@ import java.io.IOException
 class SportsAgendaActivity : BaseActivity() {
 
     private lateinit var btnBackSports: ImageButton
-    private lateinit var btnRefreshSports: ImageButton
     private lateinit var rvLeagueTabs: RecyclerView
     private lateinit var rvMatches: RecyclerView
     private lateinit var tvMatchCountBadge: TextView
@@ -53,7 +52,6 @@ class SportsAgendaActivity : BaseActivity() {
         setContentView(R.layout.activity_sports_agenda)
 
         btnBackSports = findViewById(R.id.btnBackSports)
-        btnRefreshSports = findViewById(R.id.btnRefreshSports)
         rvLeagueTabs = findViewById(R.id.rvLeagueTabs)
         rvMatches = findViewById(R.id.rvMatches)
         tvMatchCountBadge = findViewById(R.id.tvMatchCountBadge)
@@ -61,10 +59,6 @@ class SportsAgendaActivity : BaseActivity() {
         pbLoadingSports = findViewById(R.id.pbLoadingSports)
 
         btnBackSports.setOnClickListener { finish() }
-        btnRefreshSports.setOnClickListener {
-            Toast.makeText(this, "A atualizar jogos do dia...", Toast.LENGTH_SHORT).show()
-            carregarAgenda(forceOnline = true)
-        }
 
         setupRecyclerViews()
         carregarAgenda(forceOnline = false)
