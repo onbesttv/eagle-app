@@ -1,7 +1,9 @@
 package com.example.myapplication
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -25,6 +27,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
+import androidx.cardview.widget.CardView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
@@ -55,7 +58,9 @@ class EagleTvActivity : BaseActivity() {
         SERIES,
         SPORTS,
         NEWSPAPERS,
-        CATCHUP
+        CATCHUP,
+        VPN,
+        SETTINGS
     }
 
     data class InlineEpgSummary(
@@ -141,6 +146,22 @@ class EagleTvActivity : BaseActivity() {
     private lateinit var btnCatalogSort: Button
     private lateinit var tvCatalogEmpty: TextView
     private lateinit var rvCatalogGrid: RecyclerView
+
+    // Secção VPN PIA Integrada
+    private lateinit var layoutVpnSection: View
+    private lateinit var ivVpnShield: ImageView
+    private lateinit var tvVpnStatus: TextView
+    private lateinit var tvVpnStatusSub: TextView
+    private lateinit var tvVpnSelectedLocation: TextView
+    private lateinit var tvVpnIp: TextView
+    private lateinit var tvVpnDuration: TextView
+    private lateinit var btnToggleVpn: Button
+    private lateinit var pbVpnLoading: ProgressBar
+    private lateinit var rvVpnRegions: RecyclerView
+
+    // Secção Definições Integrada
+    private lateinit var layoutSettingsSection: View
+    private lateinit var rvSettingsGrid: RecyclerView
 
     // Overlays em Fullscreen (Estilo Formuler MYTVOnline / TiviMate)
     private lateinit var layoutFullscreenOverlayGuide: View
@@ -401,6 +422,8 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onDestroy() {
         uiHandler.removeCallbacksAndMessages(null)
+        PiaVpnManager.removeListener(vpnStateListener)
+        vpnDurationHandler.removeCallbacks(vpnDurationRunnable)
         super.onDestroy()
         playerView.player = null
         player?.release()
@@ -511,6 +534,25 @@ class EagleTvActivity : BaseActivity() {
         rvCatalogGrid.layoutManager = GridLayoutManager(this, 5)
         rvCatalogGrid.itemAnimator = null
 
+        // Secções Integradas: VPN e Definições
+        layoutVpnSection = findViewById(R.id.layoutVpnSection)
+        ivVpnShield = findViewById(R.id.ivVpnShield)
+        tvVpnStatus = findViewById(R.id.tvVpnStatus)
+        tvVpnStatusSub = findViewById(R.id.tvVpnStatusSub)
+        tvVpnSelectedLocation = findViewById(R.id.tvVpnSelectedLocation)
+        tvVpnIp = findViewById(R.id.tvVpnIp)
+        tvVpnDuration = findViewById(R.id.tvVpnDuration)
+        btnToggleVpn = findViewById(R.id.btnToggleVpn)
+        pbVpnLoading = findViewById(R.id.pbVpnLoading)
+        rvVpnRegions = findViewById(R.id.rvVpnRegions)
+        rvVpnRegions.layoutManager = GridLayoutManager(this, 2)
+        rvVpnRegions.itemAnimator = null
+
+        layoutSettingsSection = findViewById(R.id.layoutSettingsSection)
+        rvSettingsGrid = findViewById(R.id.rvSettingsGrid)
+        rvSettingsGrid.layoutManager = GridLayoutManager(this, 2)
+        rvSettingsGrid.itemAnimator = null
+
         // Estilizar painel OSD e barra de recentes com cantos arredondados e borda subtil ciano
         layoutFullscreenOsd.background = GradientDrawable().apply {
             setColor(0xEB060D1A.toInt())
@@ -568,7 +610,7 @@ class EagleTvActivity : BaseActivity() {
         navNewspapers.setOnClickListener { selecionarSecao(WorkspaceSection.NEWSPAPERS) }
         navVpn.setOnClickListener {
             if (PiaVpnConfig.isVpnAllowedForCurrentUser(this)) {
-                startActivity(Intent(this, VpnActivity::class.java))
+                selecionarSecao(WorkspaceSection.VPN)
             } else {
                 Toast.makeText(this, "VPN não ativa para esta conta no painel.", Toast.LENGTH_SHORT).show()
             }
@@ -584,7 +626,7 @@ class EagleTvActivity : BaseActivity() {
             }
         }
         navSettings.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
+            selecionarSecao(WorkspaceSection.SETTINGS)
         }
 
         atualizarEstilosMenuLateral()
@@ -599,9 +641,9 @@ class EagleTvActivity : BaseActivity() {
             navCatchUp to (activeSection == WorkspaceSection.CATCHUP),
             navSports to (activeSection == WorkspaceSection.SPORTS),
             navNewspapers to (activeSection == WorkspaceSection.NEWSPAPERS),
-            navVpn to false,
+            navVpn to (activeSection == WorkspaceSection.VPN),
             navRefresh to false,
-            navSettings to false
+            navSettings to (activeSection == WorkspaceSection.SETTINGS)
         )
 
         sectionMap.forEach { (view, isActive) ->
@@ -637,9 +679,13 @@ class EagleTvActivity : BaseActivity() {
         atualizarEstilosMenuLateral()
         configurarCatalogoParaSecao(grelha = true, pesquisa = true)
 
+        layoutLiveTvColumns.visibility = View.GONE
+        layoutCatalogSection.visibility = View.GONE
+        layoutVpnSection.visibility = View.GONE
+        layoutSettingsSection.visibility = View.GONE
+
         when (sec) {
             WorkspaceSection.SPORTS -> {
-                layoutLiveTvColumns.visibility = View.GONE
                 layoutCatalogSection.visibility = View.VISIBLE
                 configurarCatalogoParaSecao(grelha = false, pesquisa = false)
                 tvCatalogGroupsHeader.text = "COMPETIÇÕES"
@@ -647,7 +693,6 @@ class EagleTvActivity : BaseActivity() {
                 iniciarSecaoJogos()
             }
             WorkspaceSection.NEWSPAPERS -> {
-                layoutLiveTvColumns.visibility = View.GONE
                 layoutCatalogSection.visibility = View.VISIBLE
                 configurarCatalogoParaSecao(grelha = true, pesquisa = false)
                 tvCatalogGroupsHeader.text = "CATEGORIAS"
@@ -655,7 +700,6 @@ class EagleTvActivity : BaseActivity() {
                 iniciarSecaoJornais()
             }
             WorkspaceSection.CATCHUP -> {
-                layoutLiveTvColumns.visibility = View.GONE
                 layoutCatalogSection.visibility = View.VISIBLE
                 configurarCatalogoParaSecao(grelha = false, pesquisa = true)
                 tvCatalogGroupsHeader.text = "ESCOLHER DATA"
@@ -664,7 +708,6 @@ class EagleTvActivity : BaseActivity() {
             }
             WorkspaceSection.LIVE_TV -> {
                 layoutLiveTvColumns.visibility = View.VISIBLE
-                layoutCatalogSection.visibility = View.GONE
                 currentPlayingChannel?.let { atualizarPainelTopoCanal(it) }
                 rvLiveChannels.post {
                     if (currentStreamId != -1) {
@@ -675,7 +718,6 @@ class EagleTvActivity : BaseActivity() {
                 }
             }
             WorkspaceSection.MOVIES -> {
-                layoutLiveTvColumns.visibility = View.GONE
                 layoutCatalogSection.visibility = View.VISIBLE
                 btnCatalogSort.visibility = View.VISIBLE
                 tvCatalogGroupsHeader.text = "PASTAS DE FILMES"
@@ -683,12 +725,21 @@ class EagleTvActivity : BaseActivity() {
                 iniciarSecaoFilmes()
             }
             WorkspaceSection.SERIES -> {
-                layoutLiveTvColumns.visibility = View.GONE
                 layoutCatalogSection.visibility = View.VISIBLE
                 btnCatalogSort.visibility = View.GONE
                 tvCatalogGroupsHeader.text = "PASTAS DE SÉRIES"
                 etCatalogSearch.hint = "🔍 Pesquisar séries nesta pasta..."
                 iniciarSecaoSeries()
+            }
+            WorkspaceSection.VPN -> {
+                layoutVpnSection.visibility = View.VISIBLE
+                definirTopoInformativo("🛡️ PIA VPN", "Segurança e Privacidade WireGuard", "Protege a tua ligação e escolhe a localização pretendida.")
+                iniciarSecaoVpn()
+            }
+            WorkspaceSection.SETTINGS -> {
+                layoutSettingsSection.visibility = View.VISIBLE
+                definirTopoInformativo("⚙️ Definições", "Configurações da aplicação", "Gere a tua conta, atualizações, formato de stream e idioma.")
+                iniciarSecaoDefinicoes()
             }
         }
     }
@@ -833,6 +884,8 @@ class EagleTvActivity : BaseActivity() {
         viewTopHorizontalDivider.visibility = View.GONE
         layoutLiveTvColumns.visibility = View.GONE
         layoutCatalogSection.visibility = View.GONE
+        layoutVpnSection.visibility = View.GONE
+        layoutSettingsSection.visibility = View.GONE
         layoutMiniPlayerBadge.visibility = View.GONE
 
         layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
@@ -863,13 +916,10 @@ class EagleTvActivity : BaseActivity() {
         viewTopHorizontalDivider.visibility = View.VISIBLE
         layoutMiniPlayerBadge.visibility = View.VISIBLE
 
-        if (activeSection == WorkspaceSection.LIVE_TV) {
-            layoutLiveTvColumns.visibility = View.VISIBLE
-            layoutCatalogSection.visibility = View.GONE
-        } else {
-            layoutLiveTvColumns.visibility = View.GONE
-            layoutCatalogSection.visibility = View.VISIBLE
-        }
+        layoutLiveTvColumns.visibility = if (activeSection == WorkspaceSection.LIVE_TV) View.VISIBLE else View.GONE
+        layoutCatalogSection.visibility = if (activeSection in listOf(WorkspaceSection.MOVIES, WorkspaceSection.SERIES, WorkspaceSection.CATCHUP, WorkspaceSection.SPORTS, WorkspaceSection.NEWSPAPERS)) View.VISIBLE else View.GONE
+        layoutVpnSection.visibility = if (activeSection == WorkspaceSection.VPN) View.VISIBLE else View.GONE
+        layoutSettingsSection.visibility = if (activeSection == WorkspaceSection.SETTINGS) View.VISIBLE else View.GONE
 
         layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1114,6 +1164,42 @@ class EagleTvActivity : BaseActivity() {
                             focarRecyclerViewPosicao(rvChannelSchedule, targetPos)
                             return true
                         }
+                    }
+                }
+            } else if (isDown && activeSection == WorkspaceSection.VPN) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    when {
+                        rvVpnRegions.hasFocus() -> {
+                            btnToggleVpn.requestFocus()
+                            return true
+                        }
+                        btnToggleVpn.hasFocus() -> {
+                            navVpn.requestFocus()
+                            return true
+                        }
+                    }
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    when {
+                        layoutLeftRail.hasFocus() -> {
+                            btnToggleVpn.requestFocus()
+                            return true
+                        }
+                        btnToggleVpn.hasFocus() && (rvVpnRegions.adapter?.itemCount ?: 0) > 0 -> {
+                            focarRecyclerViewPosicao(rvVpnRegions, 0)
+                            return true
+                        }
+                    }
+                }
+            } else if (isDown && activeSection == WorkspaceSection.SETTINGS) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    if (rvSettingsGrid.hasFocus()) {
+                        navSettings.requestFocus()
+                        return true
+                    }
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    if (layoutLeftRail.hasFocus() && (rvSettingsGrid.adapter?.itemCount ?: 0) > 0) {
+                        focarRecyclerViewPosicao(rvSettingsGrid, 0)
+                        return true
                     }
                 }
             } else if (isDown && activeSection != WorkspaceSection.LIVE_TV) {
@@ -2761,6 +2847,601 @@ class EagleTvActivity : BaseActivity() {
         selecionarSecao(WorkspaceSection.LIVE_TV)
         carregarTudoLiveTv()
         Toast.makeText(this, "Servidor alterado para ${IptvServiceConfig.displayName(targetService)}", Toast.LENGTH_SHORT).show()
+    }
+
+    // =========================================================================
+    // SECÇÃO 5: PIA VPN INTEGRADA NO ECRÃ PRINCIPAL
+    // =========================================================================
+
+    private val REQUEST_VPN_CODE = 4455
+    private var vpnRegionsList: List<PiaRegion> = emptyList()
+    private var selectedVpnRegion: PiaRegion? = null
+    private var vpnRegionAdapter: VpnRegionAdapter? = null
+
+    private val vpnDurationHandler = Handler(Looper.getMainLooper())
+    private val vpnDurationRunnable = object : Runnable {
+        override fun run() {
+            val startTime = PiaVpnManager.getConnectionStartTime()
+            if (startTime > 0 && PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED) {
+                val elapsed = (System.currentTimeMillis() - startTime) / 1000
+                val hours = elapsed / 3600
+                val minutes = (elapsed % 3600) / 60
+                val seconds = elapsed % 60
+                tvVpnDuration.text = String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds)
+                vpnDurationHandler.postDelayed(this, 1000)
+            } else {
+                tvVpnDuration.text = "00:00:00"
+            }
+        }
+    }
+
+    private val vpnStateListener: (PiaVpnManager.VpnStatus, String?) -> Unit = { status, msg ->
+        runOnUiThread {
+            atualizarInterfaceVpn(status, msg)
+            vpnRegionAdapter?.notifyDataSetChanged()
+            atualizarEstadoServidorEVpn()
+        }
+    }
+
+    private fun iniciarSecaoVpn() {
+        PiaVpnManager.removeListener(vpnStateListener)
+        PiaVpnManager.addListener(vpnStateListener)
+
+        btnToggleVpn.setOnClickListener {
+            alternarVpn()
+        }
+
+        btnToggleVpn.setOnLongClickListener {
+            mostrarDialogoCredenciaisOculto()
+            true
+        }
+
+        atualizarInterfaceVpn(PiaVpnManager.getStatus(), null)
+        carregarRegioesVpn()
+
+        btnToggleVpn.post { btnToggleVpn.requestFocus() }
+    }
+
+    private fun carregarRegioesVpn() {
+        pbVpnLoading.visibility = View.VISIBLE
+        fun renderizarLista(list: List<PiaRegion>) {
+            pbVpnLoading.visibility = View.GONE
+            vpnRegionsList = list
+
+            val savedId = PiaVpnConfig.getSelectedRegionId(this)
+            selectedVpnRegion = list.find { it.id == savedId } ?: list.firstOrNull()
+            atualizarTextoRegiaoVpnSelecionada()
+
+            vpnRegionAdapter = VpnRegionAdapter(list) { reg ->
+                val currentStatus = PiaVpnManager.getStatus()
+                val connectedReg = PiaVpnManager.getConnectedRegion()
+                val isCurrentlyConnectedToThis = (currentStatus == PiaVpnManager.VpnStatus.CONNECTED && connectedReg?.id == reg.id)
+
+                if (isCurrentlyConnectedToThis) {
+                    Toast.makeText(this, "A desligar ligação de ${reg.name}…", Toast.LENGTH_SHORT).show()
+                    PiaVpnManager.disconnect(this)
+                } else if (currentStatus == PiaVpnManager.VpnStatus.CONNECTED) {
+                    Toast.makeText(this, "A mudar ligação para ${reg.name}…", Toast.LENGTH_SHORT).show()
+                    PiaVpnManager.disconnect(this) {
+                        iniciarLigacaoVpn(reg)
+                    }
+                } else if (currentStatus == PiaVpnManager.VpnStatus.CONNECTING) {
+                    Toast.makeText(this, "Ligação cancelada", Toast.LENGTH_SHORT).show()
+                    PiaVpnManager.disconnect(this)
+                } else {
+                    Toast.makeText(this, "A ligar a ${reg.name}…", Toast.LENGTH_SHORT).show()
+                    iniciarLigacaoVpn(reg)
+                }
+            }
+            rvVpnRegions.adapter = vpnRegionAdapter
+        }
+
+        PiaVpnManager.getRegions(this) { list ->
+            renderizarLista(list)
+        }
+
+        RemotePanelManager.sync(this) {
+            if (!isFinishing && !isDestroyed) {
+                PiaVpnManager.getRegions(this) { updatedList ->
+                    if (updatedList.map { it.id } != vpnRegionsList.map { it.id }) {
+                        renderizarLista(updatedList)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun atualizarTextoRegiaoVpnSelecionada() {
+        val reg = selectedVpnRegion
+        if (reg != null) {
+            tvVpnSelectedLocation.text = "${reg.flagEmoji} ${reg.name}"
+        }
+    }
+
+    private fun alternarVpn() {
+        when (PiaVpnManager.getStatus()) {
+            PiaVpnManager.VpnStatus.CONNECTED -> {
+                Toast.makeText(this, "A desligar VPN…", Toast.LENGTH_SHORT).show()
+                PiaVpnManager.disconnect(this)
+            }
+            PiaVpnManager.VpnStatus.CONNECTING -> {
+                Toast.makeText(this, "Ligação cancelada", Toast.LENGTH_SHORT).show()
+                PiaVpnManager.disconnect(this)
+            }
+            else -> {
+                iniciarLigacaoVpn()
+            }
+        }
+    }
+
+    private fun iniciarLigacaoVpn(targetRegion: PiaRegion? = null) {
+        val region = targetRegion ?: selectedVpnRegion ?: vpnRegionsList.firstOrNull()
+        if (region == null) {
+            Toast.makeText(this, "Nenhum servidor selecionado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        selectedVpnRegion = region
+        PiaVpnConfig.setSelectedRegionId(this, region.id)
+        atualizarTextoRegiaoVpnSelecionada()
+        vpnRegionAdapter?.notifyDataSetChanged()
+
+        val prepareIntent = PiaVpnManager.checkPermission(this)
+        if (prepareIntent != null) {
+            startActivityForResult(prepareIntent, REQUEST_VPN_CODE)
+            return
+        }
+
+        PiaVpnManager.connect(this, region)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_VPN_CODE) {
+            if (resultCode == Activity.RESULT_OK) {
+                val region = selectedVpnRegion ?: vpnRegionsList.firstOrNull()
+                if (region != null) {
+                    PiaVpnManager.connect(this, region)
+                }
+            } else {
+                Toast.makeText(this, "Permissão de VPN necessária para proteger a ligação", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private fun atualizarInterfaceVpn(status: PiaVpnManager.VpnStatus, message: String?) {
+        when (status) {
+            PiaVpnManager.VpnStatus.CONNECTED -> {
+                ivVpnShield.imageTintList = ColorStateList.valueOf(0xFF48BB78.toInt())
+                tvVpnStatus.text = "LIGADO • PROTEGIDO"
+                tvVpnStatus.setTextColor(0xFF48BB78.toInt())
+                tvVpnStatusSub.text = "A tua ligação está encriptada e protegida"
+                tvVpnIp.text = PiaVpnManager.getProtectedIp() ?: "Ativo"
+                tvVpnIp.setTextColor(0xFF38BDF8.toInt())
+
+                btnToggleVpn.text = "DESLIGAR VPN"
+                btnToggleVpn.background = GradientDrawable().apply {
+                    setColor(0xFFE53E3E.toInt())
+                    cornerRadius = dp(10).toFloat()
+                }
+
+                val connectedReg = PiaVpnManager.getConnectedRegion()
+                if (connectedReg != null) {
+                    tvVpnSelectedLocation.text = "${connectedReg.flagEmoji} ${connectedReg.name}"
+                }
+
+                vpnDurationHandler.removeCallbacks(vpnDurationRunnable)
+                vpnDurationHandler.post(vpnDurationRunnable)
+            }
+            PiaVpnManager.VpnStatus.CONNECTING -> {
+                ivVpnShield.imageTintList = ColorStateList.valueOf(0xFFECC94B.toInt())
+                tvVpnStatus.text = "A CONECTAR…"
+                tvVpnStatus.setTextColor(0xFFECC94B.toInt())
+                tvVpnStatusSub.text = message ?: "A negociar túnel WireGuard…"
+                tvVpnIp.text = "A atribuir…"
+
+                btnToggleVpn.text = "CANCELAR"
+                btnToggleVpn.background = GradientDrawable().apply {
+                    setColor(0xFF4A5568.toInt())
+                    cornerRadius = dp(10).toFloat()
+                }
+            }
+            PiaVpnManager.VpnStatus.DISCONNECTING -> {
+                ivVpnShield.imageTintList = ColorStateList.valueOf(0xFF718096.toInt())
+                tvVpnStatus.text = "A DESLIGAR…"
+                tvVpnStatus.setTextColor(0xFFCBD5E0.toInt())
+                btnToggleVpn.text = "A AGUARDAR…"
+            }
+            PiaVpnManager.VpnStatus.DISCONNECTED -> {
+                ivVpnShield.imageTintList = ColorStateList.valueOf(0xFF718096.toInt())
+                tvVpnStatus.text = "DESCONECTADO"
+                tvVpnStatus.setTextColor(0xFFE2E8F0.toInt())
+                tvVpnStatusSub.text = "A tua ligação não está protegida"
+                tvVpnIp.text = "—"
+                tvVpnDuration.text = "00:00:00"
+
+                btnToggleVpn.text = "LIGAR VPN"
+                btnToggleVpn.background = GradientDrawable().apply {
+                    setColor(0xFF0284C7.toInt())
+                    cornerRadius = dp(10).toFloat()
+                }
+                vpnDurationHandler.removeCallbacks(vpnDurationRunnable)
+            }
+            PiaVpnManager.VpnStatus.ERROR -> {
+                ivVpnShield.imageTintList = ColorStateList.valueOf(0xFFE53E3E.toInt())
+                tvVpnStatus.text = "FALHA NA LIGAÇÃO"
+                tvVpnStatus.setTextColor(0xFFE53E3E.toInt())
+                tvVpnStatusSub.text = "Não foi possível estabelecer ligação ao servidor. Tenta novamente."
+                tvVpnIp.text = "—"
+
+                btnToggleVpn.text = "TENTAR NOVAMENTE"
+                btnToggleVpn.background = GradientDrawable().apply {
+                    setColor(0xFF0284C7.toInt())
+                    cornerRadius = dp(10).toFloat()
+                }
+                vpnDurationHandler.removeCallbacks(vpnDurationRunnable)
+            }
+        }
+    }
+
+    private fun mostrarDialogoCredenciaisOculto() {
+        if (isFinishing || isDestroyed) return
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(24), dp(16), dp(24), dp(16))
+        }
+
+        val etUser = EditText(this).apply {
+            hint = "Utilizador PIA"
+            setText(PiaVpnConfig.getUsername(this@EagleTvActivity))
+            setTextColor(Color.WHITE)
+            setHintTextColor(0xFF718096.toInt())
+            isSingleLine = true
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = GradientDrawable().apply {
+                setColor(0xFF1A2639.toInt())
+                cornerRadius = dp(8).toFloat()
+                setStroke(dp(1), 0xFF2D3E56.toInt())
+            }
+        }
+
+        val etPass = EditText(this).apply {
+            hint = "Palavra-passe PIA"
+            setText(PiaVpnConfig.getPassword(this@EagleTvActivity))
+            setTextColor(Color.WHITE)
+            setHintTextColor(0xFF718096.toInt())
+            isSingleLine = true
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(12)
+            }
+            layoutParams = lp
+            background = GradientDrawable().apply {
+                setColor(0xFF1A2639.toInt())
+                cornerRadius = dp(8).toFloat()
+                setStroke(dp(1), 0xFF2D3E56.toInt())
+            }
+        }
+
+        container.addView(etUser)
+        container.addView(etPass)
+
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Credenciais PIA VPN")
+            .setMessage("Altera as credenciais de acesso caso tenhas uma conta PIA dedicada.")
+            .setView(container)
+            .setPositiveButton("Guardar") { _, _ ->
+                val u = etUser.text.toString().trim()
+                val p = etPass.text.toString().trim()
+                if (u.isNotEmpty() && p.isNotEmpty()) {
+                    PiaVpnConfig.setUsername(this, u)
+                    PiaVpnConfig.setPassword(this, p)
+                    Toast.makeText(this, "Credenciais guardadas com sucesso", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Utilizador e password não podem estar vazios", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    inner class VpnRegionAdapter(
+        private val list: List<PiaRegion>,
+        private val onSelect: (PiaRegion) -> Unit
+    ) : RecyclerView.Adapter<VpnRegionAdapter.ViewHolder>() {
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val tvFlag: TextView = view.findViewById(R.id.tvRegionFlag)
+            val tvName: TextView = view.findViewById(R.id.tvRegionName)
+            val tvBadge: TextView = view.findViewById(R.id.tvRegionBadge)
+            val ivSelected: ImageView = view.findViewById(R.id.ivRegionSelected)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_vpn_region, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun getItemCount(): Int = list.size
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val reg = list[position]
+            holder.tvFlag.text = reg.flagEmoji
+            holder.tvName.text = reg.name
+
+            val isSelected = (selectedVpnRegion?.id == reg.id)
+            val isConnectedToThis = (PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED &&
+                    PiaVpnManager.getConnectedRegion()?.id == reg.id)
+            val isConnectingToThis = (PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTING &&
+                    selectedVpnRegion?.id == reg.id)
+
+            when {
+                isConnectedToThis -> {
+                    holder.ivSelected.visibility = View.VISIBLE
+                    holder.ivSelected.setImageResource(android.R.drawable.checkbox_on_background)
+                    holder.ivSelected.imageTintList = ColorStateList.valueOf(0xFF48BB78.toInt())
+                    holder.tvBadge.visibility = View.VISIBLE
+                    holder.tvBadge.text = "● Ligado agora"
+                    holder.tvBadge.setTextColor(0xFF48BB78.toInt())
+                }
+                isConnectingToThis -> {
+                    holder.ivSelected.visibility = View.VISIBLE
+                    holder.ivSelected.setImageResource(android.R.drawable.ic_popup_sync)
+                    holder.ivSelected.imageTintList = ColorStateList.valueOf(0xFFECC94B.toInt())
+                    holder.tvBadge.visibility = View.VISIBLE
+                    holder.tvBadge.text = "A ligar…"
+                    holder.tvBadge.setTextColor(0xFFECC94B.toInt())
+                }
+                isSelected -> {
+                    holder.ivSelected.visibility = View.VISIBLE
+                    holder.ivSelected.setImageResource(android.R.drawable.checkbox_on_background)
+                    holder.ivSelected.imageTintList = ColorStateList.valueOf(0xFF38BDF8.toInt())
+                    holder.tvBadge.visibility = View.GONE
+                }
+                else -> {
+                    holder.ivSelected.visibility = View.INVISIBLE
+                    holder.tvBadge.visibility = View.GONE
+                }
+            }
+
+            val card = holder.itemView as? CardView
+            val updateStyle: (Boolean) -> Unit = { hasFocus ->
+                if (hasFocus) {
+                    card?.setCardBackgroundColor(0xFF1A365D.toInt())
+                    card?.cardElevation = dp(8).toFloat()
+                    holder.itemView.animate().scaleX(1.03f).scaleY(1.03f).setDuration(120).start()
+                } else if (isConnectedToThis) {
+                    card?.setCardBackgroundColor(0xFF0F2D20.toInt())
+                    card?.cardElevation = dp(2).toFloat()
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                } else if (isSelected) {
+                    card?.setCardBackgroundColor(0xFF102844.toInt())
+                    card?.cardElevation = dp(2).toFloat()
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                } else {
+                    card?.setCardBackgroundColor(0xFF101A2B.toInt())
+                    card?.cardElevation = dp(2).toFloat()
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }
+            }
+
+            updateStyle(holder.itemView.hasFocus())
+            holder.itemView.setOnFocusChangeListener { _, hasFocus -> updateStyle(hasFocus) }
+            holder.itemView.setOnClickListener { onSelect(reg) }
+        }
+    }
+
+    // =========================================================================
+    // SECÇÃO 6: DEFINIÇÕES INTEGRADA NO ECRÃ PRINCIPAL
+    // =========================================================================
+
+    data class EagleSettingCard(
+        val id: String,
+        val iconEmoji: String,
+        val title: String,
+        val subtitle: String,
+        val action: () -> Unit
+    )
+
+    private fun iniciarSecaoDefinicoes() {
+        val timeFormat = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getString("time_format", "24 Hr") ?: "24 Hr"
+        val streamType = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getString("stream_type", "MPEGTS") ?: "MPEGTS"
+        val activeService = IptvServiceConfig.activeServiceId(this)
+        val serverName = IptvServiceConfig.displayName(activeService)
+
+        val cards = listOf(
+            EagleSettingCard("ACCOUNT", "👤", "A Minha Conta", "Ver validade da subscrição, ligações e detalhes", ::mostrarDialogoConta),
+            EagleSettingCard("UPDATES", "🔄", "Atualizações da App", "Verificar novas versões e atualizar via OTA", { AppUpdateManager.checkForUpdates(this, manual = true) }),
+            EagleSettingCard("LANGUAGE", "🌐", "Idioma dos Menus", "Configurar idioma da interface", ::mostrarDialogoIdioma),
+            EagleSettingCard("TIME", "🕒", "Formato de Hora", "Atualmente: $timeFormat", ::mostrarDialogoFormatoHora),
+            EagleSettingCard("STREAM", "📺", "Formato de Stream", "Atualmente: $streamType (recomendado para Box)", ::mostrarDialogoFormatoStream),
+            EagleSettingCard("SERVER", "🔀", "Servidor IPTV", "Atualmente: $serverName", ::mostrarDialogoTrocarServidor),
+            EagleSettingCard("LOGOUT", "🚪", "Terminar Sessão", "Desconectar utilizador e mudar de conta", ::mostrarDialogoLogout)
+        )
+
+        rvSettingsGrid.adapter = EagleSettingsAdapter(cards)
+        rvSettingsGrid.post {
+            focarRecyclerViewPosicao(rvSettingsGrid, 0)
+        }
+    }
+
+    private fun mostrarDialogoConta() {
+        val dialog = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("👤 A Minha Conta")
+            .setMessage("A carregar detalhes da conta...")
+            .setPositiveButton("OK", null)
+            .create()
+        dialog.show()
+
+        val url = "$baseUrl/player_api.php?username=$user&password=$pass"
+        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    dialog.setMessage("Utilizador: $user\nServidor: $baseUrl\nNão foi possível obter dados adicionais.")
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val json = response.body?.string().orEmpty()
+                try {
+                    val root = JSONObject(json)
+                    val userInfo = root.optJSONObject("user_info")
+                    val status = userInfo?.optString("status", "Ativo") ?: "Ativo"
+                    val expDateRaw = userInfo?.optString("exp_date", "") ?: ""
+                    val maxConn = userInfo?.optString("max_connections", "1") ?: "1"
+                    val activeConn = userInfo?.optString("active_cons", "0") ?: "0"
+
+                    val expFormatted = if (expDateRaw.isNotEmpty() && expDateRaw != "null") {
+                        val ts = expDateRaw.toLongOrNull()
+                        if (ts != null) {
+                            SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(ts * 1000L))
+                        } else {
+                            expDateRaw
+                        }
+                    } else {
+                        "Ilimitada / Vitalícia"
+                    }
+
+                    val msg = """
+                        👤 Utilizador: $user
+                        ● Estado: $status
+                        📅 Validade: $expFormatted
+                        🔗 Ligações: $activeConn / $maxConn ativas
+                        🌐 Servidor: ${IptvServiceConfig.displayName(IptvServiceConfig.activeServiceId(this@EagleTvActivity))}
+                    """.trimIndent()
+
+                    runOnUiThread {
+                        dialog.setMessage(msg)
+                    }
+                } catch (_: Exception) {
+                    runOnUiThread {
+                        dialog.setMessage("Utilizador: $user\nServidor: $baseUrl")
+                    }
+                }
+            }
+        })
+    }
+
+    private fun mostrarDialogoIdioma() {
+        val idiomas = arrayOf("Português (Padrão)", "English", "Español", "Français")
+        val codes = arrayOf("pt", "en", "es", "fr")
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("🌐 Escolher Idioma")
+            .setItems(idiomas) { _, which ->
+                val code = codes[which]
+                androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                    androidx.core.os.LocaleListCompat.forLanguageTags(code)
+                )
+                Toast.makeText(this, "Idioma alterado para ${idiomas[which]}", Toast.LENGTH_SHORT).show()
+                iniciarSecaoDefinicoes()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun mostrarDialogoFormatoHora() {
+        val opcoes = arrayOf("24 Horas (ex: 20:30)", "12 Horas (ex: 08:30 PM)")
+        val valores = arrayOf("24 Hr", "12 Hr")
+        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        val current = if (prefs.getString("time_format", "24 Hr") == "12 Hr") 1 else 0
+
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("🕒 Formato de Hora")
+            .setSingleChoiceItems(opcoes, current) { d, which ->
+                prefs.edit().putString("time_format", valores[which]).apply()
+                atualizarRelogio()
+                Toast.makeText(this, "Formato guardado!", Toast.LENGTH_SHORT).show()
+                d.dismiss()
+                iniciarSecaoDefinicoes()
+            }
+            .show()
+    }
+
+    private fun mostrarDialogoFormatoStream() {
+        val opcoes = arrayOf("MPEG-TS (.ts) - Recomendado para TV Box", "HLS (.m3u8) - Streaming Adaptativo")
+        val valores = arrayOf("MPEGTS", "HLS")
+        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        val current = if (prefs.getString("stream_type", "MPEGTS") == "HLS") 1 else 0
+
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("📺 Formato de Stream")
+            .setSingleChoiceItems(opcoes, current) { d, which ->
+                prefs.edit().putString("stream_type", valores[which]).apply()
+                Toast.makeText(this, "Formato alterado para ${valores[which]}", Toast.LENGTH_SHORT).show()
+                d.dismiss()
+                iniciarSecaoDefinicoes()
+            }
+            .show()
+    }
+
+    private fun mostrarDialogoLogout() {
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("🚪 Terminar Sessão")
+            .setMessage("Tens a certeza que queres terminar sessão e aceder com outra conta?")
+            .setPositiveButton("Sim, Sair") { _, _ ->
+                getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("auto_login", false)
+                    .remove("SAVED_USER")
+                    .remove("SAVED_PASS")
+                    .apply()
+                startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                })
+                finish()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    inner class EagleSettingsAdapter(
+        private val list: List<EagleSettingCard>
+    ) : RecyclerView.Adapter<EagleSettingsAdapter.ViewHolder>() {
+
+        inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val tvIcon: TextView = v.findViewById(R.id.tvSettingIcon)
+            val tvTitle: TextView = v.findViewById(R.id.tvSettingTitle)
+            val tvSubtitle: TextView = v.findViewById(R.id.tvSettingSubtitle)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val v = LayoutInflater.from(parent.context).inflate(R.layout.item_eagletv_setting_card, parent, false)
+            return ViewHolder(v)
+        }
+
+        override fun getItemCount(): Int = list.size
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            val item = list[position]
+            holder.tvIcon.text = item.iconEmoji
+            holder.tvTitle.text = item.title
+            holder.tvSubtitle.text = item.subtitle
+
+            val updateStyle: (Boolean) -> Unit = { hasFocus ->
+                holder.itemView.background = GradientDrawable().apply {
+                    cornerRadius = dp(10).toFloat()
+                    if (hasFocus) {
+                        setColor(0xFF1A365D.toInt())
+                        setStroke(dp(2), 0xFF00E5FF.toInt())
+                    } else {
+                        setColor(0xFF0F1B2D.toInt())
+                        setStroke(dp(1), 0x3338BDF8)
+                    }
+                }
+                if (hasFocus) {
+                    holder.itemView.animate().scaleX(1.02f).scaleY(1.02f).setDuration(100).start()
+                } else {
+                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+                }
+            }
+
+            updateStyle(holder.itemView.hasFocus())
+            holder.itemView.setOnFocusChangeListener { _, hasFocus -> updateStyle(hasFocus) }
+            holder.itemView.setOnClickListener { item.action() }
+        }
     }
 
     private fun mostrarDialogoSaida() {
