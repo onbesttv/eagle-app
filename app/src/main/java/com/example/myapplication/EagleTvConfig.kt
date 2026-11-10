@@ -23,7 +23,12 @@ object EagleTvConfig {
     private val gson = Gson()
 
     fun isEagleTvEdition(context: Context): Boolean {
-        return context.packageName.equals("com.eagle.tv", ignoreCase = true)
+        return try {
+            val rid = context.getString(R.string.reseller_id).trim().lowercase()
+            rid == "eagle_tv"
+        } catch (_: Exception) {
+            false
+        }
     }
 
     // --- FAVORITOS DE CANAIS AO VIVO ---

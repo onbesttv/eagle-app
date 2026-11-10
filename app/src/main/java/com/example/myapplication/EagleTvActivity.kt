@@ -535,7 +535,9 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onStop() {
         super.onStop()
-        player?.pause()
+        if (isFinishing) {
+            player?.pause()
+        }
     }
 
     override fun onDestroy() {

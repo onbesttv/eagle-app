@@ -7,11 +7,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.myapplication"
+        applicationId = "com.eagle.tv"
         minSdk = 21
         targetSdk = 35
-        versionCode = 59
-        versionName = "6.4"
+        versionCode = 60
+        versionName = "6.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -20,7 +20,7 @@ android {
     productFlavors {
         create("master") {
             dimension = "reseller"
-            applicationId = "com.example.myapplication"
+            applicationId = "com.eagle.tv"
             resValue("string", "app_name", "Eagle")
             resValue("string", "reseller_id", "master")
         }
@@ -28,8 +28,8 @@ android {
         create("eagle_tv") {
             dimension = "reseller"
             applicationId = "com.eagle.tv"
-            versionCode = 11
-            versionName = "2.0"
+            versionCode = 12
+            versionName = "2.1"
             resValue("string", "app_name", "Eagle TV")
             resValue("string", "reseller_id", "eagle_tv")
         }
