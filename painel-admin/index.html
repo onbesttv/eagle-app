@@ -845,7 +845,7 @@
         allDevices.forEach(d => {
             const devRes = (d.reseller_id || "master").toLowerCase();
             const u = (d.username || "").trim().toLowerCase();
-            const isTargetDev = devRes === currentResellerId;
+            const isTargetDev = (devRes === currentResellerId) || (isMasterRole && (devRes === "master" || devRes === "eagle_tv"));
             if (isTargetDev && u && (isMasterRole || !MASTER_OWN_USERS.has(u)) && !usersMap.has(u)) {
                 usersMap.set(u, false);
             }
@@ -1557,7 +1557,10 @@
 
             const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
             const devResLower = devReseller.toLowerCase();
-            const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && devResLower === currentResellerId;
+            const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
+                devResLower === currentResellerId ||
+                (isMasterRole && (devResLower === "master" || devResLower === "eagle_tv"))
+            );
             const userVpnOn = isTargetVpnDev && isUserVpnEnabled(d.username);
             const vpnToggleBtn = !isTargetVpnDev
                 ? ""

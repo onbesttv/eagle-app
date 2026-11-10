@@ -861,7 +861,7 @@ class EagleTvActivity : BaseActivity() {
                 selecionarSecao(WorkspaceSection.VPN)
                 btnToggleVpn.postDelayed({ btnToggleVpn.requestFocus() }, 80)
             } else {
-                Toast.makeText(this, "VPN não ativa para esta conta no painel.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "VPN inativa para esta conta no painel.", Toast.LENGTH_SHORT).show()
             }
         }
         navRefresh.setOnClickListener {
@@ -1013,8 +1013,15 @@ class EagleTvActivity : BaseActivity() {
         val vpnAllowed = PiaVpnConfig.isVpnAllowedForCurrentUser(this)
         val vpnConnected = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED
         if (!vpnAllowed) {
-            navVpn.text = "🛡️  VPN: Bloqueada"
-            navVpn.alpha = 0.45f
+            if (vpnConnected) {
+                PiaVpnManager.disconnect(this)
+            }
+            if (activeSection == WorkspaceSection.VPN) {
+                selecionarSecao(WorkspaceSection.LIVE_TV)
+            }
+            navVpn.text = "🛡️  VPN: Inativa"
+            navVpn.alpha = 0.40f
+            navVpn.setTextColor(0xFF94A3B8.toInt())
         } else if (vpnConnected) {
             navVpn.text = "🛡️  VPN: LIGADA"
             navVpn.alpha = 1.0f
@@ -1022,6 +1029,7 @@ class EagleTvActivity : BaseActivity() {
         } else {
             navVpn.text = "🛡️  VPN: OFF"
             navVpn.alpha = 1.0f
+            navVpn.setTextColor(0xFFF1F5F9.toInt())
         }
     }
 
