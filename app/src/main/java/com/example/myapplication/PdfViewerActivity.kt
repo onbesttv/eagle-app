@@ -168,15 +168,20 @@ class PdfViewerActivity : BaseActivity() {
             return
         }
 
-        if (url.startsWith("http://") || url.startsWith("https://")) {
-            val cacheKey = hashString(url) + ".pdf"
+        var normalizedUrl = url.trim()
+        if (normalizedUrl.contains("github.com/onbesttv/eagle-app/releases/download/v")) {
+            normalizedUrl = normalizedUrl.replace(Regex("/releases/download/v[^/]+/"), "/releases/latest/download/")
+        }
+
+        if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
+            val cacheKey = hashString(normalizedUrl) + ".pdf"
             val cacheDir = File(cacheDir, "newspapers").apply { mkdirs() }
             val cachedFile = File(cacheDir, cacheKey)
 
             if (cachedFile.exists() && cachedFile.length() > 10_000) {
                 initRenderer(cachedFile)
             } else {
-                downloadPdf(url, cachedFile)
+                downloadPdf(normalizedUrl, cachedFile)
             }
         } else {
             val localFile = File(url)
