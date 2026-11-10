@@ -385,14 +385,81 @@ class EagleTvActivity : BaseActivity() {
                     isFullScreen -> {
                         sairDeFullscreen()
                     }
+                    // Em Live TV: retroceder gradualmente entre colunas
+                    activeSection == WorkspaceSection.LIVE_TV -> {
+                        when {
+                            rvChannelSchedule.hasFocus() -> {
+                                val pos = (liveChannelAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                focarRecyclerViewPosicao(rvLiveChannels, pos)
+                            }
+                            rvLiveChannels.hasFocus() -> {
+                                val pos = (liveGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                focarRecyclerViewPosicao(rvLiveGroups, pos)
+                            }
+                            rvLiveGroups.hasFocus() -> {
+                                navLiveTv.requestFocus()
+                            }
+                            layoutLeftRail.hasFocus() -> {
+                                mostrarDialogoSaida()
+                            }
+                            else -> {
+                                navLiveTv.requestFocus()
+                            }
+                        }
+                    }
+                    // Em Gravações com lista de programas aberta:
                     catchupViewingPrograms && activeSection == WorkspaceSection.CATCHUP -> {
                         voltarParaListaCanaisCatchUp()
                     }
-                    activeSection != WorkspaceSection.LIVE_TV -> {
-                        selecionarSecao(WorkspaceSection.LIVE_TV)
+                    // Em Catálogo (Filmes, Séries, Desporto, Jornais, Gravações):
+                    layoutCatalogSection.visibility == View.VISIBLE -> {
+                        when {
+                            rvCatalogGrid.hasFocus() -> {
+                                val groupPos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                focarRecyclerViewPosicao(rvCatalogGroups, groupPos)
+                            }
+                            rvCatalogGroups.hasFocus() -> {
+                                when (activeSection) {
+                                    WorkspaceSection.MOVIES -> navMovies.requestFocus()
+                                    WorkspaceSection.SERIES -> navSeries.requestFocus()
+                                    WorkspaceSection.CATCHUP -> navCatchUp.requestFocus()
+                                    WorkspaceSection.SPORTS -> navSports.requestFocus()
+                                    WorkspaceSection.NEWSPAPERS -> navNewspapers.requestFocus()
+                                    else -> navLiveTv.requestFocus()
+                                }
+                            }
+                            layoutLeftRail.hasFocus() -> {
+                                selecionarSecao(WorkspaceSection.LIVE_TV)
+                            }
+                            else -> {
+                                when (activeSection) {
+                                    WorkspaceSection.MOVIES -> navMovies.requestFocus()
+                                    WorkspaceSection.SERIES -> navSeries.requestFocus()
+                                    WorkspaceSection.CATCHUP -> navCatchUp.requestFocus()
+                                    WorkspaceSection.SPORTS -> navSports.requestFocus()
+                                    WorkspaceSection.NEWSPAPERS -> navNewspapers.requestFocus()
+                                    else -> navLiveTv.requestFocus()
+                                }
+                            }
+                        }
                     }
-                    !layoutLeftRail.hasFocus() -> {
-                        navLiveTv.requestFocus()
+                    // Em VPN:
+                    activeSection == WorkspaceSection.VPN -> {
+                        if (rvVpnRegions.hasFocus()) {
+                            btnToggleVpn.requestFocus()
+                        } else if (btnToggleVpn.hasFocus()) {
+                            navVpn.requestFocus()
+                        } else {
+                            selecionarSecao(WorkspaceSection.LIVE_TV)
+                        }
+                    }
+                    // Em Definições:
+                    activeSection == WorkspaceSection.SETTINGS -> {
+                        if (rvSettingsGrid.hasFocus()) {
+                            navSettings.requestFocus()
+                        } else {
+                            selecionarSecao(WorkspaceSection.LIVE_TV)
+                        }
                     }
                     else -> {
                         mostrarDialogoSaida()
@@ -1478,8 +1545,6 @@ class EagleTvActivity : BaseActivity() {
                             val canais: List<LiveStream> = gson.fromJson(json, type) ?: emptyList()
                             runOnUiThread {
                                 CategoryCountHelper.saveLiveCounts(this@EagleTvActivity, mapOf(groupId to canais.size))
-                                liveGroupAdapter?.notifyDataSetChanged()
-                                overlayGroupAdapter?.notifyDataSetChanged()
                                 aplicarListaCanaisLive(canais, iniciarCanal)
                             }
                         } catch (_: Exception) {}
@@ -1600,8 +1665,6 @@ class EagleTvActivity : BaseActivity() {
 
         liveChannelAdapter?.selecionarCanalPorId(canal.streamId)
         overlayChannelAdapter?.selecionarCanalPorId(canal.streamId)
-        liveGroupAdapter?.notifyDataSetChanged()
-        overlayGroupAdapter?.notifyDataSetChanged()
 
         if (activeSection == WorkspaceSection.LIVE_TV) {
             atualizarPainelTopoCanal(canal)
@@ -2026,7 +2089,6 @@ class EagleTvActivity : BaseActivity() {
                             runOnUiThread {
                                 currentVodCategoryMovies = filmes
                                 CategoryCountHelper.saveVodCounts(this@EagleTvActivity, mapOf(catId to filmes.size))
-                                catalogGroupAdapter?.notifyDataSetChanged()
                                 atualizarGrelhaFilmes()
                             }
                         } catch (_: Exception) {}
@@ -2163,7 +2225,6 @@ class EagleTvActivity : BaseActivity() {
                             runOnUiThread {
                                 currentSeriesCategoryItems = series
                                 CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, mapOf(catId to series.size))
-                                catalogGroupAdapter?.notifyDataSetChanged()
                                 atualizarGrelhaSeries()
                             }
                         } catch (_: Exception) {}
@@ -3864,6 +3925,17 @@ class EagleTvActivity : BaseActivity() {
     ) : RecyclerView.Adapter<GroupListAdapter.ViewHolder>() {
 
         private var selectedPosition = initialSelected
+        private var recyclerViewRef: RecyclerView? = null
+
+        override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+            super.onAttachedToRecyclerView(recyclerView)
+            recyclerViewRef = recyclerView
+        }
+
+        override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+            recyclerViewRef = null
+            super.onDetachedFromRecyclerView(recyclerView)
+        }
 
         fun posicaoSelecionada(): Int = selectedPosition
 
@@ -3872,9 +3944,46 @@ class EagleTvActivity : BaseActivity() {
             if (idx >= 0 && idx != selectedPosition) {
                 val old = selectedPosition
                 selectedPosition = idx
-                notifyItemChanged(old)
-                notifyItemChanged(selectedPosition)
+                atualizarEstiloItem(old)
+                atualizarEstiloItem(selectedPosition)
             }
+        }
+
+        private fun atualizarEstiloItem(pos: Int) {
+            val rv = recyclerViewRef ?: return
+            val vh = rv.findViewHolderForAdapterPosition(pos) as? ViewHolder ?: return
+            val isSelected = pos == selectedPosition
+            val hasFocus = vh.itemView.hasFocus()
+            vh.indicator.visibility = if (isSelected || hasFocus) View.VISIBLE else View.INVISIBLE
+            val (id, _) = if (pos in items.indices) items[pos] else ("" to "")
+            val isSpecial = id.startsWith("FAV") || id.startsWith("RECENT") || id == "RESUME"
+            vh.indicator.setBackgroundColor(
+                if (isSpecial) 0xFFFBBF24.toInt() else 0xFF00E5FF.toInt()
+            )
+            vh.itemView.background = GradientDrawable().apply {
+                cornerRadius = dp(8).toFloat()
+                when {
+                    hasFocus -> {
+                        setColor(0xFF1A365D.toInt())
+                        setStroke(dp(2), 0xFF00E5FF.toInt())
+                    }
+                    isSelected -> {
+                        setColor(0xFF112238.toInt())
+                        setStroke(dp(1), 0x4D38BDF8)
+                    }
+                    else -> {
+                        setColor(Color.TRANSPARENT)
+                    }
+                }
+            }
+            vh.tvName.setTextColor(
+                when {
+                    hasFocus -> Color.WHITE
+                    isSpecial -> 0xFFFBBF24.toInt()
+                    isSelected -> 0xFF38BDF8.toInt()
+                    else -> 0xFFE2E8F0.toInt()
+                }
+            )
         }
 
         inner class ViewHolder(v: View) : RecyclerView.ViewHolder(v) {
@@ -3958,9 +4067,12 @@ class EagleTvActivity : BaseActivity() {
                 if (pos != RecyclerView.NO_POSITION) {
                     val prev = selectedPosition
                     selectedPosition = pos
-                    notifyItemChanged(prev)
-                    notifyItemChanged(selectedPosition)
+                    atualizarEstiloItem(prev)
+                    atualizarEstiloItem(selectedPosition)
                     onSelect(id, name)
+                    holder.itemView.post {
+                        holder.itemView.requestFocus()
+                    }
                 }
             }
         }
