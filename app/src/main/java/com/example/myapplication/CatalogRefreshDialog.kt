@@ -98,7 +98,7 @@ object CatalogRefreshDialog {
                     Handler(Looper.getMainLooper()).postDelayed({
                         if (dialog.isShowing) dialog.dismiss()
                         onFinished(result)
-                    }, 1000L)
+                    }, 200L)
                 } else {
                     onFinished(result)
                 }

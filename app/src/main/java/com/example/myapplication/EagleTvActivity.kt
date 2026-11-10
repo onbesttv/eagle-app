@@ -3246,18 +3246,23 @@ class EagleTvActivity : BaseActivity() {
     )
 
     private fun iniciarSecaoDefinicoes() {
-        val timeFormat = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getString("time_format", "24 Hr") ?: "24 Hr"
-        val streamType = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getString("stream_type", "MPEGTS") ?: "MPEGTS"
+        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        prefs.edit().putString("stream_type", "MPEGTS").apply()
+        val timeFormat = prefs.getString("time_format", "24 Hr") ?: "24 Hr"
         val activeService = IptvServiceConfig.activeServiceId(this)
         val serverName = IptvServiceConfig.displayName(activeService)
 
         val cards = listOf(
             EagleSettingCard("ACCOUNT", "👤", "A Minha Conta", "Ver validade da subscrição, ligações e detalhes", ::mostrarDialogoConta),
-            EagleSettingCard("UPDATES", "🔄", "Atualizações da App", "Verificar novas versões e atualizar via OTA", { AppUpdateManager.checkForUpdates(this, manual = true) }),
+            EagleSettingCard("UPDATES", "🔄", "Atualizações da App", "Verificar novas versões", { AppUpdateManager.checkForUpdates(this, manual = true) }),
             EagleSettingCard("LANGUAGE", "🌐", "Idioma dos Menus", "Configurar idioma da interface", ::mostrarDialogoIdioma),
             EagleSettingCard("TIME", "🕒", "Formato de Hora", "Atualmente: $timeFormat", ::mostrarDialogoFormatoHora),
-            EagleSettingCard("STREAM", "📺", "Formato de Stream", "Atualmente: $streamType (recomendado para Box)", ::mostrarDialogoFormatoStream),
-            EagleSettingCard("SERVER", "🔀", "Servidor IPTV", "Atualmente: $serverName", ::mostrarDialogoTrocarServidor),
+            EagleSettingCard("STREAM", "🔒", "Formato de Stream", "MPEG-TS (Bloqueado)", {
+                Toast.makeText(this, "Formato fixado e otimizado em MPEG-TS para a TV Box.", Toast.LENGTH_SHORT).show()
+            }),
+            EagleSettingCard("SERVER", "🔒", "Servidor IPTV", "Atualmente: $serverName (Bloqueado)", {
+                Toast.makeText(this, "Servidor IPTV fixo e bloqueado.", Toast.LENGTH_SHORT).show()
+            }),
             EagleSettingCard("LOGOUT", "🚪", "Terminar Sessão", "Desconectar utilizador e mudar de conta", ::mostrarDialogoLogout)
         )
 

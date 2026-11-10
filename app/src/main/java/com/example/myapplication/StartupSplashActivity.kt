@@ -18,7 +18,21 @@ class StartupSplashActivity : BaseActivity() {
             return
         }
         navigated = true
-        startActivity(Intent(this, ServiceSelectionActivity::class.java))
+        IptvServiceConfig.initialize(this)
+        val activeService = IptvServiceConfig.activeServiceId(this)
+        val savedUser = IptvServiceConfig.username(this, activeService)
+        val savedPass = IptvServiceConfig.password(this, activeService)
+
+        if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
+            startActivity(
+                Intent(this, StreamPlayLoginActivity::class.java)
+                    .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
+                    .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, activeService)
+            )
+        } else {
+            startActivity(Intent(this, ServiceSelectionActivity::class.java))
+        }
+        overridePendingTransition(0, 0)
         finish()
     }
 
@@ -35,8 +49,8 @@ class StartupSplashActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_startup_splash)
-        handler.postDelayed(minSplashRunnable, 650L)
-        handler.postDelayed(maxTimeoutRunnable, 2000L)
+        handler.postDelayed(minSplashRunnable, 350L)
+        handler.postDelayed(maxTimeoutRunnable, 1500L)
         RemotePanelManager.sync(this) {
             syncFinished = true
             tryProceed()

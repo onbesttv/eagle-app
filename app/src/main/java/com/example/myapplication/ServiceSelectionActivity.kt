@@ -18,6 +18,11 @@ class ServiceSelectionActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_service_selection)
         IptvServiceConfig.initialize(this)
+        if (EagleTvConfig.isEagleTvEdition(this)) {
+            findViewById<View>(R.id.ivServiceSelectionBgFuturistic)?.visibility = View.GONE
+            findViewById<View>(R.id.viewServiceSelectionBgOverlay)?.visibility = View.GONE
+            window.decorView.setBackgroundColor(0xFF07080B.toInt())
+        }
         var selectedService = IptvServiceConfig.activeServiceId(this)
         val manualSelection = intent.getBooleanExtra(EXTRA_MANUAL_SELECTION, false)
         val savedUser = IptvServiceConfig.username(this, selectedService)
@@ -30,6 +35,8 @@ class ServiceSelectionActivity : BaseActivity() {
             startActivity(Intent(this, StreamPlayLoginActivity::class.java)
                 .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
                 .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, selectedService))
+            overridePendingTransition(0, 0)
+            finish()
             return
         }
 

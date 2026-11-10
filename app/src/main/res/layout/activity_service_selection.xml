@@ -6,6 +6,7 @@
     android:background="#08090E">
 
     <ImageView
+        android:id="@+id/ivServiceSelectionBgFuturistic"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:contentDescription="@null"
@@ -13,6 +14,7 @@
         android:src="@drawable/bg_app_futuristic" />
 
     <View
+        android:id="@+id/viewServiceSelectionBgOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#37020914" />

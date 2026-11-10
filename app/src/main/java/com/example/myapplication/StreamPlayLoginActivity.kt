@@ -78,6 +78,13 @@ class StreamPlayLoginActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvLoginServiceBrand).text = serviceBrandLabel
         findViewById<TextView>(R.id.tvAutoLoginServiceBrand).text = serviceBrandLabel
 
+        val isEagle = EagleTvConfig.isEagleTvEdition(this)
+        if (isEagle) {
+            findViewById<View>(R.id.ivLoginBgFuturistic)?.visibility = View.GONE
+            findViewById<View>(R.id.viewLoginBgOverlay)?.visibility = View.GONE
+            window.decorView.setBackgroundColor(0xFF07080B.toInt())
+        }
+
         IptvServiceConfig.select(this, selectedService)
         usernameInput.setText(IptvServiceConfig.username(this, selectedService))
         passwordInput.setText(IptvServiceConfig.password(this, selectedService))
@@ -232,12 +239,17 @@ class StreamPlayLoginActivity : BaseActivity() {
     private fun finishLogin(result: ServiceRefreshResult) {
         progress.visibility = View.GONE
         statusText.visibility = View.GONE
+        if (isAutoLogin) {
+            autoProgressPanel.visibility = View.VISIBLE
+            autoStatusText.text = "A iniciar a televisão…"
+        }
         openMainActivity()
     }
 
     private fun openMainActivity() {
         val target = if (EagleTvConfig.isEagleTvEdition(this)) EagleTvActivity::class.java else MainActivity::class.java
         startActivity(Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK))
+        overridePendingTransition(0, 0)
         finish()
     }
 }
