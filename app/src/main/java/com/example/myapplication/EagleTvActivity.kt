@@ -1343,7 +1343,17 @@ class EagleTvActivity : BaseActivity() {
 
                     runOnUiThread {
                         tvLiveGroupsCount.text = "${remotas.size} pastas"
-                        val initialIdx = if (listaCompleta.size > 3) 3 else 0
+
+                        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                        val savedGroupId = prefs.getString("last_live_group_id", null)
+
+                        var initialIdx = -1
+                        if (!savedGroupId.isNullOrBlank()) {
+                            initialIdx = listaCompleta.indexOfFirst { it.categoryId == savedGroupId }
+                        }
+                        if (initialIdx == -1) {
+                            initialIdx = if (listaCompleta.size > 3) 3 else 0
+                        }
 
                         liveGroupAdapter = GroupListAdapter(
                             items = listaCompleta.map { it.categoryId to it.categoryName },
@@ -1352,6 +1362,7 @@ class EagleTvActivity : BaseActivity() {
                             onSelect = { id, name -> selecionarGrupoLive(id, name, iniciarCanal = false) }
                         )
                         rvLiveGroups.adapter = liveGroupAdapter
+                        rvLiveGroups.scrollToPosition(initialIdx)
 
                         overlayGroupAdapter = GroupListAdapter(
                             items = listaCompleta.map { it.categoryId to it.categoryName },
@@ -1360,6 +1371,7 @@ class EagleTvActivity : BaseActivity() {
                             onSelect = { id, name -> selecionarGrupoLive(id, name, iniciarCanal = false) }
                         )
                         rvOverlayGroups.adapter = overlayGroupAdapter
+                        rvOverlayGroups.scrollToPosition(initialIdx)
 
                         val initialCat = listaCompleta[initialIdx]
                         selecionarGrupoLive(initialCat.categoryId, initialCat.categoryName, iniciarCanal = true)
@@ -1399,12 +1411,18 @@ class EagleTvActivity : BaseActivity() {
                         streams.firstOrNull { it.name.replace(" ", "").lowercase().contains(clean) }
                             ?: streams.firstOrNull { clean.contains(it.name.replace(" ", "").lowercase()) }
                     } else null
+                    val lastId = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getInt("last_live_stream_id", -1)
+                    val matchedStream = if (currentStreamId == -1 && lastId != -1) {
+                        streams.firstOrNull { it.streamId == lastId }
+                    } else null
                     runOnUiThread {
                         liveGroupAdapter?.notifyDataSetChanged()
                         overlayGroupAdapter?.notifyDataSetChanged()
                         if (matchedByTarget != null) {
                             intent.removeExtra("TARGET_CHANNEL_NAME")
                             sintonizarCanal(matchedByTarget, 1)
+                        } else if (matchedStream != null && currentStreamId == -1) {
+                            sintonizarCanal(matchedStream, 1)
                         }
                     }
                 } catch (_: Exception) {}
@@ -1417,6 +1435,12 @@ class EagleTvActivity : BaseActivity() {
         currentLiveGroupName = groupName
         tvLiveChannelListHeader.text = groupName.uppercase(Locale.getDefault())
         tvOverlayGroupTitle.text = groupName.uppercase(Locale.getDefault())
+
+        getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            .edit()
+            .putString("last_live_group_id", groupId)
+            .putString("last_live_group_name", groupName)
+            .apply()
 
         liveGroupAdapter?.selecionarPorId(groupId)
         overlayGroupAdapter?.selecionarPorId(groupId)
@@ -1553,10 +1577,16 @@ class EagleTvActivity : BaseActivity() {
         currentStreamId = canal.streamId
 
         EagleTvConfig.recordRecentChannel(this, canal)
-        getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-            .edit()
-            .putInt("last_live_stream_id", canal.streamId)
-            .apply()
+        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit()
+        prefs.putInt("last_live_stream_id", canal.streamId)
+        prefs.putString("last_live_channel_name", canal.name)
+        if (currentLiveGroupId.isNotBlank()) {
+            prefs.putString("last_live_group_id", currentLiveGroupId)
+            prefs.putString("last_live_group_name", currentLiveGroupName)
+        } else if (!canal.categoryId.isNullOrBlank()) {
+            prefs.putString("last_live_group_id", canal.categoryId)
+        }
+        prefs.apply()
 
         val extension = if (getSharedPreferences("app_settings", Context.MODE_PRIVATE)
                 .getString("stream_type", "MPEGTS") == "HLS") "m3u8" else "ts"
