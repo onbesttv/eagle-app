@@ -557,7 +557,8 @@
                         <tr>
                             <th>Estado</th>
                             <th>Utilizador (Linha)</th>
-                            <th>Revenda / App</th>
+                            <th>Revenda</th>
+                            <th>Aplicação</th>
                             <th>Serviço</th>
                             <th>Box / Dispositivo</th>
                             <th>Versão</th>
@@ -567,7 +568,7 @@
                     </thead>
                     <tbody id="devicesTableBody">
                         <tr>
-                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 28px;">A carregar dispositivos...</td>
+                            <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 28px;">A carregar dispositivos...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1392,16 +1393,22 @@
         updateStats();
     }
 
+    function renderResellerBadge(d) {
+        const devRes = (d.reseller_id || "master").toLowerCase();
+        if (devRes === "master" || devRes === "eagle_tv") {
+            return `<span class="badge" style="background: rgba(59, 130, 246, 0.16); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35);">👑 Master</span>`;
+        }
+        const found = allResellers.find(r => (r.reseller_id || '').toLowerCase() === devRes);
+        const label = found ? (found.brand_name || found.reseller_id) : (d.reseller_id || devRes);
+        return `<span class="badge badge-reseller">🤝 ${escapeHtml(label)}</span>`;
+    }
+
     function renderAppBadge(d) {
         const appType = getDeviceAppType(d);
         if (appType === "mytvonline") {
             return `<span class="badge badge-mytvonline" ${isMasterRole ? `onclick="toggleDeviceAppType('${escapeHtml(d.device_id)}')" title="Clica para alternar entre Eagle XCIPTV e Eagle MyTvOnline"` : ''}>🦅 Eagle MyTvOnline</span>`;
-        } else if (appType === "xciptv") {
-            return `<span class="badge badge-xciptv" ${isMasterRole ? `onclick="toggleDeviceAppType('${escapeHtml(d.device_id)}')" title="Clica para alternar entre Eagle XCIPTV e Eagle MyTvOnline"` : ''}>📺 Eagle XCIPTV</span>`;
         } else {
-            const found = allResellers.find(r => (r.reseller_id || '').toLowerCase() === appType.toLowerCase());
-            const label = found ? found.brand_name : (d.reseller_id || appType);
-            return `<span class="badge badge-reseller">${escapeHtml(label)}</span>`;
+            return `<span class="badge badge-xciptv" ${isMasterRole ? `onclick="toggleDeviceAppType('${escapeHtml(d.device_id)}')" title="Clica para alternar entre Eagle XCIPTV e Eagle MyTvOnline"` : ''}>📺 Eagle XCIPTV</span>`;
         }
     }
 
@@ -1409,20 +1416,19 @@
         const sel = document.getElementById("resellerFilterSelect");
         const prev = sel.value || "all";
         let html = `
-            <option value="all">Todas as Apps (Master + Revendas)</option>
-            <option value="xciptv">📺 Eagle XCIPTV</option>
-            <option value="mytvonline">🦅 Eagle MyTvOnline</option>
+            <option value="all">Todas as Revendas</option>
+            <option value="master">👑 Master (Eagle Oficial)</option>
         `;
-        const otherResellers = allResellers.filter(r => r.reseller_id !== "master" && r.reseller_id !== "eagle_tv" && r.reseller_id !== "xciptv" && r.reseller_id !== "mytvonline");
+        const otherResellers = allResellers.filter(r => r.reseller_id !== "master" && r.reseller_id !== "eagle_tv");
         if (otherResellers.length > 0) {
             html += otherResellers.map(r =>
                 `<option value="${escapeHtml(r.reseller_id)}">🤝 Revenda: ${escapeHtml(r.brand_name || r.reseller_id)}</option>`
             ).join("");
         }
-        const known = new Set(["master", "eagle_tv", "xciptv", "mytvonline", "eagle_xciptv", "eagle_mytvonline", ...allResellers.map(r => (r.reseller_id || "").toLowerCase())]);
+        const known = new Set(["master", "eagle_tv", ...allResellers.map(r => (r.reseller_id || "").toLowerCase())]);
         const extras = [...new Set(allDevices.map(d => (d.reseller_id || "master").toLowerCase()))].filter(id => !known.has(id));
         for (const ext of extras) {
-            html += `<option value="${escapeHtml(ext)}">📱 ${escapeHtml(ext)}</option>`;
+            html += `<option value="${escapeHtml(ext)}">📱 Revenda: ${escapeHtml(ext)}</option>`;
         }
         sel.innerHTML = html;
         sel.value = prev;
@@ -1510,11 +1516,9 @@
             const appType = getDeviceAppType(d);
 
             if (resellerFilter !== "all") {
-                if (resellerFilter === "xciptv" && appType !== "xciptv") return false;
-                else if (resellerFilter === "mytvonline" && appType !== "mytvonline") return false;
-                else if (resellerFilter === "master" && appType !== "xciptv") return false;
-                else if (resellerFilter === "eagle_tv" && appType !== "mytvonline") return false;
-                else if (resellerFilter !== "xciptv" && resellerFilter !== "mytvonline" && resellerFilter !== "master" && resellerFilter !== "eagle_tv" && devReseller !== resellerFilter) return false;
+                const normDevReseller = (devReseller === "eagle_tv") ? "master" : devReseller;
+                if (resellerFilter === "master" && normDevReseller !== "master") return false;
+                else if (resellerFilter !== "master" && devReseller !== resellerFilter) return false;
             }
 
             if (currentFilter === "xciptv" && appType !== "xciptv") return false;
@@ -1533,7 +1537,7 @@
         });
 
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
             return;
         }
 
@@ -1569,6 +1573,7 @@
                 <tr>
                     <td>${statusBadge}</td>
                     <td>${userLabel}</td>
+                    <td>${renderResellerBadge(d)}</td>
                     <td>${renderAppBadge(d)}</td>
                     <td>${srvBadge}</td>
                     <td>
