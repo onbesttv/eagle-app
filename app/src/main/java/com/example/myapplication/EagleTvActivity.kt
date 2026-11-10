@@ -40,6 +40,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import okhttp3.Call
@@ -255,6 +256,43 @@ class EagleTvActivity : BaseActivity() {
     private var hasSavedFocus = false
     private var focarConteudoAoCarregar = false
 
+    // Caches em memória para performance máxima sem I/O de disco no scroll
+    private val movieFavIdsCache = HashSet<String>()
+    private val seriesFavIdsCache = HashSet<String>()
+    private val liveFavIdsCache = HashSet<Int>()
+    private val vodResumePosCache = HashMap<Int, Long>()
+    private val vodResumeDurCache = HashMap<Int, Long>()
+    private var currentPreviewVodStreamId = -1
+    private var heroPreviewRunnable: Runnable? = null
+
+    private fun carregarCachesLocais() {
+        movieFavIdsCache.clear()
+        getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
+            .getStringSet("fav_ids", emptySet())?.let { movieFavIdsCache.addAll(it) }
+
+        seriesFavIdsCache.clear()
+        getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
+            .getStringSet("fav_ids", emptySet())?.let { seriesFavIdsCache.addAll(it) }
+
+        liveFavIdsCache.clear()
+        liveFavIdsCache.addAll(EagleTvConfig.getFavoriteChannelIds(this))
+
+        vodResumePosCache.clear()
+        vodResumeDurCache.clear()
+        val resumePrefs = getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
+        resumePrefs.all.forEach { (k, v) ->
+            if (k.startsWith("pos_")) {
+                val streamId = k.removePrefix("pos_").toIntOrNull()
+                val pos = (v as? Long) ?: (v as? Int)?.toLong() ?: 0L
+                if (streamId != null && pos > 10_000L) vodResumePosCache[streamId] = pos
+            } else if (k.startsWith("dur_")) {
+                val streamId = k.removePrefix("dur_").toIntOrNull()
+                val dur = (v as? Long) ?: (v as? Int)?.toLong() ?: 0L
+                if (streamId != null && dur > 0L) vodResumeDurCache[streamId] = dur
+            }
+        }
+    }
+
     private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 8) {
         if (targetPos < 0) return
         val count = rv.adapter?.itemCount ?: 0
@@ -370,6 +408,7 @@ class EagleTvActivity : BaseActivity() {
         configurarPesquisaEOrdenacao()
 
         atualizarRelogio()
+        carregarCachesLocais()
         atualizarEstadoServidorEVpn()
         AccountExpirationAlert.checkAndShow(this)
         AppUpdateManager.checkForUpdates(this, manual = false)
@@ -477,6 +516,7 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        carregarCachesLocais()
         uiHandler.removeCallbacks(clockTickRunnable)
         uiHandler.post(clockTickRunnable)
         atualizarEstadoServidorEVpn()
@@ -594,23 +634,38 @@ class EagleTvActivity : BaseActivity() {
 
         rvLiveGroups.layoutManager = LinearLayoutManager(this)
         rvLiveGroups.itemAnimator = null
+        rvLiveGroups.setHasFixedSize(true)
+        rvLiveGroups.setItemViewCacheSize(15)
+
         rvLiveChannels.layoutManager = LinearLayoutManager(this)
         rvLiveChannels.itemAnimator = null
+        rvLiveChannels.setHasFixedSize(true)
+        rvLiveChannels.setItemViewCacheSize(20)
+
         rvChannelSchedule.layoutManager = LinearLayoutManager(this)
         rvChannelSchedule.itemAnimator = null
+        rvChannelSchedule.setHasFixedSize(true)
 
         rvOverlayGroups.layoutManager = LinearLayoutManager(this)
         rvOverlayGroups.itemAnimator = null
+        rvOverlayGroups.setHasFixedSize(true)
+
         rvOverlayChannels.layoutManager = LinearLayoutManager(this)
         rvOverlayChannels.itemAnimator = null
+        rvOverlayChannels.setHasFixedSize(true)
 
         rvRecentChannels.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvRecentChannels.itemAnimator = null
 
         rvCatalogGroups.layoutManager = LinearLayoutManager(this)
         rvCatalogGroups.itemAnimator = null
+        rvCatalogGroups.setHasFixedSize(true)
+        rvCatalogGroups.setItemViewCacheSize(15)
+
         rvCatalogGrid.layoutManager = GridLayoutManager(this, 5)
         rvCatalogGrid.itemAnimator = null
+        rvCatalogGrid.setHasFixedSize(true)
+        rvCatalogGrid.setItemViewCacheSize(25)
 
         // Secções Integradas: VPN e Definições
         layoutVpnSection = findViewById(R.id.layoutVpnSection)
@@ -1744,6 +1799,7 @@ class EagleTvActivity : BaseActivity() {
 
     private fun alternarFavoritoCanal(canal: LiveStream) {
         val added = EagleTvConfig.toggleFavoriteChannel(this, canal.streamId)
+        if (added) liveFavIdsCache.add(canal.streamId) else liveFavIdsCache.remove(canal.streamId)
         val msg = if (added) "★ ${canal.name} adicionado aos Favoritos" else "${canal.name} removido dos Favoritos"
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
@@ -1824,7 +1880,7 @@ class EagleTvActivity : BaseActivity() {
         if (existing != null && (System.currentTimeMillis() - existing.fetchedAtMillis) < 180_000L) {
             return
         }
-        if (pendingInlineEpgRequests.size >= 5 || !pendingInlineEpgRequests.add(streamId)) {
+        if (pendingInlineEpgRequests.size >= 3 || !pendingInlineEpgRequests.add(streamId)) {
             return
         }
 
@@ -2054,7 +2110,6 @@ class EagleTvActivity : BaseActivity() {
                             }
                         }
                     }
-                    carregarTodosFilmesEmCache()
                 } catch (_: Exception) {}
             }
         })
@@ -2067,12 +2122,8 @@ class EagleTvActivity : BaseActivity() {
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
-                    "FAVORITES" -> getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("fav_ids", emptySet())?.size ?: 0
-                    "RESUME" -> {
-                        val resumePrefs = getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
-                        resumePrefs.all.keys.count { it.startsWith("pos_") && (resumePrefs.all[it] as? Long ?: 0L) > 10000L }
-                    }
+                    "FAVORITES" -> movieFavIdsCache.size
+                    "RESUME" -> vodResumePosCache.size
                     "RECENT" -> minOf(40, allMoviesCache.size)
                     else -> CategoryCountHelper.getVodCount(this, id)
                 }
@@ -2215,7 +2266,6 @@ class EagleTvActivity : BaseActivity() {
                             }
                         }
                     }
-                    carregarTodasSeriesEmCache()
                 } catch (_: Exception) {}
             }
         })
@@ -2228,8 +2278,7 @@ class EagleTvActivity : BaseActivity() {
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
-                    "FAVORITES" -> getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("fav_ids", emptySet())?.size ?: 0
+                    "FAVORITES" -> seriesFavIdsCache.size
                     "RECENT" -> minOf(40, allSeriesCache.size)
                     else -> CategoryCountHelper.getSeriesCount(this, id)
                 }
@@ -2331,7 +2380,7 @@ class EagleTvActivity : BaseActivity() {
 
         catalogPosterAdapter = CatalogPosterAdapter(
             items = items,
-            onFocused = { item -> atualizarHeroPreviewCatalogo(item) },
+            onFocused = { item -> agendarHeroPreviewCatalogo(item) },
             onClick = { item ->
                 when (item) {
                     is CatalogPosterItem.Movie -> {
@@ -2364,6 +2413,7 @@ class EagleTvActivity : BaseActivity() {
                         val key = item.vod.streamId.toString()
                         val added = if (set.contains(key)) { set.remove(key); false } else { set.add(key); true }
                         prefs.edit().putStringSet("fav_ids", set).apply()
+                        if (added) movieFavIdsCache.add(key) else movieFavIdsCache.remove(key)
                         Toast.makeText(this, if (added) "★ ${item.vod.name} nos Favoritos" else "Removido dos Favoritos", Toast.LENGTH_SHORT).show()
                         catalogPosterAdapter?.notifyDataSetChanged()
                         catalogGroupAdapter?.notifyDataSetChanged()
@@ -2374,6 +2424,7 @@ class EagleTvActivity : BaseActivity() {
                         val key = item.series.seriesId.toString()
                         val added = if (set.contains(key)) { set.remove(key); false } else { set.add(key); true }
                         prefs.edit().putStringSet("fav_ids", set).apply()
+                        if (added) seriesFavIdsCache.add(key) else seriesFavIdsCache.remove(key)
                         Toast.makeText(this, if (added) "★ ${item.series.name} nos Favoritos" else "Removida dos Favoritos", Toast.LENGTH_SHORT).show()
                         catalogPosterAdapter?.notifyDataSetChanged()
                         catalogGroupAdapter?.notifyDataSetChanged()
@@ -2397,6 +2448,17 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
+    private fun agendarHeroPreviewCatalogo(item: CatalogPosterItem) {
+        heroPreviewRunnable?.let { uiHandler.removeCallbacks(it) }
+        val r = Runnable {
+            if (!isFinishing && !isDestroyed) {
+                atualizarHeroPreviewCatalogo(item)
+            }
+        }
+        heroPreviewRunnable = r
+        uiHandler.postDelayed(r, 220L)
+    }
+
     private fun atualizarHeroPreviewCatalogo(item: CatalogPosterItem) {
         layoutTopProgressRow.visibility = View.GONE
         tvTopCatchupBadge.visibility = View.GONE
@@ -2404,18 +2466,24 @@ class EagleTvActivity : BaseActivity() {
         when (item) {
             is CatalogPosterItem.Movie -> {
                 val f = item.vod
+                currentPreviewVodStreamId = f.streamId
                 tvTopHeaderTitle.text = f.name
                 val ratingStr = f.rating?.takeIf { it.isNotBlank() && it != "0" } ?: f.rating_5based?.toString()
                 tvTopHeaderSubtitle.text = if (!ratingStr.isNullOrBlank()) "🎬 FILME VOD  •  ★ $ratingStr" else "🎬 FILME VOD"
                 tvTopLiveBadge.text = (f.containerExtension ?: "MP4").uppercase(Locale.getDefault())
                 tvTopRemoteHints.text = "[OK] Abrir Detalhes / Ver  •  [Long OK] ★ Favorito"
 
-                val isFav = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
-                    .getStringSet("fav_ids", emptySet())?.contains(f.streamId.toString()) == true
+                val isFav = movieFavIdsCache.contains(f.streamId.toString())
                 tvTopFavBadge.visibility = if (isFav) View.VISIBLE else View.GONE
 
                 if (!f.streamIcon.isNullOrBlank()) {
-                    Glide.with(this).load(f.streamIcon).into(ivTopHeaderLogo)
+                    Glide.with(this)
+                        .load(f.streamIcon)
+                        .override(dp(80), dp(110))
+                        .centerCrop()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .dontAnimate()
+                        .into(ivTopHeaderLogo)
                 } else {
                     ivTopHeaderLogo.setImageResource(R.mipmap.ic_launcher)
                 }
@@ -2437,18 +2505,24 @@ class EagleTvActivity : BaseActivity() {
             }
             is CatalogPosterItem.Series -> {
                 val s = item.series
+                currentPreviewVodStreamId = -1
                 tvTopHeaderTitle.text = s.name
                 val ratingStr = s.rating?.takeIf { it.isNotBlank() && it != "0" }
                 tvTopHeaderSubtitle.text = if (!ratingStr.isNullOrBlank()) "🎞️ SÉRIE TV  •  ★ $ratingStr" else "🎞️ SÉRIE TV"
                 tvTopLiveBadge.text = "SÉRIE"
                 tvTopRemoteHints.text = "[OK] Ver Temporadas & Episódios  •  [Long OK] ★ Favorito"
 
-                val isFav = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
-                    .getStringSet("fav_ids", emptySet())?.contains(s.seriesId.toString()) == true
+                val isFav = seriesFavIdsCache.contains(s.seriesId.toString())
                 tvTopFavBadge.visibility = if (isFav) View.VISIBLE else View.GONE
 
                 if (!s.cover.isNullOrBlank()) {
-                    Glide.with(this).load(s.cover).into(ivTopHeaderLogo)
+                    Glide.with(this)
+                        .load(s.cover)
+                        .override(dp(80), dp(110))
+                        .centerCrop()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .dontAnimate()
+                        .into(ivTopHeaderLogo)
                 } else {
                     ivTopHeaderLogo.setImageResource(R.mipmap.ic_launcher)
                 }
@@ -2458,6 +2532,7 @@ class EagleTvActivity : BaseActivity() {
                 tvTopNextProgram.text = s.releaseDate?.takeIf { it.isNotBlank() }?.let { "Lançamento: $it" }.orEmpty()
             }
             is CatalogPosterItem.Channel -> {
+                currentPreviewVodStreamId = -1
                 atualizarPainelTopoCanal(item.channel)
             }
         }
@@ -2474,6 +2549,17 @@ class EagleTvActivity : BaseActivity() {
                     val infoResp = gson.fromJson(body, VodInfoResponse::class.java)
                     val info = infoResp?.info ?: return
                     vodPlotCache[streamId] = info
+                    runOnUiThread {
+                        if (currentPreviewVodStreamId == streamId && activeSection == WorkspaceSection.MOVIES) {
+                            tvTopProgramDesc.text = (info.plot ?: info.description).orEmpty()
+                                .ifBlank { "Carrega OK para abrir a ficha completa e reproduzir este filme." }
+                            tvTopNextProgram.text = listOfNotNull(
+                                info.genre?.takeIf { it.isNotBlank() },
+                                info.releaseDate?.takeIf { it.isNotBlank() },
+                                info.duration?.takeIf { it.isNotBlank() }
+                            ).joinToString("  •  ")
+                        }
+                    }
                 } catch (_: Exception) {}
             }
         })
@@ -4218,7 +4304,7 @@ class EagleTvActivity : BaseActivity() {
             holder.tvName.text = canal.name
 
             val isPlaying = canal.streamId == currentStreamId
-            val isFav = EagleTvConfig.isFavoriteChannel(this@EagleTvActivity, canal.streamId)
+            val isFav = liveFavIdsCache.contains(canal.streamId)
             val hasCatchup = temCatchUp(canal)
 
             holder.tvPlaying.visibility = if (isPlaying) View.VISIBLE else View.GONE
@@ -4236,9 +4322,13 @@ class EagleTvActivity : BaseActivity() {
                 solicitarInlineEpgSeNecessario(canal.streamId)
             }
 
+            val logoSize = dp(44)
             if (!canal.streamIcon.isNullOrBlank()) {
                 Glide.with(holder.itemView.context)
                     .load(canal.streamIcon)
+                    .override(logoSize, logoSize)
+                    .fitCenter()
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .dontAnimate()
                     .into(holder.ivLogo)
             } else {
@@ -4506,12 +4596,14 @@ class EagleTvActivity : BaseActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
+            val thumbWidth = dp(120)
+            val thumbHeight = dp(170)
+
             when (item) {
                 is CatalogPosterItem.Movie -> {
                     val m = item.vod
                     holder.tvTitle.text = m.name
-                    val isFav = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("fav_ids", emptySet())?.contains(m.streamId.toString()) == true
+                    val isFav = movieFavIdsCache.contains(m.streamId.toString())
                     holder.tvFav.visibility = if (isFav) View.VISIBLE else View.GONE
 
                     val rating = m.rating?.takeIf { it.isNotBlank() && it != "0" }
@@ -4522,9 +4614,8 @@ class EagleTvActivity : BaseActivity() {
                         holder.tvBadge.visibility = View.GONE
                     }
 
-                    val resumePrefs = getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
-                    val posMs = resumePrefs.getLong("pos_${m.streamId}", 0L)
-                    val durMs = resumePrefs.getLong("dur_${m.streamId}", 0L)
+                    val posMs = vodResumePosCache[m.streamId] ?: 0L
+                    val durMs = vodResumeDurCache[m.streamId] ?: 0L
                     if (posMs > 10_000L && durMs > 0L) {
                         holder.pbResume.progress = ((posMs * 100L) / durMs).toInt().coerceIn(5, 98)
                         holder.pbResume.visibility = View.VISIBLE
@@ -4533,7 +4624,13 @@ class EagleTvActivity : BaseActivity() {
                     }
 
                     if (!m.streamIcon.isNullOrBlank()) {
-                        Glide.with(holder.itemView.context).load(m.streamIcon).into(holder.ivThumb)
+                        Glide.with(holder.itemView.context)
+                            .load(m.streamIcon)
+                            .override(thumbWidth, thumbHeight)
+                            .centerCrop()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .dontAnimate()
+                            .into(holder.ivThumb)
                     } else {
                         holder.ivThumb.setImageResource(R.mipmap.ic_launcher)
                     }
@@ -4542,8 +4639,7 @@ class EagleTvActivity : BaseActivity() {
                     val s = item.series
                     holder.tvTitle.text = s.name
                     holder.pbResume.visibility = View.GONE
-                    val isFav = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("fav_ids", emptySet())?.contains(s.seriesId.toString()) == true
+                    val isFav = seriesFavIdsCache.contains(s.seriesId.toString())
                     holder.tvFav.visibility = if (isFav) View.VISIBLE else View.GONE
 
                     val rating = s.rating?.takeIf { it.isNotBlank() && it != "0" }
@@ -4555,7 +4651,13 @@ class EagleTvActivity : BaseActivity() {
                     }
 
                     if (!s.cover.isNullOrBlank()) {
-                        Glide.with(holder.itemView.context).load(s.cover).into(holder.ivThumb)
+                        Glide.with(holder.itemView.context)
+                            .load(s.cover)
+                            .override(thumbWidth, thumbHeight)
+                            .centerCrop()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .dontAnimate()
+                            .into(holder.ivThumb)
                     } else {
                         holder.ivThumb.setImageResource(R.mipmap.ic_launcher)
                     }
@@ -4564,13 +4666,19 @@ class EagleTvActivity : BaseActivity() {
                     val c = item.channel
                     holder.tvTitle.text = c.name
                     holder.pbResume.visibility = View.GONE
-                    val isFav = EagleTvConfig.isFavoriteChannel(this@EagleTvActivity, c.streamId)
+                    val isFav = liveFavIdsCache.contains(c.streamId)
                     holder.tvFav.visibility = if (isFav) View.VISIBLE else View.GONE
                     holder.tvBadge.text = "📺 TV"
                     holder.tvBadge.visibility = View.VISIBLE
 
                     if (!c.streamIcon.isNullOrBlank()) {
-                        Glide.with(holder.itemView.context).load(c.streamIcon).into(holder.ivThumb)
+                        Glide.with(holder.itemView.context)
+                            .load(c.streamIcon)
+                            .override(dp(64), dp(64))
+                            .fitCenter()
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .dontAnimate()
+                            .into(holder.ivThumb)
                     } else {
                         holder.ivThumb.setImageResource(R.mipmap.ic_launcher)
                     }
@@ -4587,11 +4695,8 @@ class EagleTvActivity : BaseActivity() {
                         setColor(Color.TRANSPARENT)
                     }
                 }
-                if (hasFocus) {
-                    holder.itemView.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
-                } else {
-                    holder.itemView.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
-                }
+                holder.itemView.scaleX = if (hasFocus) 1.04f else 1.0f
+                holder.itemView.scaleY = if (hasFocus) 1.04f else 1.0f
             }
 
             updateStyle(holder.itemView.hasFocus())
