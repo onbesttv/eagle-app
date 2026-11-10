@@ -116,7 +116,11 @@ object RemotePanelManager {
         val appContext = context.applicationContext
         IptvServiceConfig.initialize(appContext)
         val activeService = IptvServiceConfig.activeServiceId(appContext)
-        val username = IptvServiceConfig.username(appContext, activeService)
+        var username = IptvServiceConfig.username(appContext, activeService)
+        if (username.isBlank()) {
+            val loginPrefs = appContext.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+            username = loginPrefs.getString("SAVED_USER", "").orEmpty()
+        }
 
         val payload = JSONObject().apply {
             put("p_device_id", getDeviceId(appContext))

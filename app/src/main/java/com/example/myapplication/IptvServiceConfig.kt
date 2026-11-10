@@ -125,12 +125,16 @@ object IptvServiceConfig {
 
     fun username(context: Context, serviceId: String = activeServiceId(context)): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        return prefs.getString(if (serviceId == BEST2) BEST2_USER else BEST_USER, "").orEmpty()
+        val u = prefs.getString(if (serviceId == BEST2) BEST2_USER else BEST_USER, "").orEmpty()
+        if (u.isNotBlank()) return u
+        return prefs.getString("SAVED_USER", "").orEmpty()
     }
 
     fun password(context: Context, serviceId: String = activeServiceId(context)): String {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        return prefs.getString(if (serviceId == BEST2) BEST2_PASS else BEST_PASS, "").orEmpty()
+        val p = prefs.getString(if (serviceId == BEST2) BEST2_PASS else BEST_PASS, "").orEmpty()
+        if (p.isNotBlank()) return p
+        return prefs.getString("SAVED_PASS", "").orEmpty()
     }
 
     fun select(context: Context, serviceId: String) {

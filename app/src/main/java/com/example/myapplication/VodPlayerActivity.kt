@@ -1,9 +1,13 @@
 package com.example.myapplication
 
+import android.app.PictureInPictureParams
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.util.Rational
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -132,9 +136,14 @@ class VodPlayerActivity : BaseActivity() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                updatePipParams()
                 if (playbackState == Player.STATE_ENDED) {
                     reproduzirProximoEpisodio()
                 }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updatePipParams()
             }
         })
     }
@@ -306,6 +315,45 @@ class VodPlayerActivity : BaseActivity() {
         }
     }
 
+    private fun updatePipParams() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true)
+                val builder = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .setAutoEnterEnabled(isPlaying)
+                setPictureInPictureParams(builder.build())
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true)
+            if (isPlaying && !isFinishing) {
+                try {
+                    val params = PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(16, 9))
+                        .build()
+                    enterPictureInPictureMode(params)
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            playerView.useController = false
+            playerView.hideController()
+        } else {
+            playerView.useController = true
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         if (player != null) {
@@ -316,7 +364,16 @@ class VodPlayerActivity : BaseActivity() {
     override fun onPause() {
         super.onPause()
         salvarProgresso()
-        if (isFinishing) {
+        val inPip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
+        if (isFinishing && !inPip) {
+            player?.pause()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        val inPip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
+        if (isFinishing && !inPip) {
             player?.pause()
         }
     }

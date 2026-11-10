@@ -1358,6 +1358,16 @@
         if (d.device_id && manual[d.device_id]) {
             return manual[d.device_id];
         }
+        const v = String(d.app_version || "").trim();
+        // Detetar com precisão pela versão da app:
+        // Eagle MyTvOnline usa ramo v1.x e v2.x (ex: 2.4, 2.5)
+        // Eagle XCIPTV usa ramo v4.x, v5.x e v6.x (ex: 6.8, 6.9)
+        if (v.startsWith("1.") || v.startsWith("2.")) {
+            return "mytvonline";
+        }
+        if (v.startsWith("4.") || v.startsWith("5.") || v.startsWith("6.")) {
+            return "xciptv";
+        }
         const r = (d.reseller_id || "master").toLowerCase();
         if (r === "eagle_tv" || r === "eagle_mytvonline" || r === "mytvonline") {
             return "mytvonline";

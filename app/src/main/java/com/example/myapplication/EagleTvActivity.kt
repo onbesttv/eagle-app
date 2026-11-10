@@ -2,19 +2,23 @@ package com.example.myapplication
 
 import android.app.Activity
 import android.app.Dialog
+import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Base64
+import android.util.Rational
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -401,6 +405,11 @@ class EagleTvActivity : BaseActivity() {
             return
         }
 
+        if (IptvServiceConfig.username(this).isBlank()) {
+            IptvServiceConfig.saveCredentials(this, IptvServiceConfig.activeServiceId(this), user, pass)
+        }
+        RemotePanelManager.sync(this)
+
         inicializarViews()
         configurarMenuLateral()
         configurarPlayer()
@@ -533,9 +542,77 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
+    private fun updatePipParams() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true) && currentStreamId != -1
+                val builder = PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .setAutoEnterEnabled(isPlaying)
+                setPictureInPictureParams(builder.build())
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true) && currentStreamId != -1
+            if (isPlaying && !isFinishing) {
+                try {
+                    val params = PictureInPictureParams.Builder()
+                        .setAspectRatio(Rational(16, 9))
+                        .build()
+                    enterPictureInPictureMode(params)
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            fecharGavetaFullscreen()
+            layoutRecentChannelsBar.visibility = View.GONE
+            layoutFullscreenOsd.visibility = View.GONE
+            uiHandler.removeCallbacks(hideOsdRunnable)
+
+            layoutLeftRail.visibility = View.GONE
+            viewRailDivider.visibility = View.GONE
+            layoutTopProgramDetails.visibility = View.GONE
+            viewTopHorizontalDivider.visibility = View.GONE
+            layoutLiveTvColumns.visibility = View.GONE
+            layoutCatalogSection.visibility = View.GONE
+            layoutVpnSection.visibility = View.GONE
+            layoutSettingsSection.visibility = View.GONE
+            layoutMiniPlayerBadge.visibility = View.GONE
+
+            layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            layoutTopPreviewRow.setPadding(0, 0, 0, 0)
+
+            framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            framePlayerWrapper.background = null
+        } else {
+            if (isFullScreen) {
+                entrarEmFullscreen()
+            } else {
+                sairDeFullscreen()
+            }
+        }
+    }
+
     override fun onStop() {
         super.onStop()
-        if (isFinishing) {
+        val inPip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
+        if (isFinishing && !inPip) {
             player?.pause()
         }
     }
@@ -959,6 +1036,14 @@ class EagleTvActivity : BaseActivity() {
     private fun configurarPlayer() {
         val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
         player = p
+        player?.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updatePipParams()
+            }
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                updatePipParams()
+            }
+        })
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
         aplicarAspectMode(EagleTvConfig.getAspectMode(this))
@@ -1781,6 +1866,7 @@ class EagleTvActivity : BaseActivity() {
             setMediaItem(MediaItem.fromUri(streamUrl))
             prepare()
             playWhenReady = true
+            updatePipParams()
         }
 
         liveChannelAdapter?.selecionarCanalPorId(canal.streamId)
