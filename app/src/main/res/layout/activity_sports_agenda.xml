@@ -66,6 +66,17 @@
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btnRefreshSports"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_icon_button"
+            android:src="@android:drawable/ic_popup_sync"
+            android:contentDescription="Atualizar Jogos"
+            android:focusable="true"
+            app:tint="#38BDF8" />
     </LinearLayout>
 
     <!-- HORIZONTAL LEAGUE FILTER TABS -->

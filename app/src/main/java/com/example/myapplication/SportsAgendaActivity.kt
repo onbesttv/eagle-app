@@ -23,6 +23,7 @@ import java.io.IOException
 class SportsAgendaActivity : BaseActivity() {
 
     private lateinit var btnBackSports: ImageButton
+    private lateinit var btnRefreshSports: ImageButton
     private lateinit var rvLeagueTabs: RecyclerView
     private lateinit var rvMatches: RecyclerView
     private lateinit var tvMatchCountBadge: TextView
@@ -36,16 +37,14 @@ class SportsAgendaActivity : BaseActivity() {
     private val leaguesList = listOf(
         "🌟 Todos",
         "🇵🇹 Liga Portugal",
-        "🇬🇧 Premier League",
+        "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League",
         "🇪🇸 La Liga",
-        "🇪🇺 Champions League",
-        "🇪🇺 Liga Europa",
+        "⭐ Champions League",
+        "🏆 Liga Europa",
         "🇮🇹 Serie A",
         "🇩🇪 Bundesliga"
     )
 
-    private val client = OkHttpClient()
-    private val gson = Gson()
     private lateinit var matchAdapter: MatchAdapter
     private lateinit var leagueTabAdapter: LeagueTabAdapter
 
@@ -54,6 +53,7 @@ class SportsAgendaActivity : BaseActivity() {
         setContentView(R.layout.activity_sports_agenda)
 
         btnBackSports = findViewById(R.id.btnBackSports)
+        btnRefreshSports = findViewById(R.id.btnRefreshSports)
         rvLeagueTabs = findViewById(R.id.rvLeagueTabs)
         rvMatches = findViewById(R.id.rvMatches)
         tvMatchCountBadge = findViewById(R.id.tvMatchCountBadge)
@@ -61,10 +61,13 @@ class SportsAgendaActivity : BaseActivity() {
         pbLoadingSports = findViewById(R.id.pbLoadingSports)
 
         btnBackSports.setOnClickListener { finish() }
+        btnRefreshSports.setOnClickListener {
+            Toast.makeText(this, "A atualizar jogos do dia...", Toast.LENGTH_SHORT).show()
+            carregarAgenda(forceOnline = true)
+        }
 
         setupRecyclerViews()
-        loadLocalAgenda()
-        fetchRemoteAgenda()
+        carregarAgenda(forceOnline = false)
     }
 
     private fun setupRecyclerViews() {
@@ -76,7 +79,7 @@ class SportsAgendaActivity : BaseActivity() {
         rvLeagueTabs.adapter = leagueTabAdapter
 
         matchAdapter = MatchAdapter(displayedMatches) { match ->
-            if (match.canal.isNotBlank()) {
+            if (match.canal.isNotBlank() && !match.canal.contains("anunciar", ignoreCase = true)) {
                 Toast.makeText(this, "A sintonizar ${match.canal}...", Toast.LENGTH_SHORT).show()
                 val intent = Intent(this, LiveTvActivity::class.java).apply {
                     putExtra("TARGET_CHANNEL_NAME", match.canal)
@@ -90,50 +93,16 @@ class SportsAgendaActivity : BaseActivity() {
         rvMatches.adapter = matchAdapter
     }
 
-    private fun loadLocalAgenda() {
-        try {
-            assets.open("agenda_jogos.json").bufferedReader().use { reader ->
-                val feed = gson.fromJson(reader, SportsAgendaFeed::class.java)
-                if (feed != null && feed.jogos.isNotEmpty()) {
-                    allMatches.clear()
-                    allMatches.addAll(feed.jogos)
-                    filterMatches()
-                }
+    private fun carregarAgenda(forceOnline: Boolean) {
+        pbLoadingSports.visibility = View.VISIBLE
+        SportsAgendaManager.loadOrRefresh(this, forceOnline = forceOnline) { matches ->
+            runOnUiThread {
+                pbLoadingSports.visibility = View.GONE
+                allMatches.clear()
+                allMatches.addAll(matches)
+                filterMatches()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
-    }
-
-    private fun fetchRemoteAgenda() {
-        val remoteUrl = "https://raw.githubusercontent.com/onbesttv/eagle-app/main/data/agenda_jogos.json"
-        val request = Request.Builder().url(remoteUrl).build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Silencioso - já temos a agenda local/em cache
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (response.isSuccessful) {
-                        val body = response.body?.string().orEmpty()
-                        try {
-                            val feed = gson.fromJson(body, SportsAgendaFeed::class.java)
-                            if (feed != null && feed.jogos.isNotEmpty()) {
-                                runOnUiThread {
-                                    allMatches.clear()
-                                    allMatches.addAll(feed.jogos)
-                                    filterMatches()
-                                }
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            }
-        })
     }
 
     private fun filterMatches() {

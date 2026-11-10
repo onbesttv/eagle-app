@@ -794,6 +794,11 @@ class EagleTvActivity : BaseActivity() {
                 allMoviesCache.clear()
                 allSeriesCache.clear()
                 carregarTudoLiveTv()
+                SportsAgendaManager.loadOrRefresh(this, forceOnline = true) { matches ->
+                    allMatches.clear()
+                    allMatches.addAll(matches)
+                    if (activeSection == WorkspaceSection.SPORTS) mostrarJogos()
+                }
                 Toast.makeText(this, "Lista e guia atualizados!", Toast.LENGTH_SHORT).show()
             }
         }
@@ -2664,38 +2669,13 @@ class EagleTvActivity : BaseActivity() {
         rvCatalogGroups.adapter = catalogGroupAdapter
         garantirCanaisEmCache { }
 
-        try {
-            assets.open("agenda_jogos.json").bufferedReader().use { reader ->
-                val feed = gson.fromJson(reader, SportsAgendaFeed::class.java)
-                if (feed != null && feed.jogos.isNotEmpty()) {
-                    allMatches.clear()
-                    allMatches.addAll(feed.jogos)
-                }
+        SportsAgendaManager.loadOrRefresh(this, forceOnline = false) { matches ->
+            allMatches.clear()
+            allMatches.addAll(matches)
+            if (activeSection == WorkspaceSection.SPORTS) {
+                mostrarJogos()
             }
-        } catch (_: Exception) {}
-        mostrarJogos()
-
-        val request = Request.Builder()
-            .url("https://raw.githubusercontent.com/onbesttv/eagle-app/main/data/agenda_jogos.json")
-            .build()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (!response.isSuccessful) return
-                    try {
-                        val feed = gson.fromJson(response.body?.string().orEmpty(), SportsAgendaFeed::class.java)
-                        if (feed != null && feed.jogos.isNotEmpty()) {
-                            runOnUiThread {
-                                allMatches.clear()
-                                allMatches.addAll(feed.jogos)
-                                if (activeSection == WorkspaceSection.SPORTS) mostrarJogos()
-                            }
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-        })
+        }
     }
 
     private fun mostrarJogos() {

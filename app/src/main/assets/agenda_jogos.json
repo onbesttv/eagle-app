@@ -1,148 +1,58 @@
 {
-  "updated_at": "2026-11-08T15:27:22.738Z",
+  "updated_at": "2026-11-10T22:42:15.533Z",
   "jogos": [
     {
       "id": "1",
-      "data": "Hoje",
-      "hora": "14:00",
-      "liga": "Premier League",
-      "equipa_casa": "Crystal P.",
-      "equipa_fora": "Liverpool",
-      "canal": "DAZN 1",
-      "destaque": true
+      "data": "Quarta",
+      "hora": "11:00",
+      "liga": "FEMININO, SUB16",
+      "equipa_casa": "Portugal",
+      "equipa_fora": "R. Irlanda",
+      "canal": "Canal 11",
+      "destaque": false
     },
     {
       "id": "2",
-      "data": "Hoje",
-      "hora": "14:00",
-      "liga": "Serie A",
-      "equipa_casa": "Génova",
-      "equipa_fora": "AC Milan",
+      "data": "Quarta",
+      "hora": "18:00",
+      "liga": "FEMININO, E. Cup",
+      "equipa_casa": "Torreense",
+      "equipa_fora": "Sparta P.",
       "canal": "Sport TV 1",
       "destaque": true
     },
     {
       "id": "3",
-      "data": "Hoje",
-      "hora": "14:00",
-      "liga": "Premier League",
-      "equipa_casa": "Sunderland",
-      "equipa_fora": "Chelsea",
-      "canal": "DAZN 2",
+      "data": "Quarta",
+      "hora": "20:00",
+      "liga": "FEMININO, L. Campe&#245;es",
+      "equipa_casa": "Benfica",
+      "equipa_fora": "Austria Wien",
+      "canal": "RTP 2",
       "destaque": false
     },
     {
       "id": "4",
-      "data": "Hoje",
-      "hora": "15:30",
-      "liga": "Liga Portugal",
-      "equipa_casa": "Estoril",
-      "equipa_fora": "Marítimo",
-      "canal": "Sport TV 2",
-      "destaque": true
-    },
-    {
-      "id": "5",
-      "data": "Hoje",
-      "hora": "15:30",
-      "liga": "Liga Portugal",
-      "equipa_casa": "S. Clara",
-      "equipa_fora": "Gil Vicente",
-      "canal": "Sport TV 3",
-      "destaque": true
-    },
-    {
-      "id": "6",
-      "data": "Hoje",
-      "hora": "16:30",
-      "liga": "Premier League",
-      "equipa_casa": "Man. United",
-      "equipa_fora": "Aston Villa",
-      "canal": "DAZN 1",
-      "destaque": true
-    },
-    {
-      "id": "7",
-      "data": "Hoje",
-      "hora": "17:30",
-      "liga": "Futsal",
-      "equipa_casa": "Argentina",
-      "equipa_fora": "Portugal",
-      "canal": "Canal 11",
-      "destaque": false
-    },
-    {
-      "id": "8",
-      "data": "Hoje",
-      "hora": "18:00",
-      "liga": "Liga Portugal",
-      "equipa_casa": "V. Guimarães",
-      "equipa_fora": "FC Porto",
-      "canal": "Sport TV 1",
-      "destaque": true
-    },
-    {
-      "id": "9",
-      "data": "Hoje",
-      "hora": "19:45",
-      "liga": "Serie A",
-      "equipa_casa": "Fiorentina",
-      "equipa_fora": "Juventus",
-      "canal": "Sport TV 4",
-      "destaque": false
-    },
-    {
-      "id": "10",
-      "data": "Hoje",
-      "hora": "20:00",
-      "liga": "La Liga",
-      "equipa_casa": "Atlético Madrid",
-      "equipa_fora": "Barcelona",
-      "canal": "DAZN 1",
-      "destaque": true
-    },
-    {
-      "id": "11",
-      "data": "Hoje",
-      "hora": "20:30",
-      "liga": "Liga Portugal",
-      "equipa_casa": "Estrela Amadora",
-      "equipa_fora": "Benfica",
-      "canal": "Sport TV 2",
-      "destaque": true
-    },
-    {
-      "id": "12",
-      "data": "Hoje",
-      "hora": "20:30",
-      "liga": "Liga Portugal",
-      "equipa_casa": "Rio Ave",
-      "equipa_fora": "Sp. Braga",
-      "canal": "Sport TV 3",
-      "destaque": true
-    },
-    {
-      "id": "13",
-      "data": "Hoje",
-      "hora": "20:30",
-      "liga": "Futsal",
-      "equipa_casa": "Brasil",
-      "equipa_fora": "Espanha [Final]",
-      "canal": "Canal 11",
-      "destaque": false
-    },
-    {
-      "id": "14",
       "data": "Quinta",
       "hora": "16:00",
-      "liga": "CAN &#193;frica, Qual.",
+      "liga": "CAN África, Qual.",
       "equipa_casa": "Madagáscar",
       "equipa_fora": "Guiné Bissau",
       "canal": "Sport TV 4",
       "destaque": false
     },
     {
-      "id": "15",
+      "id": "5",
+      "data": "Quinta",
+      "hora": "17:00",
+      "liga": "UEFA Liga Naç&#245;es",
+      "equipa_casa": "Turquia",
+      "equipa_fora": "Bélgica",
+      "canal": "Sport TV 1",
+      "destaque": true
+    },
+    {
+      "id": "6",
       "data": "Quinta",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
@@ -152,7 +62,7 @@
       "destaque": true
     },
     {
-      "id": "16",
+      "id": "7",
       "data": "Quinta",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
@@ -162,7 +72,7 @@
       "destaque": false
     },
     {
-      "id": "17",
+      "id": "8",
       "data": "Quinta",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
@@ -172,7 +82,7 @@
       "destaque": false
     },
     {
-      "id": "18",
+      "id": "9",
       "data": "Quinta",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
@@ -182,17 +92,27 @@
       "destaque": false
     },
     {
-      "id": "19",
+      "id": "10",
+      "data": "Sexta",
+      "hora": "13:00",
+      "liga": "CAN África, Qual.",
+      "equipa_casa": "Moçambique",
+      "equipa_fora": "Etiópia",
+      "canal": "Sport TV 1",
+      "destaque": true
+    },
+    {
+      "id": "11",
       "data": "Sexta",
       "hora": "16:00",
-      "liga": "CAN &#193;frica, Qual.",
+      "liga": "CAN África, Qual.",
       "equipa_casa": "Cabo Verde",
       "equipa_fora": "Libéria",
       "canal": "Sport TV 2",
       "destaque": false
     },
     {
-      "id": "20",
+      "id": "12",
       "data": "Sexta",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
@@ -202,7 +122,7 @@
       "destaque": true
     },
     {
-      "id": "21",
+      "id": "13",
       "data": "Sábado",
       "hora": "10:15",
       "liga": "Jogo Preparação",
@@ -212,27 +132,27 @@
       "destaque": false
     },
     {
-      "id": "22",
+      "id": "14",
       "data": "Sábado",
       "hora": "19:00",
-      "liga": "CAN &#193;frica, Qual.",
+      "liga": "CAN África, Qual.",
       "equipa_casa": "Angola",
       "equipa_fora": "Sudão Sul",
       "canal": "Sport TV 6",
       "destaque": false
     },
     {
-      "id": "23",
+      "id": "15",
       "data": "Sábado",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Portugal",
       "equipa_fora": "Dinamarca",
-      "canal": "",
+      "canal": "RTP 1",
       "destaque": false
     },
     {
-      "id": "24",
+      "id": "16",
       "data": "Sábado",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
@@ -242,18 +162,18 @@
       "destaque": false
     },
     {
-      "id": "25",
-      "data": "Hoje",
+      "id": "17",
+      "data": "Domingo",
       "hora": "20:30",
       "liga": "Futsal",
       "equipa_casa": "Sporting",
       "equipa_fora": "BTS",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "26",
-      "data": "Amanhã",
+      "id": "18",
+      "data": "Segunda",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "Vários",
@@ -262,7 +182,7 @@
       "destaque": false
     },
     {
-      "id": "27",
+      "id": "19",
       "data": "Terça",
       "hora": "10:00",
       "liga": "Jogo Preparação",
@@ -272,27 +192,27 @@
       "destaque": false
     },
     {
-      "id": "28",
+      "id": "20",
       "data": "Terça",
       "hora": "19:00",
-      "liga": "CAN &#193;frica, Qual.",
+      "liga": "CAN África, Qual.",
       "equipa_casa": "Libéria",
       "equipa_fora": "Cabo Verde",
       "canal": "Sport TV 5",
       "destaque": false
     },
     {
-      "id": "29",
+      "id": "21",
       "data": "Terça",
       "hora": "19:45",
       "liga": "UEFA Liga Naç&#245;es",
       "equipa_casa": "País Gales",
       "equipa_fora": "Portugal",
-      "canal": "",
+      "canal": "RTP 1",
       "destaque": false
     },
     {
-      "id": "30",
+      "id": "22",
       "data": "Terça",
       "hora": "20:00",
       "liga": "UEFA Liga Naç&#245;es",
@@ -302,18 +222,18 @@
       "destaque": false
     },
     {
-      "id": "31",
+      "id": "23",
       "data": "Sexta",
       "hora": "20:45",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "FC Porto",
       "equipa_fora": "Paredes",
-      "canal": "",
+      "canal": "RTP 1",
       "destaque": true
     },
     {
-      "id": "32",
-      "data": "Hoje",
+      "id": "24",
+      "data": "Sábado",
       "hora": "18:00",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "Sporting",
@@ -322,8 +242,8 @@
       "destaque": true
     },
     {
-      "id": "33",
-      "data": "Hoje",
+      "id": "25",
+      "data": "Sábado",
       "hora": "20:30",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "V. Guimarães",
@@ -332,48 +252,48 @@
       "destaque": true
     },
     {
-      "id": "34",
-      "data": "Hoje",
+      "id": "26",
+      "data": "Domingo",
       "hora": "20:45",
       "liga": "Taça Portugal, 4&#170; El.",
       "equipa_casa": "Torreense",
       "equipa_fora": "Benfica",
-      "canal": "",
+      "canal": "RTP 1",
       "destaque": true
     },
     {
-      "id": "35",
+      "id": "27",
       "data": "Terça",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Feyenoord",
       "equipa_fora": "FC Porto",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "36",
+      "id": "28",
       "data": "Quarta",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Sporting",
       "equipa_fora": "Manchester United",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "37",
+      "id": "29",
       "data": "Quinta",
       "hora": "17:45",
       "liga": "Liga Europa",
       "equipa_casa": "Plzen",
       "equipa_fora": "Benfica",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "38",
-      "data": "Amanhã",
+      "id": "30",
+      "data": "Domingo",
       "hora": "20:30",
       "liga": "Liga Portugal",
       "equipa_casa": "FC Porto",
@@ -382,8 +302,8 @@
       "destaque": true
     },
     {
-      "id": "39",
-      "data": "Amanhã",
+      "id": "31",
+      "data": "Segunda",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Benfica",
@@ -392,8 +312,8 @@
       "destaque": true
     },
     {
-      "id": "40",
-      "data": "Amanhã",
+      "id": "32",
+      "data": "Segunda",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Casa Pia",
@@ -402,7 +322,7 @@
       "destaque": true
     },
     {
-      "id": "41",
+      "id": "33",
       "data": "Sexta",
       "hora": "20:15",
       "liga": "Liga Portugal",
@@ -412,8 +332,8 @@
       "destaque": true
     },
     {
-      "id": "42",
-      "data": "Hoje",
+      "id": "34",
+      "data": "Sábado",
       "hora": "15:30",
       "liga": "Liga Portugal",
       "equipa_casa": "Nacional",
@@ -422,8 +342,8 @@
       "destaque": true
     },
     {
-      "id": "43",
-      "data": "Hoje",
+      "id": "35",
+      "data": "Sábado",
       "hora": "18:00",
       "liga": "Liga Portugal",
       "equipa_casa": "S. Clara",
@@ -432,38 +352,38 @@
       "destaque": true
     },
     {
-      "id": "44",
+      "id": "36",
       "data": "Terça",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Roma",
       "equipa_fora": "Sporting",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "45",
+      "id": "37",
       "data": "Quarta",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Liverpool",
       "equipa_fora": "FC Porto",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "46",
+      "id": "38",
       "data": "Quinta",
       "hora": "20:00",
       "liga": "Liga Europa",
       "equipa_casa": "Benfica",
       "equipa_fora": "OFI",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "47",
-      "data": "Hoje",
+      "id": "39",
+      "data": "Sábado",
       "hora": "20:30",
       "liga": "Liga Portugal",
       "equipa_casa": "Gil Vicente",
@@ -472,8 +392,8 @@
       "destaque": true
     },
     {
-      "id": "48",
-      "data": "Hoje",
+      "id": "40",
+      "data": "Domingo",
       "hora": "20:30",
       "liga": "Liga Portugal",
       "equipa_casa": "FC Porto",
@@ -482,8 +402,8 @@
       "destaque": true
     },
     {
-      "id": "49",
-      "data": "Amanhã",
+      "id": "41",
+      "data": "Segunda",
       "hora": "20:15",
       "liga": "Liga Portugal",
       "equipa_casa": "Benfica",
@@ -492,73 +412,73 @@
       "destaque": true
     },
     {
-      "id": "50",
-      "data": "Hoje",
+      "id": "42",
+      "data": "Domingo",
       "hora": "",
       "liga": "Liga Portugal",
       "equipa_casa": "Benfica",
       "equipa_fora": "Sporting",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": true
     },
     {
-      "id": "51",
+      "id": "43",
       "data": "Terça",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "FC Porto",
       "equipa_fora": "Slavia P.",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "52",
+      "id": "44",
       "data": "Quarta",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Sporting",
       "equipa_fora": "Barcelona",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "53",
+      "id": "45",
       "data": "Quinta",
       "hora": "17:45",
       "liga": "Liga Europa",
       "equipa_casa": "NEC",
       "equipa_fora": "Benfica",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "54",
+      "id": "46",
       "data": "Quarta",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "Man. City",
       "equipa_fora": "Sporting",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "55",
+      "id": "47",
       "data": "Quarta",
       "hora": "20:00",
       "liga": "UEFA Liga Campe&#245;es",
       "equipa_casa": "LASK L.",
       "equipa_fora": "FC Porto",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     },
     {
-      "id": "56",
+      "id": "48",
       "data": "Quinta",
       "hora": "20:00",
       "liga": "Liga Europa",
       "equipa_casa": "Benfica",
       "equipa_fora": "AZ Alkmaar",
-      "canal": "",
+      "canal": "A anunciar",
       "destaque": false
     }
   ]

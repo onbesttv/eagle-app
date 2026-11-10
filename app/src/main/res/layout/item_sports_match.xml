@@ -31,7 +31,7 @@
 
         <!-- Time & Status Column -->
         <LinearLayout
-            android:layout_width="95dp"
+            android:layout_width="72dp"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center">
@@ -52,19 +52,19 @@
                 android:layout_height="wrap_content"
                 android:text="20:30"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
         <!-- Divider line -->
         <View
             android:layout_width="1.2dp"
-            android:layout_height="40dp"
+            android:layout_height="44dp"
             android:layout_marginStart="8dp"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="12dp"
             android:background="#3338BDF8" />
 
-        <!-- Teams & League Column -->
+        <!-- Teams & League Column (1 equipa em cima, 1 equipa em baixo) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -74,67 +74,58 @@
 
             <TextView
                 android:id="@+id/tvMatchLeague"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="🇵🇹 Liga Portugal"
                 android:textColor="#94A3B8"
-                android:textSize="12sp"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="3dp" />
+                android:layout_marginBottom="4dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
-            <!-- Match Teams Row -->
-            <LinearLayout
+            <!-- Equipa Casa (Em cima) -->
+            <TextView
+                android:id="@+id/tvHomeTeam"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:text="SL Benfica"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
 
-                <TextView
-                    android:id="@+id/tvHomeTeam"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="SL Benfica"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginEnd="8dp"
-                    android:text="vs"
-                    android:textColor="#38BDF8"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvAwayTeam"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="FC Porto"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
+            <!-- Equipa Fora (Em baixo) -->
+            <TextView
+                android:id="@+id/tvAwayTeam"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="FC Porto"
+                android:textColor="#CBD5E1"
+                android:textSize="14sp"
+                android:layout_marginTop="2dp"
+                android:maxLines="1"
+                android:ellipsize="end" />
         </LinearLayout>
 
         <!-- TV Channel Badge -->
         <LinearLayout
             android:id="@+id/layoutChannelBadge"
             android:layout_width="wrap_content"
-            android:layout_height="38dp"
+            android:layout_height="36dp"
             android:gravity="center"
             android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:layout_marginStart="8dp"
             android:background="@drawable/bg_channel_pill">
 
             <ImageView
-                android:layout_width="16dp"
-                android:layout_height="16dp"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
                 android:src="@drawable/ic_home_live_tv"
-                android:layout_marginEnd="6dp" />
+                android:layout_marginEnd="5dp" />
 
             <TextView
                 android:id="@+id/tvMatchChannel"
@@ -142,15 +133,17 @@
                 android:layout_height="wrap_content"
                 android:text="Sport TV 1"
                 android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
         </LinearLayout>
 
         <!-- Action / Play Arrow -->
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginStart="12dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
             android:src="@android:drawable/ic_media_play"
             app:tint="#38BDF8" />
 

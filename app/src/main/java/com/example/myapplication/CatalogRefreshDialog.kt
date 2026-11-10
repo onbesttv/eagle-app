@@ -84,6 +84,7 @@ object CatalogRefreshDialog {
                 activity.getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit()
                     .putLong("last_service_update", System.currentTimeMillis())
                     .apply()
+                SportsAgendaManager.loadOrRefresh(activity, forceOnline = true) { }
                 if (dialog.isShowing) {
                     spin.cancel()
                     refreshIcon.rotation = 0f
