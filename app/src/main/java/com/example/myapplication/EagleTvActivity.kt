@@ -799,7 +799,7 @@ class EagleTvActivity : BaseActivity() {
             selecionarSecao(WorkspaceSection.MOVIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                catalogGroupAdapter?.selecionarPorId("ALL_MOVIES")
+                catalogGroupAdapter?.selecionarPorId("RECENT")
                 focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }, 80)
         }
@@ -807,7 +807,7 @@ class EagleTvActivity : BaseActivity() {
             selecionarSecao(WorkspaceSection.SERIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                catalogGroupAdapter?.selecionarPorId("ALL_SERIES")
+                catalogGroupAdapter?.selecionarPorId("RECENT")
                 focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }, 80)
         }
@@ -2293,10 +2293,10 @@ class EagleTvActivity : BaseActivity() {
                     val type = object : TypeToken<List<VodCategory>>() {}.type
                     val remotas: List<VodCategory> = gson.fromJson(json, type) ?: emptyList()
                     val completas = mutableListOf<VodCategory>()
-                    completas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
+                    completas.add(VodCategory("RECENT", "🕒 ADICIONADOS RECENTEMENTE", 0))
                     completas.add(VodCategory("FAVORITES", "★ FAVORITOS", 0))
                     completas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
-                    completas.add(VodCategory("RECENT", "🕒 ADICIONADOS RECENTEMENTE", 0))
+                    completas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
                     completas.addAll(remotas)
                     allVodCategories = completas
                     runOnUiThread {
@@ -2464,8 +2464,8 @@ class EagleTvActivity : BaseActivity() {
         (etCatalogSearch.parent as? View)?.visibility = if (isAllMovies) View.VISIBLE else View.GONE
         btnCatalogSort.visibility = if (isAllMovies) View.VISIBLE else View.GONE
 
-        if (isAllMovies && allMoviesCache.isEmpty()) {
-            tvCatalogEmpty.text = "⏳ A carregar catálogo de filmes... Por favor aguarda."
+        if ((isAllMovies || catId == "RECENT") && allMoviesCache.isEmpty()) {
+            tvCatalogEmpty.text = if (catId == "RECENT") "⏳ A carregar adicionados recentemente... Por favor aguarda." else "⏳ A carregar catálogo de filmes... Por favor aguarda."
             tvCatalogEmpty.visibility = View.VISIBLE
             catalogPosterAdapter = null
             rvCatalogGrid.adapter = null
@@ -2582,9 +2582,9 @@ class EagleTvActivity : BaseActivity() {
                     val type = object : TypeToken<List<SeriesCategory>>() {}.type
                     val remotas: List<SeriesCategory> = gson.fromJson(json, type) ?: emptyList()
                     val completas = mutableListOf<SeriesCategory>()
-                    completas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
-                    completas.add(SeriesCategory("FAVORITES", "★ FAVORITOS"))
                     completas.add(SeriesCategory("RECENT", "🕒 ADICIONADAS RECENTEMENTE"))
+                    completas.add(SeriesCategory("FAVORITES", "★ FAVORITOS"))
+                    completas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
                     completas.addAll(remotas)
                     allSeriesCategories = completas
                     runOnUiThread {
@@ -2751,8 +2751,8 @@ class EagleTvActivity : BaseActivity() {
         (etCatalogSearch.parent as? View)?.visibility = if (isAllSeries) View.VISIBLE else View.GONE
         btnCatalogSort.visibility = View.GONE
 
-        if (isAllSeries && allSeriesCache.isEmpty()) {
-            tvCatalogEmpty.text = "⏳ A carregar catálogo de séries... Por favor aguarda."
+        if ((isAllSeries || catId == "RECENT") && allSeriesCache.isEmpty()) {
+            tvCatalogEmpty.text = if (catId == "RECENT") "⏳ A carregar adicionadas recentemente... Por favor aguarda." else "⏳ A carregar catálogo de séries... Por favor aguarda."
             tvCatalogEmpty.visibility = View.VISIBLE
             catalogPosterAdapter = null
             rvCatalogGrid.adapter = null

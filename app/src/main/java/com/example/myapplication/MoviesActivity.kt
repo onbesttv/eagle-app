@@ -154,22 +154,18 @@ class MoviesActivity : BaseActivity() {
                     val categoriasRemotas: List<VodCategory> = gson.fromJson(json, type)
 
                     val categoriasCompletas = mutableListOf<VodCategory>()
-                    categoriasCompletas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
+                    categoriasCompletas.add(VodCategory("RECENT", getString(R.string.category_recent), 0))
                     categoriasCompletas.add(VodCategory("FAVORITES", getString(R.string.category_favorites), 0))
                     categoriasCompletas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
-                    categoriasCompletas.add(VodCategory("RECENT", getString(R.string.category_recent), 0))
+                    categoriasCompletas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {
-                        val initialPos = if (categoriasCompletas.size > 4) 4 else 0
+                        val initialPos = 0
                         rvCategories.adapter = MovieCategoryAdapter(categoriasCompletas, initialPos) { cat ->
                             tratarSelecaoCategoria(cat.categoryId)
                         }
-                        if (categoriasCompletas.size > 4) {
-                            tratarSelecaoCategoria(categoriasCompletas[4].categoryId)
-                        } else {
-                            tratarSelecaoCategoria("ALL_MOVIES")
-                        }
+                        tratarSelecaoCategoria("RECENT")
                         rvCategories.postDelayed({
                             val vh = rvCategories.findViewHolderForAdapterPosition(initialPos)
                             if (vh != null) {

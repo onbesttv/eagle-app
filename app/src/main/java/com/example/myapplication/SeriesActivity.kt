@@ -132,21 +132,17 @@ class SeriesActivity : BaseActivity() {
                     val categoriasRemotas: List<SeriesCategory> = gson.fromJson(json, type)
 
                     val categoriasCompletas = mutableListOf<SeriesCategory>()
-                    categoriasCompletas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
-                    categoriasCompletas.add(SeriesCategory("FAVORITES", getString(R.string.category_favorites)))
                     categoriasCompletas.add(SeriesCategory("RECENT", getString(R.string.category_recent)))
+                    categoriasCompletas.add(SeriesCategory("FAVORITES", getString(R.string.category_favorites)))
+                    categoriasCompletas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {
-                        val initialPos = if (categoriasCompletas.size > 3) 3 else 0
+                        val initialPos = 0
                         rvCategories.adapter = SeriesCategoryAdapter(categoriasCompletas, initialPos) { cat ->
                             tratarSelecaoCategoria(cat.categoryId)
                         }
-                        if (categoriasCompletas.size > 3) {
-                            tratarSelecaoCategoria(categoriasCompletas[3].categoryId)
-                        } else {
-                            tratarSelecaoCategoria("ALL_SERIES")
-                        }
+                        tratarSelecaoCategoria("RECENT")
                         rvCategories.postDelayed({
                             val vh = rvCategories.findViewHolderForAdapterPosition(initialPos)
                             if (vh != null) {
