@@ -95,18 +95,31 @@ object AppUpdateManager {
         if (activity.isFinishing || activity.isDestroyed) return
         ensureLifecycleListener(activity)
 
+        val prefs = activity.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        if (!manual) {
+            val lastCheck = prefs.getLong("last_check_time", 0L)
+            // Se já verificou há menos de 15 minutos em background silencioso, não repete
+            if (now - lastCheck < 15 * 60 * 1000L) {
+                return
+            }
+        }
+
         var loadingDialog: AlertDialog? = null
         if (manual) {
             loadingDialog = showLoadingDialog(activity, "A verificar atualizações…")
         }
 
         activity.lifecycleScope.launch {
+            prefs.edit().putLong("last_check_time", now).apply()
             val apiUrl = AppUpdateConfig.getLatestReleaseApiUrl(activity)
             val currentVersion = getAppVersionName(activity)
             val resellerId = RemotePanelManager.getResellerId(activity)
+            val owner = AppUpdateConfig.getGithubOwner(activity)
+            val repo = AppUpdateConfig.getGithubRepo(activity)
 
             val result = withContext(Dispatchers.IO) {
-                fetchLatestRelease(apiUrl, resellerId)
+                fetchLatestRelease(apiUrl, owner, repo, resellerId, currentVersion)
             }
 
             if (activity.isFinishing || activity.isDestroyed) return@launch
@@ -141,7 +154,13 @@ object AppUpdateManager {
         data class Error(val message: String) : ReleaseResult()
     }
 
-    private fun fetchLatestRelease(apiUrl: String, resellerId: String): ReleaseResult {
+    private fun fetchLatestRelease(
+        apiUrl: String,
+        owner: String,
+        repo: String,
+        resellerId: String,
+        currentVersion: String
+    ): ReleaseResult {
         return try {
             val request = Request.Builder()
                 .url(apiUrl)
@@ -159,6 +178,11 @@ object AppUpdateManager {
             }
 
             if (!response.isSuccessful) {
+                // Rate limit (403), 429 ou outro erro na API JSON -> Tenta fallback via feed Atom público sem rate-limit
+                val atomResult = fetchLatestReleaseFromAtom(owner, repo, resellerId, currentVersion)
+                if (atomResult != null) {
+                    return atomResult
+                }
                 return ReleaseResult.Error("Não foi possível verificar atualizações de momento. Tenta mais tarde.")
             }
 
@@ -181,13 +205,14 @@ object AppUpdateManager {
                 val body = json.optString("body", "").trim()
 
                 // Se for Eagle TV (MyTvOnline), as suas releases usam a versão v1.x, v2.x, v3.x.
-                // Ignora releases da app principal Eagle XCIPTV que têm tag v4.x, v5.x, v6.x, v7.x!
-                if (isEagleTv) {
-                    val cleanTag = tagName.removePrefix("v").removePrefix("V")
-                    val major = cleanTag.split(".").firstOrNull()?.toIntOrNull() ?: 0
-                    if (major >= 4) {
-                        continue
-                    }
+                // Se for app principal (master, etc.), as suas releases usam v4.x, v5.x, v6.x, v7.x!
+                val cleanTag = tagName.removePrefix("v").removePrefix("V")
+                val major = cleanTag.split(".").firstOrNull()?.toIntOrNull() ?: 0
+                if (isEagleTv && major >= 4) {
+                    continue
+                }
+                if (!isEagleTv && major < 4) {
+                    continue
                 }
 
                 val assetsArray = json.optJSONArray("assets") ?: continue
@@ -216,7 +241,120 @@ object AppUpdateManager {
 
             ReleaseResult.UpToDate
         } catch (e: Exception) {
+            // Em caso de falha de conexão com a API REST, tenta o fallback Atom público
+            val atomResult = fetchLatestReleaseFromAtom(owner, repo, resellerId, currentVersion)
+            if (atomResult != null) {
+                return atomResult
+            }
             ReleaseResult.Error("Não foi possível verificar atualizações de momento.\nVerifica a ligação à Internet e tenta novamente.")
+        }
+    }
+
+    /**
+     * Fallback resiliente usando o feed público Atom do GitHub (sem rate-limit de 60 req/h).
+     */
+    private fun fetchLatestReleaseFromAtom(
+        owner: String,
+        repo: String,
+        resellerId: String,
+        currentVersion: String
+    ): ReleaseResult? {
+        return try {
+            val atomUrl = "https://github.com/$owner/$repo/releases.atom"
+            val request = Request.Builder()
+                .url(atomUrl)
+                .header("User-Agent", "Mozilla/5.0 (Android; Mobile)")
+                .build()
+
+            val response = httpClient.newCall(request).execute()
+            if (!response.isSuccessful) {
+                return null
+            }
+
+            val xml = response.body?.string().orEmpty()
+            if (xml.isBlank()) return null
+
+            val isEagleTv = (resellerId == "eagle_tv")
+            val expectedApkName = if (resellerId == "master") "eagle.apk" else "${resellerId}.apk"
+
+            val entryPattern = java.util.regex.Pattern.compile("<entry[\\s>](.*?)</entry>", java.util.regex.Pattern.DOTALL)
+            val matcher = entryPattern.matcher(xml)
+
+            while (matcher.find()) {
+                val entryContent = matcher.group(1) ?: continue
+
+                // Extrair tag name de <id>.../tag</id> ou de link href
+                val idPattern = java.util.regex.Pattern.compile("<id>[^<]*/([^/<]+)</id>")
+                val idM = idPattern.matcher(entryContent)
+                val rawTagName = if (idM.find()) {
+                    idM.group(1)
+                } else {
+                    val linkPattern = java.util.regex.Pattern.compile("href=\"[^\"]*/releases/tag/([^\"]+)\"")
+                    val linkM = linkPattern.matcher(entryContent)
+                    if (linkM.find()) linkM.group(1) else null
+                } ?: continue
+
+                val tagName = rawTagName.substringBefore("-").trim()
+
+                // Filtrar conforme variante (Eagle TV < 4, Eagle Mobile >= 4)
+                val cleanTag = tagName.removePrefix("v").removePrefix("V")
+                val major = cleanTag.split(".").firstOrNull()?.toIntOrNull() ?: 0
+                if (isEagleTv && major >= 4) continue
+                if (!isEagleTv && major < 4) continue
+
+                val titlePattern = java.util.regex.Pattern.compile("<title>(.*?)</title>")
+                val titleM = titlePattern.matcher(entryContent)
+                val releaseName = if (titleM.find()) titleM.group(1)?.trim() ?: tagName else tagName
+
+                val contentPattern = java.util.regex.Pattern.compile("<content[^>]*>(.*?)</content>", java.util.regex.Pattern.DOTALL)
+                val contentM = contentPattern.matcher(entryContent)
+                val rawBody = if (contentM.find()) contentM.group(1).orEmpty() else ""
+                val cleanNotes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    android.text.Html.fromHtml(rawBody, android.text.Html.FROM_HTML_MODE_COMPACT).toString().trim()
+                } else {
+                    @Suppress("DEPRECATION")
+                    android.text.Html.fromHtml(rawBody).toString().trim()
+                }
+
+                // Se a versão mais recente no repositório já não for mais nova que a instalada, está atualizado
+                if (!isNewerVersion(tagName, currentVersion)) {
+                    return ReleaseResult.UpToDate
+                }
+
+                // Verificar se o APK pretendido existe nessa tag via HEAD request rápido
+                val directDownloadUrl = "https://github.com/$owner/$repo/releases/download/$tagName/$expectedApkName"
+                val headRequest = Request.Builder()
+                    .url(directDownloadUrl)
+                    .head()
+                    .header("User-Agent", "Mozilla/5.0 (Android; Mobile)")
+                    .build()
+
+                try {
+                    val headResponse = httpClient.newCall(headRequest).execute()
+                    val headCode = headResponse.code
+                    val apkSize = headResponse.header("Content-Length")?.toLongOrNull() ?: 0L
+                    headResponse.close()
+
+                    if (headCode in 200..399) {
+                        return ReleaseResult.Success(
+                            ReleaseInfo(
+                                tagName = tagName,
+                                releaseName = if (releaseName.isBlank()) tagName else releaseName,
+                                releaseNotes = cleanNotes,
+                                apkDownloadUrl = directDownloadUrl,
+                                apkFileName = expectedApkName,
+                                apkSizeBytes = apkSize
+                            )
+                        )
+                    }
+                } catch (_: Exception) {
+                    // Erro no HEAD, continua para tentar próxima entry se houver
+                }
+            }
+
+            ReleaseResult.UpToDate
+        } catch (_: Exception) {
+            null
         }
     }
 

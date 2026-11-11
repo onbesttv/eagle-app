@@ -98,6 +98,7 @@ class StreamPlayLoginActivity : BaseActivity() {
         }
         if (isAutoLogin && usernameInput.text.isNotBlank() && passwordInput.text.isNotBlank()) {
             findViewById<androidx.cardview.widget.CardView>(R.id.cardServiceLogin).visibility = View.GONE
+            findViewById<View?>(R.id.ivJokerAppLogoLogin)?.visibility = View.GONE
             chooseServiceButton.visibility = View.GONE
             autoProgressPanel.visibility = View.VISIBLE
         }
