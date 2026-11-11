@@ -143,7 +143,9 @@ class MainActivity : BaseActivity() {
             atualizarCatalogo(button as ImageButton, savedUser, savedPass)
         }
 
-        findViewById<android.view.View?>(R.id.btnExtras)?.setOnClickListener {
+        val extrasBtn = findViewById<android.view.View?>(R.id.btnExtras)
+        extrasBtn?.setOnClickListener {
+            android.widget.Toast.makeText(this, "A abrir Extras...", android.widget.Toast.LENGTH_SHORT).show()
             try {
                 startActivity(Intent(this, ExtrasActivity::class.java))
             } catch (e: Exception) {

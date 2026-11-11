@@ -619,10 +619,9 @@ class EagleTvActivity : BaseActivity() {
         layoutLeftRail = findViewById(R.id.layoutLeftRail)
         viewRailDivider = findViewById(R.id.viewRailDivider)
         btnExpandRail = findViewById(R.id.btnExpandRail)
+        btnExpandRail.isFocusable = false
+        btnExpandRail.isFocusableInTouchMode = false
         btnExpandRail.setOnClickListener { mostrarMenuLateral() }
-        btnExpandRail.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) mostrarMenuLateral()
-        }
         layoutTopPreviewRow = findViewById(R.id.layoutTopPreviewRow)
         layoutTopProgramDetails = findViewById(R.id.layoutTopProgramDetails)
         viewTopHorizontalDivider = findViewById(R.id.viewTopHorizontalDivider)
@@ -2281,6 +2280,19 @@ class EagleTvActivity : BaseActivity() {
             }
             return
         }
+
+        // Categorias base imediatas para ter foco e ecrã completo logo à 1ª vez sem atrasos
+        val baseCategorias = listOf(
+            VodCategory("RECENT", "🕒 ADICIONADOS RECENTEMENTE", 0),
+            VodCategory("FAVORITES", "★ FAVORITOS", 0),
+            VodCategory("RESUME", "▶ CONTINUAR A VER", 0),
+            VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0)
+        )
+        montarCategoriasFilmes(baseCategorias)
+        rvCatalogGroups.post {
+            focarRecyclerViewPosicao(rvCatalogGroups, 0)
+        }
+
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_categories"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
@@ -2302,10 +2314,6 @@ class EagleTvActivity : BaseActivity() {
                     runOnUiThread {
                         if (activeSection == WorkspaceSection.MOVIES) {
                             montarCategoriasFilmes(completas)
-                            rvCatalogGroups.post {
-                                val pos = (movieGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
-                                focarRecyclerViewPosicao(rvCatalogGroups, pos)
-                            }
                         }
                     }
                 } catch (_: Exception) {}
@@ -2570,6 +2578,18 @@ class EagleTvActivity : BaseActivity() {
             }
             return
         }
+
+        // Categorias base imediatas para ter foco e ecrã completo logo à 1ª vez sem atrasos
+        val baseCategorias = listOf(
+            SeriesCategory("RECENT", "🕒 ADICIONADAS RECENTEMENTE"),
+            SeriesCategory("FAVORITES", "★ FAVORITOS"),
+            SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES")
+        )
+        montarCategoriasSeries(baseCategorias)
+        rvCatalogGroups.post {
+            focarRecyclerViewPosicao(rvCatalogGroups, 0)
+        }
+
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series_categories"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
@@ -2590,10 +2610,6 @@ class EagleTvActivity : BaseActivity() {
                     runOnUiThread {
                         if (activeSection == WorkspaceSection.SERIES) {
                             montarCategoriasSeries(completas)
-                            rvCatalogGroups.post {
-                                val pos = (seriesGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
-                                focarRecyclerViewPosicao(rvCatalogGroups, pos)
-                            }
                         }
                     }
                 } catch (_: Exception) {}
