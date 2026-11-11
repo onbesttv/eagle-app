@@ -8,6 +8,13 @@ if ($gradleContent -match 'create\("eagle_tv"\)\s*\{[^}]*versionName\s*=\s*"([^"
 $tag = "v$eagleTvVersion"
 Write-Host "Eagle TV (MyTvOnline) Versao: $eagleTvVersion (Tag: $tag)"
 
+$builtApk = "app/build/outputs/apk/eagle_tv/debug/app-eagle_tv-debug.apk"
+$destApk = "revendas/eagle_tv.apk"
+if (Test-Path $builtApk) {
+    Write-Host "A copiar $builtApk para $destApk..."
+    Copy-Item $builtApk -Destination $destApk -Force
+}
+
 $apkFile = "revendas/eagle_tv.apk"
 if (-not (Test-Path $apkFile)) {
     Write-Error "Ficheiro $apkFile nao encontrado!"
