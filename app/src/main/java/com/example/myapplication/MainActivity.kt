@@ -61,8 +61,9 @@ class MainActivity : BaseActivity() {
             startActivity(Intent(this, CatchUpActivity::class.java))
         }
 
-        val isEagleMaster = RemotePanelManager.getResellerId(this).equals("master", ignoreCase = true)
-        if (isEagleMaster) {
+        val resId = RemotePanelManager.getResellerId(this)
+        val hasSportsAndNews = resId.equals("master", ignoreCase = true) || resId.equals("tv_joker", ignoreCase = true)
+        if (hasSportsAndNews) {
             cardSportsAgenda?.visibility = android.view.View.VISIBLE
             cardNewspapers?.visibility = android.view.View.VISIBLE
             cardSportsAgenda?.setOnClickListener {
@@ -101,7 +102,7 @@ class MainActivity : BaseActivity() {
         // Destaque visual e sombra ao navegar com comando da Box
         val interactiveViews = mutableListOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnUpdateService, btnSettings)
         if (!hideVpn) interactiveViews.add(btnVpn)
-        if (isEagleMaster) {
+        if (hasSportsAndNews) {
             cardSportsAgenda?.let { interactiveViews.add(it) }
             cardNewspapers?.let { interactiveViews.add(it) }
         }

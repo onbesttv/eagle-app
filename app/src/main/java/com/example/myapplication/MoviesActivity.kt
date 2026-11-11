@@ -127,6 +127,7 @@ class MoviesActivity : BaseActivity() {
         super.onResume()
         // Atualiza a vista ao regressar da reprodução ou dos detalhes
         when (currentCategoryId) {
+            "ALL_MOVIES" -> carregarTodosFilmes()
             "FAVORITES" -> carregarFavoritos()
             "RESUME" -> carregarContinuarAVer()
             "RECENT" -> carregarRecentes()
@@ -153,20 +154,21 @@ class MoviesActivity : BaseActivity() {
                     val categoriasRemotas: List<VodCategory> = gson.fromJson(json, type)
 
                     val categoriasCompletas = mutableListOf<VodCategory>()
+                    categoriasCompletas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
                     categoriasCompletas.add(VodCategory("FAVORITES", getString(R.string.category_favorites), 0))
                     categoriasCompletas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
                     categoriasCompletas.add(VodCategory("RECENT", getString(R.string.category_recent), 0))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {
-                        val initialPos = if (categoriasCompletas.size > 3) 3 else 0
+                        val initialPos = if (categoriasCompletas.size > 4) 4 else 0
                         rvCategories.adapter = MovieCategoryAdapter(categoriasCompletas, initialPos) { cat ->
                             tratarSelecaoCategoria(cat.categoryId)
                         }
-                        if (categoriasCompletas.size > 3) {
-                            tratarSelecaoCategoria(categoriasCompletas[3].categoryId)
+                        if (categoriasCompletas.size > 4) {
+                            tratarSelecaoCategoria(categoriasCompletas[4].categoryId)
                         } else {
-                            tratarSelecaoCategoria("FAVORITES")
+                            tratarSelecaoCategoria("ALL_MOVIES")
                         }
                         rvCategories.postDelayed({
                             val vh = rvCategories.findViewHolderForAdapterPosition(initialPos)
@@ -203,11 +205,14 @@ class MoviesActivity : BaseActivity() {
                     allMoviesCache.clear()
                     allMoviesCache.addAll(filmes)
                     val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                    counts["ALL_MOVIES"] = filmes.size
                     counts["RECENT"] = minOf(40, filmes.size)
                     CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
                     runOnUiThread {
                         (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
-                        if (currentCategoryId == "RECENT") {
+                        if (currentCategoryId == "ALL_MOVIES") {
+                            carregarTodosFilmes()
+                        } else if (currentCategoryId == "RECENT") {
                             carregarRecentes()
                         }
                     }
@@ -282,13 +287,56 @@ class MoviesActivity : BaseActivity() {
     private fun tratarSelecaoCategoria(catId: String) {
         lastClickedMovieId = -1
         currentCategoryId = catId
+        val isAll = (catId == "ALL_MOVIES")
+        val searchParent = etSearch.parent as? View
+        searchParent?.visibility = if (isAll) View.VISIBLE else View.GONE
+
         when (catId) {
+            "ALL_MOVIES" -> carregarTodosFilmes()
             "FAVORITES" -> carregarFavoritos()
             "RESUME" -> carregarContinuarAVer()
             "RECENT" -> carregarRecentes()
             else -> carregarFilmesDaCategoria(catId)
         }
         focarPastaSelecionada()
+    }
+
+    private fun carregarTodosFilmes() {
+        if (allMoviesCache.isNotEmpty()) {
+            allMoviesInCat = allMoviesCache.sortedBy { it.name.lowercase() }
+            aplicarFiltroEOrdenacao()
+        } else {
+            val url = "$BASE_URL/player_api.php?username=$user&password=$pass&action=get_vod_streams"
+            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+            client.newCall(req).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        Toast.makeText(this@MoviesActivity, "Erro ao carregar filmes", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onResponse(call: Call, response: Response) {
+                    val json = response.body?.string() ?: return
+                    try {
+                        val type = object : TypeToken<List<VodStream>>() {}.type
+                        val filmes: List<VodStream> = gson.fromJson(json, type)
+                        runOnUiThread {
+                            allMoviesCache.clear()
+                            allMoviesCache.addAll(filmes)
+                            val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                            counts["ALL_MOVIES"] = filmes.size
+                            counts["RECENT"] = minOf(40, filmes.size)
+                            CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
+                            (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
+
+                            allMoviesInCat = filmes.sortedBy { it.name.lowercase() }
+                            aplicarFiltroEOrdenacao()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            })
+        }
     }
 
     private fun carregarRecentes() {

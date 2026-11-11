@@ -23,7 +23,8 @@ object ExoPlayerHelper {
      */
     fun buildOptimizedPlayer(
         context: Context,
-        playerView: PlayerView? = null
+        playerView: PlayerView? = null,
+        isLiveTv: Boolean = false
     ): Pair<ExoPlayer, DefaultTrackSelector> {
         val okHttpClient = OkHttpClient.Builder()
             .followRedirects(true)
@@ -42,12 +43,12 @@ object ExoPlayerHelper {
         val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory)
 
-        // 1. Tunneled Playback (hardware VPU direto da TV Box) + Maior Bitrate Forçado
+        // 1. Bitrate Forçado + Tunneling apenas em Live TV (em VOD tunneling causa ecra negro / falha de codec em ficheiros locais/HTTP mp4/mkv)
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
                     .setForceHighestSupportedBitrate(true)
-                    .setTunnelingEnabled(true)
+                    .setTunnelingEnabled(isLiveTv)
             )
         }
 
@@ -56,7 +57,7 @@ object ExoPlayerHelper {
             setEnableDecoderFallback(true)
         }
 
-        // 3. Controlo de buffer suave e estável para transmissões pesadas em direto (HD/FHD/4K)
+        // 3. Controlo de buffer suave e estável para transmissões
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
                 12_000, // minBufferMs (12s)

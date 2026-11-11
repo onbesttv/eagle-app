@@ -90,6 +90,10 @@ class SettingsActivity : BaseActivity() {
                 0xFFFF3B47.toInt(), 0xFFFBBF24.toInt(), 0xFFEF4444.toInt(), 0xFFF59E0B.toInt(),
                 0xFFFF5252.toInt(), 0xFFDC2626.toInt(), 0xFFFBBF24.toInt(), 0xFFFF6B7A.toInt()
             )
+            AppThemeColors.isJokerTheme(this) -> intArrayOf(
+                0xFFFBBF24.toInt(), 0xFFA855F7.toInt(), 0xFFF59E0B.toInt(), 0xFF9333EA.toInt(),
+                0xFFFFD700.toInt(), 0xFF7C3AED.toInt(), 0xFFFBBF24.toInt(), 0xFFC084FC.toInt()
+            )
             isPereira -> intArrayOf(
                 0xFF38BDF8.toInt(), 0xFF60A5FA.toInt(), 0xFF38BDF8.toInt(), 0xFF60A5FA.toInt(),
                 0xFF0EA5E9.toInt(), 0xFF7DD3FC.toInt(), 0xFF38BDF8.toInt(), 0xFFFF6B7A.toInt()

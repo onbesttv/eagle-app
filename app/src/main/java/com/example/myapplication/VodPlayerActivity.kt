@@ -102,12 +102,17 @@ class VodPlayerActivity : BaseActivity() {
     }
 
     private fun configurarPlayer() {
-        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
+        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView, isLiveTv = false)
         player = p
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
 
         player?.addListener(object : Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                Log.e("VodPlayer", "Erro na reprodução: ${error.errorCodeName} - ${error.message}", error)
+                Toast.makeText(this@VodPlayerActivity, "Erro ao reproduzir ficheiro: ${error.errorCodeName}", Toast.LENGTH_LONG).show()
+            }
+
             override fun onTracksChanged(tracks: Tracks) {
                 if (jaConfigurouLegenda) return
 

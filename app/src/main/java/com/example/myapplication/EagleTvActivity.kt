@@ -994,7 +994,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun configurarPlayer() {
-        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
+        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView, isLiveTv = true)
         player = p
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
@@ -2232,6 +2232,7 @@ class EagleTvActivity : BaseActivity() {
                     val type = object : TypeToken<List<VodCategory>>() {}.type
                     val remotas: List<VodCategory> = gson.fromJson(json, type) ?: emptyList()
                     val completas = mutableListOf<VodCategory>()
+                    completas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
                     completas.add(VodCategory("FAVORITES", "★ FAVORITOS", 0))
                     completas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
                     completas.add(VodCategory("RECENT", "🕒 ADICIONADOS RECENTEMENTE", 0))
@@ -2252,12 +2253,13 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun montarCategoriasFilmes(categorias: List<VodCategory>) {
-        val initialIdx = if (categorias.size > 3) 3 else 0
+        val initialIdx = if (categorias.size > 4) 4 else 0
         catalogGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
+                    "ALL_MOVIES" -> allMoviesCache.size
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
                     "RECENT" -> minOf(40, allMoviesCache.size)
@@ -2305,7 +2307,17 @@ class EagleTvActivity : BaseActivity() {
         val catNome = allVodCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Filmes"
         definirTopoInformativo("🎬 $catNome", "Pasta de Filmes", "Navega pelos filmes com o comando e carrega OK para ver a sinopse.")
 
+        val isAllMovies = (catId == "ALL_MOVIES")
+        (etCatalogSearch.parent as? View)?.visibility = if (isAllMovies) View.VISIBLE else View.GONE
+        btnCatalogSort.visibility = if (isAllMovies) View.VISIBLE else View.GONE
+
         when (catId) {
+            "ALL_MOVIES" -> {
+                carregarTodosFilmesEmCache {
+                    currentVodCategoryMovies = allMoviesCache.sortedBy { it.name.lowercase() }
+                    atualizarGrelhaFilmes()
+                }
+            }
             "FAVORITES" -> {
                 carregarTodosFilmesEmCache {
                     val favIds = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
@@ -2391,6 +2403,7 @@ class EagleTvActivity : BaseActivity() {
                     val type = object : TypeToken<List<SeriesCategory>>() {}.type
                     val remotas: List<SeriesCategory> = gson.fromJson(json, type) ?: emptyList()
                     val completas = mutableListOf<SeriesCategory>()
+                    completas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
                     completas.add(SeriesCategory("FAVORITES", "★ FAVORITOS"))
                     completas.add(SeriesCategory("RECENT", "🕒 ADICIONADAS RECENTEMENTE"))
                     completas.addAll(remotas)
@@ -2410,12 +2423,13 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun montarCategoriasSeries(categorias: List<SeriesCategory>) {
-        val initialIdx = if (categorias.size > 2) 2 else 0
+        val initialIdx = if (categorias.size > 3) 3 else 0
         catalogGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
+                    "ALL_SERIES" -> allSeriesCache.size
                     "FAVORITES" -> seriesFavIdsCache.size
                     "RECENT" -> minOf(40, allSeriesCache.size)
                     else -> CategoryCountHelper.getSeriesCount(this, id)
@@ -2462,7 +2476,17 @@ class EagleTvActivity : BaseActivity() {
         val catNome = allSeriesCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Séries"
         definirTopoInformativo("🎞️ $catNome", "Pasta de Séries", "Navega pelas séries com o comando e carrega OK para ver episódios.")
 
+        val isAllSeries = (catId == "ALL_SERIES")
+        (etCatalogSearch.parent as? View)?.visibility = if (isAllSeries) View.VISIBLE else View.GONE
+        btnCatalogSort.visibility = View.GONE
+
         when (catId) {
+            "ALL_SERIES" -> {
+                carregarTodasSeriesEmCache {
+                    currentSeriesCategoryItems = allSeriesCache.sortedBy { it.name.lowercase() }
+                    atualizarGrelhaSeries()
+                }
+            }
             "FAVORITES" -> {
                 carregarTodasSeriesEmCache {
                     val favIds = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
@@ -4388,7 +4412,6 @@ class EagleTvActivity : BaseActivity() {
                     selectedPosition = pos
                     atualizarEstiloItem(prev)
                     atualizarEstiloItem(selectedPosition)
-                    focarConteudoAoCarregar = true
                     holder.itemView.requestFocus()
                     onSelect(id, name)
                 }

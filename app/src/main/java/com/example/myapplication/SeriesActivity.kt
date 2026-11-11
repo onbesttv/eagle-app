@@ -104,6 +104,7 @@ class SeriesActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         when (currentCategoryId) {
+            "ALL_SERIES" -> carregarTodasSeries()
             "FAVORITES" -> carregarFavoritosSeries()
             "RECENT" -> carregarRecentesSeries()
             else -> {
@@ -131,19 +132,20 @@ class SeriesActivity : BaseActivity() {
                     val categoriasRemotas: List<SeriesCategory> = gson.fromJson(json, type)
 
                     val categoriasCompletas = mutableListOf<SeriesCategory>()
+                    categoriasCompletas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
                     categoriasCompletas.add(SeriesCategory("FAVORITES", getString(R.string.category_favorites)))
                     categoriasCompletas.add(SeriesCategory("RECENT", getString(R.string.category_recent)))
                     categoriasCompletas.addAll(categoriasRemotas)
 
                     runOnUiThread {
-                        val initialPos = if (categoriasCompletas.size > 2) 2 else 0
+                        val initialPos = if (categoriasCompletas.size > 3) 3 else 0
                         rvCategories.adapter = SeriesCategoryAdapter(categoriasCompletas, initialPos) { cat ->
                             tratarSelecaoCategoria(cat.categoryId)
                         }
-                        if (categoriasCompletas.size > 2) {
-                            tratarSelecaoCategoria(categoriasCompletas[2].categoryId)
+                        if (categoriasCompletas.size > 3) {
+                            tratarSelecaoCategoria(categoriasCompletas[3].categoryId)
                         } else {
-                            tratarSelecaoCategoria("FAVORITES")
+                            tratarSelecaoCategoria("ALL_SERIES")
                         }
                         rvCategories.postDelayed({
                             val vh = rvCategories.findViewHolderForAdapterPosition(initialPos)
@@ -180,11 +182,14 @@ class SeriesActivity : BaseActivity() {
                     allSeriesCache.clear()
                     allSeriesCache.addAll(series)
                     val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                    counts["ALL_SERIES"] = series.size
                     counts["RECENT"] = minOf(40, series.size)
                     CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
                     runOnUiThread {
                         (rvCategories.adapter as? SeriesCategoryAdapter)?.atualizarTextosVisiveis()
-                        if (currentCategoryId == "RECENT") {
+                        if (currentCategoryId == "ALL_SERIES") {
+                            carregarTodasSeries()
+                        } else if (currentCategoryId == "RECENT") {
                             carregarRecentesSeries()
                         }
                     }
@@ -259,12 +264,54 @@ class SeriesActivity : BaseActivity() {
     private fun tratarSelecaoCategoria(catId: String) {
         lastClickedSeriesId = -1
         currentCategoryId = catId
+        val isAll = (catId == "ALL_SERIES")
+        etSearch.visibility = if (isAll) View.VISIBLE else View.GONE
+
         when (catId) {
+            "ALL_SERIES" -> carregarTodasSeries()
             "FAVORITES" -> carregarFavoritosSeries()
             "RECENT" -> carregarRecentesSeries()
             else -> carregarSeriesDaCategoria(catId)
         }
         focarPastaSelecionada()
+    }
+
+    private fun carregarTodasSeries() {
+        if (allSeriesCache.isNotEmpty()) {
+            allSeriesInCat = allSeriesCache.sortedBy { it.name.lowercase() }
+            aplicarFiltroPesquisa()
+        } else {
+            val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
+            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+            client.newCall(req).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    runOnUiThread {
+                        Toast.makeText(this@SeriesActivity, "Erro ao carregar séries", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onResponse(call: Call, response: Response) {
+                    val json = response.body?.string() ?: return
+                    try {
+                        val type = object : TypeToken<List<SeriesItem>>() {}.type
+                        val series: List<SeriesItem> = gson.fromJson(json, type)
+                        runOnUiThread {
+                            allSeriesCache.clear()
+                            allSeriesCache.addAll(series)
+                            val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                            counts["ALL_SERIES"] = series.size
+                            counts["RECENT"] = minOf(40, series.size)
+                            CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
+                            (rvCategories.adapter as? SeriesCategoryAdapter)?.atualizarTextosVisiveis()
+
+                            allSeriesInCat = series.sortedBy { it.name.lowercase() }
+                            aplicarFiltroPesquisa()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            })
+        }
     }
 
     private fun carregarRecentesSeries() {
