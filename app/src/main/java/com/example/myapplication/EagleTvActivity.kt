@@ -422,7 +422,11 @@ class EagleTvActivity : BaseActivity() {
         carregarCachesLocais()
         atualizarEstadoServidorEVpn()
         AccountExpirationAlert.checkAndShow(this)
-        AppUpdateManager.checkForUpdates(this, manual = false)
+        rvLiveGroups.postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                AppUpdateManager.checkForUpdates(this, manual = false)
+            }
+        }, 1200)
 
         carregarTudoLiveTv()
 

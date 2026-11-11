@@ -167,6 +167,7 @@ object AppUpdateManager {
 
             // Procura nas releases mais recentes a primeira que contenha o APK exclusivo desta variante (eagle.apk ou <reseller_id>.apk)
             val expectedApkName = if (resellerId == "master") "eagle.apk" else "${resellerId}.apk"
+            val isEagleTv = (resellerId == "eagle_tv")
             val releasesArray = if (bodyString.trimStart().startsWith("[")) {
                 org.json.JSONArray(bodyString)
             } else {
@@ -181,6 +182,17 @@ object AppUpdateManager {
                 val tagName = rawTagName.substringBefore("-")
                 val releaseName = json.optString("name", tagName).trim()
                 val body = json.optString("body", "").trim()
+
+                // Se for Eagle TV (MyTvOnline), as suas releases usam a versão v1.x, v2.x, v3.x.
+                // Ignora releases da app principal Eagle XCIPTV que têm tag v4.x, v5.x, v6.x, v7.x!
+                if (isEagleTv) {
+                    val cleanTag = tagName.removePrefix("v").removePrefix("V")
+                    val major = cleanTag.split(".").firstOrNull()?.toIntOrNull() ?: 0
+                    if (major >= 4) {
+                        continue
+                    }
+                }
+
                 val assetsArray = json.optJSONArray("assets") ?: continue
 
                 for (i in 0 until assetsArray.length()) {
@@ -724,8 +736,11 @@ object AppUpdateManager {
         val screenWidth = activity.resources.displayMetrics.widthPixels
         dialog.window?.setLayout((screenWidth * 0.72f).toInt().coerceAtMost(screenWidth - dp(activity, 48)), ViewGroup.LayoutParams.WRAP_CONTENT)
         AppThemeColors.applyToDialog(dialog)
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(AppThemeColors.mapColor(activity, 0xFF42D6E8.toInt()))
-        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(AppThemeColors.mapColor(activity, 0xFF91A8BB.toInt()))
+        val btnPos = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        val btnNeg = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+        btnPos?.setTextColor(AppThemeColors.mapColor(activity, 0xFF42D6E8.toInt()))
+        btnNeg?.setTextColor(AppThemeColors.mapColor(activity, 0xFF91A8BB.toInt()))
+        btnPos?.post { btnPos.requestFocus() }
     }
 
     private fun formatFileSize(bytes: Long): String {
