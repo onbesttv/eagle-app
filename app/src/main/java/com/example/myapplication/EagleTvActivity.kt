@@ -122,6 +122,7 @@ class EagleTvActivity : BaseActivity() {
     // Menu Lateral (Left Rail)
     private lateinit var tvRailClock: TextView
     private lateinit var tvRailActiveServer: TextView
+    private lateinit var tvRailEditionBadge: TextView
     private lateinit var navLiveTv: TextView
     private lateinit var navMovies: TextView
     private lateinit var navSeries: TextView
@@ -630,6 +631,8 @@ class EagleTvActivity : BaseActivity() {
 
         tvRailClock = findViewById(R.id.tvRailClock)
         tvRailActiveServer = findViewById(R.id.tvRailActiveServer)
+        tvRailEditionBadge = findViewById(R.id.tvRailEditionBadge)
+        tvRailEditionBadge.text = if (user.isNotBlank()) "User: $user" else ""
         navLiveTv = findViewById(R.id.navLiveTv)
         navMovies = findViewById(R.id.navMovies)
         navSeries = findViewById(R.id.navSeries)
@@ -3543,9 +3546,6 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
-                    if (!isRailCollapsed) {
-                        ocultarMenuLateral()
-                    }
                 }
             }
             holder.itemView.setOnClickListener {
@@ -3595,9 +3595,6 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
-                    if (!isRailCollapsed) {
-                        ocultarMenuLateral()
-                    }
                 }
             }
             holder.itemView.setOnClickListener {
@@ -3645,6 +3642,7 @@ class EagleTvActivity : BaseActivity() {
         IptvServiceConfig.select(this, targetService)
         user = u
         pass = p
+        tvRailEditionBadge.text = if (user.isNotBlank()) "User: $user" else ""
         currentStreamId = -1
         inlineEpgCache.clear()
         allLiveStreamsCache.clear()
@@ -4715,9 +4713,6 @@ class EagleTvActivity : BaseActivity() {
                         lastCatalogGroupPos = holder.bindingAdapterPosition
                     }
                     hasSavedFocus = true
-                    if (!isRailCollapsed) {
-                        ocultarMenuLateral()
-                    }
                 }
             }
 
@@ -4852,9 +4847,6 @@ class EagleTvActivity : BaseActivity() {
                         lastLiveChannelPos = holder.bindingAdapterPosition
                         hasSavedFocus = true
                     }
-                    if (!isRailCollapsed) {
-                        ocultarMenuLateral()
-                    }
                     onFocused(canal)
                 }
             }
@@ -4862,6 +4854,9 @@ class EagleTvActivity : BaseActivity() {
             holder.itemView.setOnClickListener {
                 val pos = holder.bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                     onClick(canal, pos + 1)
                 }
             }
@@ -4979,9 +4974,6 @@ class EagleTvActivity : BaseActivity() {
                         lastCatalogGridPos = holder.bindingAdapterPosition
                     }
                     hasSavedFocus = true
-                    if (!isRailCollapsed) {
-                        ocultarMenuLateral()
-                    }
                 }
             }
 
@@ -5197,9 +5189,6 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
-                    if (!isRailCollapsed) {
-                        ocultarMenuLateral()
-                    }
                     onFocused(item)
                 }
             }

@@ -63,9 +63,12 @@
                         android:id="@+id/tvRailEditionBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="PRO TV"
+                        android:maxWidth="110dp"
+                        android:singleLine="true"
+                        android:ellipsize="end"
+                        android:text="User: -"
                         android:textColor="#00E5FF"
-                        android:textSize="8.5sp"
+                        android:textSize="9sp"
                         android:textStyle="bold" />
                 </LinearLayout>
             </LinearLayout>
