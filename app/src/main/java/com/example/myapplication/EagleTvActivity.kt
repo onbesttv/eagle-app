@@ -400,6 +400,16 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
+    private val periodicUpdateCheckRunnable = object : Runnable {
+        override fun run() {
+            if (!isFinishing && !isDestroyed) {
+                AppUpdateManager.checkForUpdates(this@EagleTvActivity, manual = false)
+                // Volta a verificar a cada 10 minutos automaticamente em segundo plano
+                uiHandler.postDelayed(this, 10 * 60_000L)
+            }
+        }
+    }
+
     private var scheduleFocusRunnable: Runnable? = null
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
@@ -437,7 +447,8 @@ class EagleTvActivity : BaseActivity() {
         AccountExpirationAlert.checkAndShow(this)
         rvLiveGroups.postDelayed({
             if (!isFinishing && !isDestroyed) {
-                AppUpdateManager.checkForUpdates(this, manual = false)
+                uiHandler.removeCallbacks(periodicUpdateCheckRunnable)
+                uiHandler.post(periodicUpdateCheckRunnable)
             }
         }, 1200)
 
@@ -560,6 +571,12 @@ class EagleTvActivity : BaseActivity() {
                 restaurarFocoSalvo()
             }, 120)
         }
+        // Verificar atualizações sempre que a app volta ao primeiro plano (ex: após fechar reprodutor/definições)
+        uiHandler.postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                AppUpdateManager.checkForUpdates(this, manual = false)
+            }
+        }, 1500)
     }
 
     override fun onStop() {
@@ -571,6 +588,7 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onDestroy() {
         uiHandler.removeCallbacksAndMessages(null)
+        uiHandler.removeCallbacks(periodicUpdateCheckRunnable)
         PiaVpnManager.removeListener(vpnStateListener)
         vpnDurationHandler.removeCallbacks(vpnDurationRunnable)
         super.onDestroy()

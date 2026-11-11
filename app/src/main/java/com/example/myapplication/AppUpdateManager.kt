@@ -43,6 +43,7 @@ object AppUpdateManager {
     private var isLifecycleRegistered = false
     private var pendingReleaseForPermission: ReleaseInfo? = null
     private var pendingApkForInstall: Pair<File, String?>? = null
+    private var activeUpdateDialog: AlertDialog? = null
 
     private val httpClient by lazy {
         OkHttpClient.Builder()
@@ -425,6 +426,7 @@ object AppUpdateManager {
     }
 
     private fun showUpdateAvailableDialog(activity: AppCompatActivity, release: ReleaseInfo) {
+        if (activeUpdateDialog?.isShowing == true) return
         ensureLifecycleListener(activity)
         val panel = createDialogContainer(activity)
 
@@ -447,12 +449,20 @@ object AppUpdateManager {
 
         val dialog = AlertDialog.Builder(activity)
             .setView(panel)
-            .setNegativeButton("MAIS TARDE", null)
+            .setNegativeButton("MAIS TARDE") { d, _ ->
+                d.dismiss()
+                activeUpdateDialog = null
+            }
             .setPositiveButton(positiveBtnText) { _, _ ->
+                activeUpdateDialog = null
                 startDownloadAndInstall(activity, release)
+            }
+            .setOnDismissListener {
+                activeUpdateDialog = null
             }
             .create()
 
+        activeUpdateDialog = dialog
         dialog.show()
         styleDialogWindow(dialog, activity)
     }
