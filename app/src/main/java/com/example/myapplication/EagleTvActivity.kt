@@ -226,12 +226,16 @@ class EagleTvActivity : BaseActivity() {
     // Catálogo VOD & Séries
     private var allVodCategories = listOf<VodCategory>()
     private val allMoviesCache = mutableListOf<VodStream>()
+    private var isLoadingMoviesCache = false
+    private val pendingMoviesCacheCallbacks = mutableListOf<() -> Unit>()
     private var currentVodCategoryMovies = listOf<VodStream>()
     private var currentVodCategoryId = ""
     private var currentVodSortMode = 0 // 0=Padrão, 1=A-Z, 2=Recentes, 3=Rating
 
     private var allSeriesCategories = listOf<SeriesCategory>()
     private val allSeriesCache = mutableListOf<SeriesItem>()
+    private var isLoadingSeriesCache = false
+    private val pendingSeriesCallbacks = mutableListOf<() -> Unit>()
     private var currentSeriesCategoryItems = listOf<SeriesItem>()
     private var currentSeriesCategoryId = ""
 
@@ -786,16 +790,16 @@ class EagleTvActivity : BaseActivity() {
             selecionarSecao(WorkspaceSection.MOVIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
-                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                catalogGroupAdapter?.selecionarPorId("ALL_MOVIES")
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }, 80)
         }
         navSeries.setOnClickListener {
             selecionarSecao(WorkspaceSection.SERIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
-                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                catalogGroupAdapter?.selecionarPorId("ALL_SERIES")
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }, 80)
         }
 
@@ -2258,8 +2262,12 @@ class EagleTvActivity : BaseActivity() {
 
     private fun iniciarSecaoFilmes() {
         etCatalogSearch.setText("")
+        carregarTodosFilmesEmCache()
         if (allVodCategories.isNotEmpty()) {
             montarCategoriasFilmes(allVodCategories)
+            rvCatalogGroups.post {
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
+            }
             return
         }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_categories"
@@ -2295,16 +2303,19 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun montarCategoriasFilmes(categorias: List<VodCategory>) {
-        val initialIdx = if (categorias.size > 4) 4 else 0
+        val initialIdx = 0
         movieGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
-                    "ALL_MOVIES" -> allMoviesCache.size
+                    "ALL_MOVIES" -> {
+                        val count = allMoviesCache.size
+                        if (count > 0) count else CategoryCountHelper.getVodCount(this, "ALL_MOVIES")
+                    }
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
-                    "RECENT" -> minOf(40, allMoviesCache.size)
+                    "RECENT" -> minOf(40, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else CategoryCountHelper.getVodCount(this, "RECENT"))
                     else -> CategoryCountHelper.getVodCount(this, id)
                 }
             },
@@ -2321,10 +2332,20 @@ class EagleTvActivity : BaseActivity() {
             onDone?.invoke()
             return
         }
+        synchronized(pendingMoviesCacheCallbacks) {
+            if (onDone != null) pendingMoviesCacheCallbacks.add(onDone)
+            if (isLoadingMoviesCache) return
+            isLoadingMoviesCache = true
+        }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
+            override fun onFailure(call: Call, e: IOException) {
+                synchronized(pendingMoviesCacheCallbacks) {
+                    isLoadingMoviesCache = false
+                    pendingMoviesCacheCallbacks.clear()
+                }
+            }
             override fun onResponse(call: Call, response: Response) {
                 val json = response.body?.string() ?: return
                 try {
@@ -2332,13 +2353,26 @@ class EagleTvActivity : BaseActivity() {
                     val filmes: List<VodStream> = gson.fromJson(json, type) ?: emptyList()
                     allMoviesCache.clear()
                     allMoviesCache.addAll(filmes)
-                    val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                    counts["ALL_MOVIES"] = filmes.size
                     CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
-                    runOnUiThread {
-                        catalogGroupAdapter?.notifyDataSetChanged()
-                        onDone?.invoke()
+                    val callbacks = synchronized(pendingMoviesCacheCallbacks) {
+                        val list = pendingMoviesCacheCallbacks.toList()
+                        pendingMoviesCacheCallbacks.clear()
+                        isLoadingMoviesCache = false
+                        list
                     }
-                } catch (_: Exception) {}
+                    runOnUiThread {
+                        movieGroupAdapter?.notifyDataSetChanged()
+                        catalogGroupAdapter?.notifyDataSetChanged()
+                        callbacks.forEach { it.invoke() }
+                    }
+                } catch (_: Exception) {
+                    synchronized(pendingMoviesCacheCallbacks) {
+                        isLoadingMoviesCache = false
+                        pendingMoviesCacheCallbacks.clear()
+                    }
+                }
             }
         })
     }
@@ -2429,8 +2463,12 @@ class EagleTvActivity : BaseActivity() {
 
     private fun iniciarSecaoSeries() {
         etCatalogSearch.setText("")
+        carregarTodasSeriesEmCache()
         if (allSeriesCategories.isNotEmpty()) {
             montarCategoriasSeries(allSeriesCategories)
+            rvCatalogGroups.post {
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
+            }
             return
         }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series_categories"
@@ -2465,15 +2503,18 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun montarCategoriasSeries(categorias: List<SeriesCategory>) {
-        val initialIdx = if (categorias.size > 3) 3 else 0
+        val initialIdx = 0
         seriesGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
-                    "ALL_SERIES" -> allSeriesCache.size
+                    "ALL_SERIES" -> {
+                        val count = allSeriesCache.size
+                        if (count > 0) count else CategoryCountHelper.getSeriesCount(this, "ALL_SERIES")
+                    }
                     "FAVORITES" -> seriesFavIdsCache.size
-                    "RECENT" -> minOf(40, allSeriesCache.size)
+                    "RECENT" -> minOf(40, if (allSeriesCache.isNotEmpty()) allSeriesCache.size else CategoryCountHelper.getSeriesCount(this, "RECENT"))
                     else -> CategoryCountHelper.getSeriesCount(this, id)
                 }
             },
@@ -2490,10 +2531,20 @@ class EagleTvActivity : BaseActivity() {
             onDone?.invoke()
             return
         }
+        synchronized(pendingSeriesCallbacks) {
+            if (onDone != null) pendingSeriesCallbacks.add(onDone)
+            if (isLoadingSeriesCache) return
+            isLoadingSeriesCache = true
+        }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
+            override fun onFailure(call: Call, e: IOException) {
+                synchronized(pendingSeriesCallbacks) {
+                    isLoadingSeriesCache = false
+                    pendingSeriesCallbacks.clear()
+                }
+            }
             override fun onResponse(call: Call, response: Response) {
                 val json = response.body?.string() ?: return
                 try {
@@ -2501,13 +2552,26 @@ class EagleTvActivity : BaseActivity() {
                     val series: List<SeriesItem> = gson.fromJson(json, type) ?: emptyList()
                     allSeriesCache.clear()
                     allSeriesCache.addAll(series)
-                    val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                    counts["ALL_SERIES"] = series.size
                     CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
-                    runOnUiThread {
-                        catalogGroupAdapter?.notifyDataSetChanged()
-                        onDone?.invoke()
+                    val callbacks = synchronized(pendingSeriesCallbacks) {
+                        val list = pendingSeriesCallbacks.toList()
+                        pendingSeriesCallbacks.clear()
+                        isLoadingSeriesCache = false
+                        list
                     }
-                } catch (_: Exception) {}
+                    runOnUiThread {
+                        seriesGroupAdapter?.notifyDataSetChanged()
+                        catalogGroupAdapter?.notifyDataSetChanged()
+                        callbacks.forEach { it.invoke() }
+                    }
+                } catch (_: Exception) {
+                    synchronized(pendingSeriesCallbacks) {
+                        isLoadingSeriesCache = false
+                        pendingSeriesCallbacks.clear()
+                    }
+                }
             }
         })
     }
