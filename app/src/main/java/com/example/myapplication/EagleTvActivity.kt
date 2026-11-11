@@ -104,6 +104,8 @@ class EagleTvActivity : BaseActivity() {
     // Contentores principais
     private lateinit var layoutLeftRail: View
     private lateinit var viewRailDivider: View
+    private lateinit var btnExpandRail: View
+    private var isRailCollapsed = false
     private lateinit var layoutTopPreviewRow: LinearLayout
     private lateinit var layoutTopProgramDetails: View
     private lateinit var viewTopHorizontalDivider: View
@@ -451,7 +453,7 @@ class EagleTvActivity : BaseActivity() {
                                 focarRecyclerViewPosicao(rvLiveGroups, pos)
                             }
                             rvLiveGroups.hasFocus() -> {
-                                navLiveTv.requestFocus()
+                                mostrarMenuLateral(navLiveTv)
                             }
                             layoutLeftRail.hasFocus() -> {
                                 mostrarDialogoSaida()
@@ -473,14 +475,15 @@ class EagleTvActivity : BaseActivity() {
                                 focarRecyclerViewPosicao(rvCatalogGroups, groupPos)
                             }
                             rvCatalogGroups.hasFocus() -> {
-                                when (activeSection) {
-                                    WorkspaceSection.MOVIES -> navMovies.requestFocus()
-                                    WorkspaceSection.SERIES -> navSeries.requestFocus()
-                                    WorkspaceSection.CATCHUP -> navCatchUp.requestFocus()
-                                    WorkspaceSection.SPORTS -> navSports.requestFocus()
-                                    WorkspaceSection.NEWSPAPERS -> navNewspapers.requestFocus()
-                                    else -> navLiveTv.requestFocus()
+                                val target = when (activeSection) {
+                                    WorkspaceSection.MOVIES -> navMovies
+                                    WorkspaceSection.SERIES -> navSeries
+                                    WorkspaceSection.CATCHUP -> navCatchUp
+                                    WorkspaceSection.SPORTS -> navSports
+                                    WorkspaceSection.NEWSPAPERS -> navNewspapers
+                                    else -> navLiveTv
                                 }
+                                mostrarMenuLateral(target)
                             }
                             layoutLeftRail.hasFocus() -> {
                                 selecionarSecao(WorkspaceSection.LIVE_TV)
@@ -502,7 +505,7 @@ class EagleTvActivity : BaseActivity() {
                         if (rvVpnRegions.hasFocus()) {
                             btnToggleVpn.requestFocus()
                         } else if (btnToggleVpn.hasFocus()) {
-                            navVpn.requestFocus()
+                            mostrarMenuLateral(navVpn)
                         } else {
                             selecionarSecao(WorkspaceSection.LIVE_TV)
                         }
@@ -510,7 +513,7 @@ class EagleTvActivity : BaseActivity() {
                     // Em Definições:
                     activeSection == WorkspaceSection.SETTINGS -> {
                         if (rvSettingsGrid.hasFocus()) {
-                            navSettings.requestFocus()
+                            mostrarMenuLateral(navSettings)
                         } else {
                             selecionarSecao(WorkspaceSection.LIVE_TV)
                         }
@@ -567,6 +570,11 @@ class EagleTvActivity : BaseActivity() {
 
         layoutLeftRail = findViewById(R.id.layoutLeftRail)
         viewRailDivider = findViewById(R.id.viewRailDivider)
+        btnExpandRail = findViewById(R.id.btnExpandRail)
+        btnExpandRail.setOnClickListener { mostrarMenuLateral() }
+        btnExpandRail.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) mostrarMenuLateral()
+        }
         layoutTopPreviewRow = findViewById(R.id.layoutTopPreviewRow)
         layoutTopProgramDetails = findViewById(R.id.layoutTopProgramDetails)
         viewTopHorizontalDivider = findViewById(R.id.viewTopHorizontalDivider)
@@ -733,6 +741,7 @@ class EagleTvActivity : BaseActivity() {
 
         navLiveTv.setOnClickListener {
             selecionarSecao(WorkspaceSection.LIVE_TV)
+            ocultarMenuLateral()
             rvLiveGroups.postDelayed({
                 val pos = (liveGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                 focarRecyclerViewPosicao(rvLiveGroups, pos)
@@ -740,6 +749,7 @@ class EagleTvActivity : BaseActivity() {
         }
         navMovies.setOnClickListener {
             selecionarSecao(WorkspaceSection.MOVIES)
+            ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
                 val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
@@ -747,6 +757,7 @@ class EagleTvActivity : BaseActivity() {
         }
         navSeries.setOnClickListener {
             selecionarSecao(WorkspaceSection.SERIES)
+            ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
                 val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
@@ -757,6 +768,7 @@ class EagleTvActivity : BaseActivity() {
             // O Guia TV é a própria vista de TV em Direto: foca diretamente o programa atual no guia EPG
             lastFocusArea = LastFocusArea.CHANNEL_SCHEDULE
             selecionarSecao(WorkspaceSection.LIVE_TV)
+            ocultarMenuLateral()
             rvChannelSchedule.postDelayed({
                 val target = if ((rvChannelSchedule.adapter?.itemCount ?: 0) > 0) rvChannelSchedule else rvLiveChannels
                 val targetPos = if (target == rvChannelSchedule) {
@@ -769,6 +781,7 @@ class EagleTvActivity : BaseActivity() {
         }
         navCatchUp.setOnClickListener {
             selecionarSecao(WorkspaceSection.CATCHUP)
+            ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
                 val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
@@ -776,6 +789,7 @@ class EagleTvActivity : BaseActivity() {
         }
         navSports.setOnClickListener {
             selecionarSecao(WorkspaceSection.SPORTS)
+            ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
                 val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
@@ -783,6 +797,7 @@ class EagleTvActivity : BaseActivity() {
         }
         navNewspapers.setOnClickListener {
             selecionarSecao(WorkspaceSection.NEWSPAPERS)
+            ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
                 val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
@@ -791,6 +806,7 @@ class EagleTvActivity : BaseActivity() {
         navVpn.setOnClickListener {
             if (PiaVpnConfig.isVpnAllowedForCurrentUser(this)) {
                 selecionarSecao(WorkspaceSection.VPN)
+                ocultarMenuLateral()
                 btnToggleVpn.postDelayed({ btnToggleVpn.requestFocus() }, 80)
             } else {
                 Toast.makeText(this, "VPN inativa para esta conta no painel.", Toast.LENGTH_SHORT).show()
@@ -813,6 +829,7 @@ class EagleTvActivity : BaseActivity() {
         }
         navSettings.setOnClickListener {
             selecionarSecao(WorkspaceSection.SETTINGS)
+            ocultarMenuLateral()
             rvSettingsGrid.postDelayed({
                 focarRecyclerViewPosicao(rvSettingsGrid, 0)
             }, 80)
@@ -1075,10 +1092,46 @@ class EagleTvActivity : BaseActivity() {
             btnOsdExitFullscreen.hasFocus()
     }
 
+    private fun ocultarMenuLateral() {
+        if (isFullScreen) return
+        isRailCollapsed = true
+        layoutLeftRail.visibility = View.GONE
+        viewRailDivider.visibility = View.GONE
+        btnExpandRail.visibility = View.VISIBLE
+    }
+
+    private fun mostrarMenuLateral(focarItem: View? = null) {
+        if (isFullScreen) return
+        isRailCollapsed = false
+        layoutLeftRail.visibility = View.VISIBLE
+        viewRailDivider.visibility = View.VISIBLE
+        btnExpandRail.visibility = View.GONE
+        if (focarItem != null) {
+            focarItem.post { focarItem.requestFocus() }
+        } else {
+            focarItemMenuAtivo()
+        }
+    }
+
+    private fun focarItemMenuAtivo() {
+        val target = when (activeSection) {
+            WorkspaceSection.LIVE_TV -> navLiveTv
+            WorkspaceSection.MOVIES -> navMovies
+            WorkspaceSection.SERIES -> navSeries
+            WorkspaceSection.CATCHUP -> navCatchUp
+            WorkspaceSection.SPORTS -> navSports
+            WorkspaceSection.NEWSPAPERS -> navNewspapers
+            WorkspaceSection.VPN -> navVpn
+            WorkspaceSection.SETTINGS -> navSettings
+        }
+        target.post { target.requestFocus() }
+    }
+
     private fun entrarEmFullscreen() {
         isFullScreen = true
         layoutLeftRail.visibility = View.GONE
         viewRailDivider.visibility = View.GONE
+        btnExpandRail.visibility = View.GONE
         layoutTopProgramDetails.visibility = View.GONE
         viewTopHorizontalDivider.visibility = View.GONE
         layoutLiveTvColumns.visibility = View.GONE
@@ -1110,8 +1163,15 @@ class EagleTvActivity : BaseActivity() {
         layoutFullscreenOsd.visibility = View.GONE
         uiHandler.removeCallbacks(hideOsdRunnable)
 
-        layoutLeftRail.visibility = View.VISIBLE
-        viewRailDivider.visibility = View.VISIBLE
+        if (isRailCollapsed) {
+            layoutLeftRail.visibility = View.GONE
+            viewRailDivider.visibility = View.GONE
+            btnExpandRail.visibility = View.VISIBLE
+        } else {
+            layoutLeftRail.visibility = View.VISIBLE
+            viewRailDivider.visibility = View.VISIBLE
+            btnExpandRail.visibility = View.GONE
+        }
         layoutTopProgramDetails.visibility = View.VISIBLE
         viewTopHorizontalDivider.visibility = View.VISIBLE
         layoutMiniPlayerBadge.visibility = View.VISIBLE
@@ -1393,17 +1453,19 @@ class EagleTvActivity : BaseActivity() {
                             return true
                         }
                         rvLiveGroups.hasFocus() -> {
-                            navLiveTv.requestFocus()
+                            mostrarMenuLateral(navLiveTv)
                             return true
                         }
                     }
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     when {
                         layoutLeftRail.hasFocus() -> {
+                            ocultarMenuLateral()
                             val pos = (liveGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                             rvLiveGroups.scrollToPosition(pos)
                             rvLiveGroups.post {
                                 rvLiveGroups.findViewHolderForAdapterPosition(pos)?.itemView?.requestFocus()
+                                    ?: focarRecyclerViewPosicao(rvLiveGroups, pos)
                             }
                             return true
                         }
@@ -1430,13 +1492,14 @@ class EagleTvActivity : BaseActivity() {
                             return true
                         }
                         btnToggleVpn.hasFocus() -> {
-                            navVpn.requestFocus()
+                            mostrarMenuLateral(navVpn)
                             return true
                         }
                     }
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     when {
                         layoutLeftRail.hasFocus() -> {
+                            ocultarMenuLateral()
                             btnToggleVpn.requestFocus()
                             return true
                         }
@@ -1456,7 +1519,7 @@ class EagleTvActivity : BaseActivity() {
                     if (pos != -1) {
                         if (pos % 2 == 0) {
                             // Está na coluna da esquerda (pos 0, 2, 4, 6): volta para Definições no menu lateral
-                            navSettings.requestFocus()
+                            mostrarMenuLateral(navSettings)
                             return true
                         } else {
                             // Está na coluna da direita (pos 1, 3, 5): move para o cartão da esquerda na mesma linha!
@@ -1464,11 +1527,12 @@ class EagleTvActivity : BaseActivity() {
                             return true
                         }
                     } else if (rvSettingsGrid.hasFocus()) {
-                        navSettings.requestFocus()
+                        mostrarMenuLateral(navSettings)
                         return true
                     }
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     if (layoutLeftRail.hasFocus() && (rvSettingsGrid.adapter?.itemCount ?: 0) > 0) {
+                        ocultarMenuLateral()
                         focarRecyclerViewPosicao(rvSettingsGrid, 0)
                         return true
                     }
@@ -1510,20 +1574,22 @@ class EagleTvActivity : BaseActivity() {
                             return true
                         }
                         rvCatalogGroups.hasFocus() -> {
-                            when (activeSection) {
-                                WorkspaceSection.MOVIES -> navMovies.requestFocus()
-                                WorkspaceSection.SERIES -> navSeries.requestFocus()
-                                WorkspaceSection.CATCHUP -> navCatchUp.requestFocus()
-                                WorkspaceSection.SPORTS -> navSports.requestFocus()
-                                WorkspaceSection.NEWSPAPERS -> navNewspapers.requestFocus()
-                                else -> navLiveTv.requestFocus()
+                            val target = when (activeSection) {
+                                WorkspaceSection.MOVIES -> navMovies
+                                WorkspaceSection.SERIES -> navSeries
+                                WorkspaceSection.CATCHUP -> navCatchUp
+                                WorkspaceSection.SPORTS -> navSports
+                                WorkspaceSection.NEWSPAPERS -> navNewspapers
+                                else -> navLiveTv
                             }
+                            mostrarMenuLateral(target)
                             return true
                         }
                     }
                 } else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                     when {
                         layoutLeftRail.hasFocus() -> {
+                            ocultarMenuLateral()
                             val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                             focarRecyclerViewPosicao(rvCatalogGroups, pos)
                             return true
@@ -2716,8 +2782,31 @@ class EagleTvActivity : BaseActivity() {
             return
         }
         Toast.makeText(this, "A sintonizar ${canal.name}...", Toast.LENGTH_SHORT).show()
-        sintonizarCanal(canal, 1)
+
         selecionarSecao(WorkspaceSection.LIVE_TV)
+        ocultarMenuLateral()
+
+        val catId = canal.categoryId?.takeIf { it.isNotBlank() }
+        val cat = if (catId != null) allLiveCategories.firstOrNull { it.categoryId == catId } else null
+        val targetGroupId = cat?.categoryId ?: "ALL_LIVE"
+        val targetGroupName = cat?.categoryName ?: "Todos os Canais"
+
+        focarConteudoAoCarregar = true
+        selecionarGrupoLive(targetGroupId, targetGroupName, iniciarCanal = false)
+        sintonizarCanal(canal, 1)
+
+        rvLiveChannels.postDelayed({
+            val pos = currentGroupChannels.indexOfFirst { it.streamId == canal.streamId }
+            if (pos >= 0) {
+                lastFocusArea = LastFocusArea.LIVE_CHANNELS
+                lastLiveChannelPos = pos
+                hasSavedFocus = true
+                focarRecyclerViewPosicao(rvLiveChannels, pos)
+            } else {
+                val p = liveChannelAdapter?.selecionarCanalPorId(canal.streamId) ?: -1
+                if (p >= 0) focarRecyclerViewPosicao(rvLiveChannels, p)
+            }
+        }, 300)
     }
 
     // --- JOGOS DO DIA ---
@@ -3114,6 +3203,9 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                 }
             }
             holder.itemView.setOnClickListener {
@@ -3163,6 +3255,9 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                 }
             }
             holder.itemView.setOnClickListener {
@@ -4280,6 +4375,9 @@ class EagleTvActivity : BaseActivity() {
                         lastCatalogGroupPos = holder.bindingAdapterPosition
                     }
                     hasSavedFocus = true
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                 }
             }
 
@@ -4415,6 +4513,9 @@ class EagleTvActivity : BaseActivity() {
                         lastLiveChannelPos = holder.bindingAdapterPosition
                         hasSavedFocus = true
                     }
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                     onFocused(canal)
                 }
             }
@@ -4539,6 +4640,9 @@ class EagleTvActivity : BaseActivity() {
                         lastCatalogGridPos = holder.bindingAdapterPosition
                     }
                     hasSavedFocus = true
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                 }
             }
 
@@ -4754,6 +4858,9 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
+                    if (!isRailCollapsed) {
+                        ocultarMenuLateral()
+                    }
                     onFocused(item)
                 }
             }

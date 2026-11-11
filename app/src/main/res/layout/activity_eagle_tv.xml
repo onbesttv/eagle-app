@@ -277,6 +277,38 @@
             android:layout_height="match_parent"
             android:background="#16243A" />
 
+        <!-- Indicador de Menu Oculto / Setinha para Expandir -->
+        <LinearLayout
+            android:id="@+id/btnExpandRail"
+            android:layout_width="22dp"
+            android:layout_height="match_parent"
+            android:background="#070D17"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvRailExpandArrow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="◀"
+                android:textColor="#00E5FF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="M\nE\nN\nU"
+                android:textColor="#64748B"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:lineSpacingExtra="3dp" />
+        </LinearLayout>
+
         <!-- ================================================================== -->
         <!-- 2. ÁREA PRINCIPAL DIREITA (TOPO PIP + HERO INFO + GRELHAS ABAIXO)  -->
         <!-- ================================================================== -->
