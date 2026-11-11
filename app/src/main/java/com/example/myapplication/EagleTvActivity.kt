@@ -933,6 +933,7 @@ class EagleTvActivity : BaseActivity() {
 
     private fun selecionarSecao(sec: WorkspaceSection) {
         activeSection = sec
+        aplicarDimensoesTopo()
         atualizarEstilosMenuLateral()
         configurarCatalogoParaSecao(grelha = true, pesquisa = true)
 
@@ -1171,6 +1172,7 @@ class EagleTvActivity : BaseActivity() {
             ViewGroup.LayoutParams.MATCH_PARENT
         )
         framePlayerWrapper.background = null
+        framePlayerWrapper.clipToOutline = false
 
         mostrarOsdFullscreen()
     }
@@ -1193,19 +1195,51 @@ class EagleTvActivity : BaseActivity() {
         layoutVpnSection.visibility = if (activeSection == WorkspaceSection.VPN) View.VISIBLE else View.GONE
         layoutSettingsSection.visibility = if (activeSection == WorkspaceSection.SETTINGS) View.VISIBLE else View.GONE
 
-        layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            dp(196)
-        )
-        val pad = dp(10)
-        layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
-
-        framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
-            dp(310),
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
+        aplicarDimensoesTopo()
 
         restaurarFocoSalvo()
+    }
+
+    private fun aplicarDimensoesTopo() {
+        if (isFullScreen) return
+        val isLiveTv = (activeSection == WorkspaceSection.LIVE_TV)
+        if (isLiveTv) {
+            layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(196)
+            )
+            val pad = dp(10)
+            layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
+            framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
+                dp(310),
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            layoutTopProgressRow.visibility = View.VISIBLE
+            tvTopProgramDesc.maxLines = 3
+            tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
+        } else {
+            layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(110)
+            )
+            val padH = dp(8)
+            val padV = dp(6)
+            layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
+            framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
+                dp(178),
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            layoutTopProgressRow.visibility = View.GONE
+            tvTopProgramDesc.maxLines = 2
+            tvMiniPlayerHint.text = "2º Plano (OK)"
+        }
+        framePlayerWrapper.background = GradientDrawable().apply {
+            setColor(Color.BLACK)
+            setStroke(dp(if (framePlayerWrapper.hasFocus()) 2 else 1), if (framePlayerWrapper.hasFocus()) 0xFF00E5FF.toInt() else 0xFF1E293B.toInt())
+            cornerRadius = dp(8).toFloat()
+        }
+        framePlayerWrapper.clipToOutline = true
+        layoutMiniPlayerBadge.visibility = View.VISIBLE
     }
 
     private fun mostrarOsdFullscreen(focusQuickActions: Boolean = false) {
