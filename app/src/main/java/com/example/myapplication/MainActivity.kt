@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import android.content.Intent
+import android.view.View
 
 class MainActivity : BaseActivity() {
 
@@ -140,6 +141,14 @@ class MainActivity : BaseActivity() {
 
         btnUpdateService.setOnClickListener { button ->
             atualizarCatalogo(button as ImageButton, savedUser, savedPass)
+        }
+
+        findViewById<android.view.View?>(R.id.btnExtras)?.setOnClickListener {
+            try {
+                startActivity(Intent(this, ExtrasActivity::class.java))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         // Foco inicial direto no LIVE TV ao abrir a aplicação; a home já está visível

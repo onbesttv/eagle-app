@@ -53,6 +53,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONObject
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileReader
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -231,6 +238,7 @@ class EagleTvActivity : BaseActivity() {
     private var currentVodCategoryMovies = listOf<VodStream>()
     private var currentVodCategoryId = ""
     private var currentVodSortMode = 0 // 0=Padrão, 1=A-Z, 2=Recentes, 3=Rating
+    private var filterJob: Job? = null
 
     private var allSeriesCategories = listOf<SeriesCategory>()
     private val allSeriesCache = mutableListOf<SeriesItem>()
@@ -238,6 +246,7 @@ class EagleTvActivity : BaseActivity() {
     private val pendingSeriesCallbacks = mutableListOf<() -> Unit>()
     private var currentSeriesCategoryItems = listOf<SeriesItem>()
     private var currentSeriesCategoryId = ""
+    private var seriesFilterJob: Job? = null
 
     private var liveGroupAdapter: GroupListAdapter? = null
     private var overlayGroupAdapter: GroupListAdapter? = null
@@ -857,6 +866,8 @@ class EagleTvActivity : BaseActivity() {
                 allLiveStreamsCache.clear()
                 allMoviesCache.clear()
                 allSeriesCache.clear()
+                try { File(cacheDir, "vod_movies_cache.json").delete() } catch (_: Exception) {}
+                try { File(cacheDir, "vod_series_cache.json").delete() } catch (_: Exception) {}
                 carregarTudoLiveTv()
                 SportsAgendaManager.loadOrRefresh(this, forceOnline = true) { matches ->
                     allMatches.clear()
@@ -2337,44 +2348,110 @@ class EagleTvActivity : BaseActivity() {
             if (isLoadingMoviesCache) return
             isLoadingMoviesCache = true
         }
-        val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams"
-        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-        client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                synchronized(pendingMoviesCacheCallbacks) {
-                    isLoadingMoviesCache = false
-                    pendingMoviesCacheCallbacks.clear()
-                }
-            }
-            override fun onResponse(call: Call, response: Response) {
-                val json = response.body?.string() ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            // 1. Tentar carregar instantaneamente da cache em disco se existir
+            val cacheFile = File(cacheDir, "vod_movies_cache.json")
+            if (allMoviesCache.isEmpty() && cacheFile.exists() && cacheFile.length() > 0) {
                 try {
                     val type = object : TypeToken<List<VodStream>>() {}.type
-                    val filmes: List<VodStream> = gson.fromJson(json, type) ?: emptyList()
-                    allMoviesCache.clear()
-                    allMoviesCache.addAll(filmes)
-                    val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
-                    counts["ALL_MOVIES"] = filmes.size
-                    CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
-                    val callbacks = synchronized(pendingMoviesCacheCallbacks) {
-                        val list = pendingMoviesCacheCallbacks.toList()
-                        pendingMoviesCacheCallbacks.clear()
-                        isLoadingMoviesCache = false
-                        list
+                    val filmes: List<VodStream> = FileReader(cacheFile).use { reader ->
+                        gson.fromJson(reader, type)
+                    } ?: emptyList()
+                    if (filmes.isNotEmpty()) {
+                        val sortedFilmes = filmes.sortedBy { it.name.lowercase() }
+                        synchronized(allMoviesCache) {
+                            if (allMoviesCache.isEmpty()) {
+                                allMoviesCache.addAll(sortedFilmes)
+                            }
+                        }
+                        val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                        counts["ALL_MOVIES"] = filmes.size
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                        withContext(Dispatchers.Main) {
+                            movieGroupAdapter?.notifyDataSetChanged()
+                            catalogGroupAdapter?.notifyDataSetChanged()
+                            val callbacks = synchronized(pendingMoviesCacheCallbacks) {
+                                val list = pendingMoviesCacheCallbacks.toList()
+                                pendingMoviesCacheCallbacks.clear()
+                                list
+                            }
+                            callbacks.forEach { it.invoke() }
+                        }
                     }
-                    runOnUiThread {
-                        movieGroupAdapter?.notifyDataSetChanged()
-                        catalogGroupAdapter?.notifyDataSetChanged()
-                        callbacks.forEach { it.invoke() }
-                    }
-                } catch (_: Exception) {
+                } catch (_: Exception) {}
+            }
+
+            // 2. Fazer pedido à rede para atualizar a cache
+            val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams"
+            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+            client.newCall(req).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
                     synchronized(pendingMoviesCacheCallbacks) {
                         isLoadingMoviesCache = false
                         pendingMoviesCacheCallbacks.clear()
                     }
+                    runOnUiThread {
+                        if (activeSection == WorkspaceSection.MOVIES && allMoviesCache.isEmpty()) {
+                            tvCatalogEmpty.text = "Não foi possível carregar os filmes. Verifica a ligação."
+                            tvCatalogEmpty.visibility = View.VISIBLE
+                        }
+                    }
                 }
-            }
-        })
+                override fun onResponse(call: Call, response: Response) {
+                    val body = response.body ?: run {
+                        synchronized(pendingMoviesCacheCallbacks) {
+                            isLoadingMoviesCache = false
+                            pendingMoviesCacheCallbacks.clear()
+                        }
+                        return
+                    }
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val tempFile = File(cacheDir, "vod_movies_cache.tmp")
+                            body.byteStream().use { input ->
+                                tempFile.outputStream().use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            val finalFile = File(cacheDir, "vod_movies_cache.json")
+                            tempFile.renameTo(finalFile)
+
+                            val type = object : TypeToken<List<VodStream>>() {}.type
+                            val filmes: List<VodStream> = FileReader(finalFile).use { reader ->
+                                gson.fromJson(reader, type)
+                            } ?: emptyList()
+
+                            val sortedFilmes = filmes.sortedBy { it.name.lowercase() }
+                            synchronized(allMoviesCache) {
+                                allMoviesCache.clear()
+                                allMoviesCache.addAll(sortedFilmes)
+                            }
+                            val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                            counts["ALL_MOVIES"] = filmes.size
+                            CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+
+                            val callbacks = synchronized(pendingMoviesCacheCallbacks) {
+                                val list = pendingMoviesCacheCallbacks.toList()
+                                pendingMoviesCacheCallbacks.clear()
+                                isLoadingMoviesCache = false
+                                list
+                            }
+                            withContext(Dispatchers.Main) {
+                                movieGroupAdapter?.notifyDataSetChanged()
+                                catalogGroupAdapter?.notifyDataSetChanged()
+                                callbacks.forEach { it.invoke() }
+                            }
+                        } catch (_: Exception) {
+                            synchronized(pendingMoviesCacheCallbacks) {
+                                isLoadingMoviesCache = false
+                                pendingMoviesCacheCallbacks.clear()
+                            }
+                        }
+                    }
+                }
+            })
+        }
     }
 
     private fun selecionarCategoriaFilmes(catId: String) {
@@ -2387,10 +2464,17 @@ class EagleTvActivity : BaseActivity() {
         (etCatalogSearch.parent as? View)?.visibility = if (isAllMovies) View.VISIBLE else View.GONE
         btnCatalogSort.visibility = if (isAllMovies) View.VISIBLE else View.GONE
 
+        if (isAllMovies && allMoviesCache.isEmpty()) {
+            tvCatalogEmpty.text = "⏳ A carregar catálogo de filmes... Por favor aguarda."
+            tvCatalogEmpty.visibility = View.VISIBLE
+            catalogPosterAdapter = null
+            rvCatalogGrid.adapter = null
+        }
+
         when (catId) {
             "ALL_MOVIES" -> {
                 carregarTodosFilmesEmCache {
-                    currentVodCategoryMovies = allMoviesCache.sortedBy { it.name.lowercase() }
+                    currentVodCategoryMovies = allMoviesCache
                     atualizarGrelhaFilmes()
                 }
             }
@@ -2446,19 +2530,34 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun atualizarGrelhaFilmes() {
+        filterJob?.cancel()
         val q = etCatalogSearch.text?.toString()?.trim()?.lowercase().orEmpty()
-        var filtrados = if (q.isEmpty()) currentVodCategoryMovies else currentVodCategoryMovies.filter {
-            it.name.lowercase().contains(q)
-        }
-        filtrados = when (currentVodSortMode) {
-            1 -> filtrados.sortedBy { it.name.lowercase() }
-            2 -> filtrados.sortedByDescending { it.streamId }
-            3 -> filtrados.sortedByDescending { it.rating_5based ?: it.rating?.toDoubleOrNull() ?: 0.0 }
-            else -> filtrados
+        val movies = currentVodCategoryMovies
+        val sortMode = currentVodSortMode
+
+        if (movies.isEmpty()) {
+            mostrarItensNoCatalogo(emptyList())
+            return
         }
 
-        val items = filtrados.map { CatalogPosterItem.Movie(it) }
-        mostrarItensNoCatalogo(items)
+        filterJob = lifecycleScope.launch(Dispatchers.Default) {
+            var filtrados = if (q.isEmpty()) movies else movies.filter {
+                it.name.lowercase().contains(q)
+            }
+            filtrados = when (sortMode) {
+                1 -> filtrados.sortedBy { it.name.lowercase() }
+                2 -> filtrados.sortedByDescending { it.streamId }
+                3 -> filtrados.sortedByDescending { it.rating_5based ?: it.rating?.toDoubleOrNull() ?: 0.0 }
+                else -> filtrados
+            }
+
+            val items = filtrados.map { CatalogPosterItem.Movie(it) }
+            withContext(Dispatchers.Main) {
+                if (activeSection == WorkspaceSection.MOVIES) {
+                    mostrarItensNoCatalogo(items)
+                }
+            }
+        }
     }
 
     private fun iniciarSecaoSeries() {
@@ -2536,44 +2635,110 @@ class EagleTvActivity : BaseActivity() {
             if (isLoadingSeriesCache) return
             isLoadingSeriesCache = true
         }
-        val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
-        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-        client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                synchronized(pendingSeriesCallbacks) {
-                    isLoadingSeriesCache = false
-                    pendingSeriesCallbacks.clear()
-                }
-            }
-            override fun onResponse(call: Call, response: Response) {
-                val json = response.body?.string() ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            // 1. Tentar carregar instantaneamente da cache em disco se existir
+            val cacheFile = File(cacheDir, "vod_series_cache.json")
+            if (allSeriesCache.isEmpty() && cacheFile.exists() && cacheFile.length() > 0) {
                 try {
                     val type = object : TypeToken<List<SeriesItem>>() {}.type
-                    val series: List<SeriesItem> = gson.fromJson(json, type) ?: emptyList()
-                    allSeriesCache.clear()
-                    allSeriesCache.addAll(series)
-                    val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
-                    counts["ALL_SERIES"] = series.size
-                    CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
-                    val callbacks = synchronized(pendingSeriesCallbacks) {
-                        val list = pendingSeriesCallbacks.toList()
-                        pendingSeriesCallbacks.clear()
-                        isLoadingSeriesCache = false
-                        list
+                    val series: List<SeriesItem> = FileReader(cacheFile).use { reader ->
+                        gson.fromJson(reader, type)
+                    } ?: emptyList()
+                    if (series.isNotEmpty()) {
+                        val sortedSeries = series.sortedBy { it.name.lowercase() }
+                        synchronized(allSeriesCache) {
+                            if (allSeriesCache.isEmpty()) {
+                                allSeriesCache.addAll(sortedSeries)
+                            }
+                        }
+                        val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                        counts["ALL_SERIES"] = series.size
+                        CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
+                        withContext(Dispatchers.Main) {
+                            seriesGroupAdapter?.notifyDataSetChanged()
+                            catalogGroupAdapter?.notifyDataSetChanged()
+                            val callbacks = synchronized(pendingSeriesCallbacks) {
+                                val list = pendingSeriesCallbacks.toList()
+                                pendingSeriesCallbacks.clear()
+                                list
+                            }
+                            callbacks.forEach { it.invoke() }
+                        }
                     }
-                    runOnUiThread {
-                        seriesGroupAdapter?.notifyDataSetChanged()
-                        catalogGroupAdapter?.notifyDataSetChanged()
-                        callbacks.forEach { it.invoke() }
-                    }
-                } catch (_: Exception) {
+                } catch (_: Exception) {}
+            }
+
+            // 2. Fazer pedido à rede para atualizar a cache
+            val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
+            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+            client.newCall(req).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
                     synchronized(pendingSeriesCallbacks) {
                         isLoadingSeriesCache = false
                         pendingSeriesCallbacks.clear()
                     }
+                    runOnUiThread {
+                        if (activeSection == WorkspaceSection.SERIES && allSeriesCache.isEmpty()) {
+                            tvCatalogEmpty.text = "Não foi possível carregar as séries. Verifica a ligação."
+                            tvCatalogEmpty.visibility = View.VISIBLE
+                        }
+                    }
                 }
-            }
-        })
+                override fun onResponse(call: Call, response: Response) {
+                    val body = response.body ?: run {
+                        synchronized(pendingSeriesCallbacks) {
+                            isLoadingSeriesCache = false
+                            pendingSeriesCallbacks.clear()
+                        }
+                        return
+                    }
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val tempFile = File(cacheDir, "vod_series_cache.tmp")
+                            body.byteStream().use { input ->
+                                tempFile.outputStream().use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            val finalFile = File(cacheDir, "vod_series_cache.json")
+                            tempFile.renameTo(finalFile)
+
+                            val type = object : TypeToken<List<SeriesItem>>() {}.type
+                            val series: List<SeriesItem> = FileReader(finalFile).use { reader ->
+                                gson.fromJson(reader, type)
+                            } ?: emptyList()
+
+                            val sortedSeries = series.sortedBy { it.name.lowercase() }
+                            synchronized(allSeriesCache) {
+                                allSeriesCache.clear()
+                                allSeriesCache.addAll(sortedSeries)
+                            }
+                            val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                            counts["ALL_SERIES"] = series.size
+                            CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
+
+                            val callbacks = synchronized(pendingSeriesCallbacks) {
+                                val list = pendingSeriesCallbacks.toList()
+                                pendingSeriesCallbacks.clear()
+                                isLoadingSeriesCache = false
+                                list
+                            }
+                            withContext(Dispatchers.Main) {
+                                seriesGroupAdapter?.notifyDataSetChanged()
+                                catalogGroupAdapter?.notifyDataSetChanged()
+                                callbacks.forEach { it.invoke() }
+                            }
+                        } catch (_: Exception) {
+                            synchronized(pendingSeriesCallbacks) {
+                                isLoadingSeriesCache = false
+                                pendingSeriesCallbacks.clear()
+                            }
+                        }
+                    }
+                }
+            })
+        }
     }
 
     private fun selecionarCategoriaSeries(catId: String) {
@@ -2586,10 +2751,17 @@ class EagleTvActivity : BaseActivity() {
         (etCatalogSearch.parent as? View)?.visibility = if (isAllSeries) View.VISIBLE else View.GONE
         btnCatalogSort.visibility = View.GONE
 
+        if (isAllSeries && allSeriesCache.isEmpty()) {
+            tvCatalogEmpty.text = "⏳ A carregar catálogo de séries... Por favor aguarda."
+            tvCatalogEmpty.visibility = View.VISIBLE
+            catalogPosterAdapter = null
+            rvCatalogGrid.adapter = null
+        }
+
         when (catId) {
             "ALL_SERIES" -> {
                 carregarTodasSeriesEmCache {
-                    currentSeriesCategoryItems = allSeriesCache.sortedBy { it.name.lowercase() }
+                    currentSeriesCategoryItems = allSeriesCache
                     atualizarGrelhaSeries()
                 }
             }
@@ -2634,17 +2806,37 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun atualizarGrelhaSeries() {
+        seriesFilterJob?.cancel()
         val q = etCatalogSearch.text?.toString()?.trim()?.lowercase().orEmpty()
-        val filtradas = if (q.isEmpty()) currentSeriesCategoryItems else currentSeriesCategoryItems.filter {
-            it.name.lowercase().contains(q)
+        val seriesList = currentSeriesCategoryItems
+
+        if (seriesList.isEmpty()) {
+            mostrarItensNoCatalogo(emptyList())
+            return
         }
-        val items = filtradas.map { CatalogPosterItem.Series(it) }
-        mostrarItensNoCatalogo(items)
+
+        seriesFilterJob = lifecycleScope.launch(Dispatchers.Default) {
+            val filtradas = if (q.isEmpty()) seriesList else seriesList.filter {
+                it.name.lowercase().contains(q)
+            }
+            val items = filtradas.map { CatalogPosterItem.Series(it) }
+            withContext(Dispatchers.Main) {
+                if (activeSection == WorkspaceSection.SERIES) {
+                    mostrarItensNoCatalogo(items)
+                }
+            }
+        }
     }
 
     private fun mostrarItensNoCatalogo(items: List<CatalogPosterItem>) {
         if (items.isEmpty()) {
-            tvCatalogEmpty.text = "Nenhum conteúdo encontrado nesta seleção."
+            val isLoading = (activeSection == WorkspaceSection.MOVIES && isLoadingMoviesCache) ||
+                            (activeSection == WorkspaceSection.SERIES && isLoadingSeriesCache)
+            tvCatalogEmpty.text = if (isLoading) {
+                "⏳ A carregar catálogo... Por favor aguarda."
+            } else {
+                "Nenhum conteúdo encontrado nesta seleção."
+            }
             tvCatalogEmpty.visibility = View.VISIBLE
         } else {
             tvCatalogEmpty.visibility = View.GONE
