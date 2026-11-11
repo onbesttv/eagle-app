@@ -103,59 +103,9 @@ class PlayerActivity : BaseActivity() {
         viewOverlayDismissArea.visibility = View.GONE
     }
 
-    private fun updatePipParams() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true)
-                val builder = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
-                    .setAutoEnterEnabled(isPlaying)
-                setPictureInPictureParams(builder.build())
-            } catch (_: Exception) {
-            }
-        }
-    }
-
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true)
-            if (isPlaying && !isFinishing) {
-                try {
-                    val params = PictureInPictureParams.Builder()
-                        .setAspectRatio(Rational(16, 9))
-                        .build()
-                    enterPictureInPictureMode(params)
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        if (isInPictureInPictureMode) {
-            fecharGrelha()
-            btnToggleChannelOverlay.visibility = View.GONE
-            playerView.useController = false
-            playerView.hideController()
-        } else {
-            btnToggleChannelOverlay.visibility = View.VISIBLE
-            playerView.useController = true
-        }
-    }
-
     private fun configurarPlayer() {
         val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
         player = p
-        player?.addListener(object : androidx.media3.common.Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updatePipParams()
-            }
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                updatePipParams()
-            }
-        })
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
     }
@@ -165,7 +115,6 @@ class PlayerActivity : BaseActivity() {
             setMediaItem(MediaItem.fromUri(url))
             prepare()
             playWhenReady = true
-            updatePipParams()
         }
     }
 

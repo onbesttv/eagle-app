@@ -542,77 +542,9 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
-    private fun updatePipParams() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true) && currentStreamId != -1
-                val builder = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
-                    .setAutoEnterEnabled(isPlaying)
-                setPictureInPictureParams(builder.build())
-            } catch (_: Exception) {
-            }
-        }
-    }
-
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val isPlaying = player != null && (player?.isPlaying == true || player?.playWhenReady == true) && currentStreamId != -1
-            if (isPlaying && !isFinishing) {
-                try {
-                    val params = PictureInPictureParams.Builder()
-                        .setAspectRatio(Rational(16, 9))
-                        .build()
-                    enterPictureInPictureMode(params)
-                } catch (_: Exception) {
-                }
-            }
-        }
-    }
-
-    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        if (isInPictureInPictureMode) {
-            fecharGavetaFullscreen()
-            layoutRecentChannelsBar.visibility = View.GONE
-            layoutFullscreenOsd.visibility = View.GONE
-            uiHandler.removeCallbacks(hideOsdRunnable)
-
-            layoutLeftRail.visibility = View.GONE
-            viewRailDivider.visibility = View.GONE
-            layoutTopProgramDetails.visibility = View.GONE
-            viewTopHorizontalDivider.visibility = View.GONE
-            layoutLiveTvColumns.visibility = View.GONE
-            layoutCatalogSection.visibility = View.GONE
-            layoutVpnSection.visibility = View.GONE
-            layoutSettingsSection.visibility = View.GONE
-            layoutMiniPlayerBadge.visibility = View.GONE
-
-            layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            layoutTopPreviewRow.setPadding(0, 0, 0, 0)
-
-            framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            framePlayerWrapper.background = null
-        } else {
-            if (isFullScreen) {
-                entrarEmFullscreen()
-            } else {
-                sairDeFullscreen()
-            }
-        }
-    }
-
     override fun onStop() {
         super.onStop()
-        val inPip = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
-        if (isFinishing && !inPip) {
+        if (isFinishing) {
             player?.pause()
         }
     }
@@ -979,6 +911,7 @@ class EagleTvActivity : BaseActivity() {
                 btnCatalogSort.visibility = View.VISIBLE
                 tvCatalogGroupsHeader.text = "PASTAS DE FILMES"
                 etCatalogSearch.hint = "🔍 Pesquisar filmes nesta pasta..."
+                definirTopoInformativo("🎬 Catálogo de Filmes", "Pastas VOD", "Escolhe uma pasta à esquerda para explorar os filmes disponíveis.")
                 iniciarSecaoFilmes()
             }
             WorkspaceSection.SERIES -> {
@@ -986,6 +919,7 @@ class EagleTvActivity : BaseActivity() {
                 btnCatalogSort.visibility = View.GONE
                 tvCatalogGroupsHeader.text = "PASTAS DE SÉRIES"
                 etCatalogSearch.hint = "🔍 Pesquisar séries nesta pasta..."
+                definirTopoInformativo("🎞️ Catálogo de Séries", "Séries e Temporadas", "Escolhe uma pasta à esquerda para explorar as séries disponíveis.")
                 iniciarSecaoSeries()
             }
             WorkspaceSection.VPN -> {
@@ -1045,14 +979,6 @@ class EagleTvActivity : BaseActivity() {
     private fun configurarPlayer() {
         val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
         player = p
-        player?.addListener(object : androidx.media3.common.Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updatePipParams()
-            }
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                updatePipParams()
-            }
-        })
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
         aplicarAspectMode(EagleTvConfig.getAspectMode(this))
@@ -1204,39 +1130,49 @@ class EagleTvActivity : BaseActivity() {
         if (isFullScreen) return
         val isLiveTv = (activeSection == WorkspaceSection.LIVE_TV)
         if (isLiveTv) {
-            layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(196)
-            )
+            val lp = layoutTopPreviewRow.layoutParams
+            lp.height = dp(196)
+            layoutTopPreviewRow.layoutParams = lp
             val pad = dp(10)
             layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
-            framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
-                dp(310),
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+
+            val playerLp = framePlayerWrapper.layoutParams
+            playerLp.width = dp(310)
+            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            framePlayerWrapper.layoutParams = playerLp
+
             layoutTopProgressRow.visibility = View.VISIBLE
             tvTopProgramDesc.maxLines = 3
             tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
+            tvTopHeaderTitle.textSize = 17f
         } else {
-            layoutTopPreviewRow.layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(110)
-            )
+            val lp = layoutTopPreviewRow.layoutParams
+            lp.height = dp(86)
+            layoutTopPreviewRow.layoutParams = lp
             val padH = dp(8)
-            val padV = dp(6)
+            val padV = dp(4)
             layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
-            framePlayerWrapper.layoutParams = LinearLayout.LayoutParams(
-                dp(178),
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
+
+            val playerLp = framePlayerWrapper.layoutParams
+            playerLp.width = dp(148)
+            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            framePlayerWrapper.layoutParams = playerLp
+
             layoutTopProgressRow.visibility = View.GONE
+            tvTopLiveBadge.visibility = View.GONE
+            tvTopCatchupBadge.visibility = View.GONE
+            tvTopFavBadge.visibility = View.GONE
             tvTopProgramDesc.maxLines = 2
-            tvMiniPlayerHint.text = "2º Plano (OK)"
+            tvMiniPlayerHint.text = "2º Plano"
+            tvTopHeaderTitle.textSize = 15f
         }
+        layoutTopPreviewRow.requestLayout()
+        framePlayerWrapper.requestLayout()
+
         framePlayerWrapper.background = GradientDrawable().apply {
             setColor(Color.BLACK)
             setStroke(dp(if (framePlayerWrapper.hasFocus()) 2 else 1), if (framePlayerWrapper.hasFocus()) 0xFF00E5FF.toInt() else 0xFF1E293B.toInt())
-            cornerRadius = dp(8).toFloat()
+            cornerRadius = dp(6).toFloat()
         }
         framePlayerWrapper.clipToOutline = true
         layoutMiniPlayerBadge.visibility = View.VISIBLE
@@ -1908,7 +1844,6 @@ class EagleTvActivity : BaseActivity() {
             setMediaItem(MediaItem.fromUri(streamUrl))
             prepare()
             playWhenReady = true
-            updatePipParams()
         }
 
         liveChannelAdapter?.selecionarCanalPorId(canal.streamId)
@@ -2301,6 +2236,8 @@ class EagleTvActivity : BaseActivity() {
     private fun selecionarCategoriaFilmes(catId: String) {
         currentVodCategoryId = catId
         catalogGroupAdapter?.selecionarPorId(catId)
+        val catNome = allVodCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Filmes"
+        definirTopoInformativo("🎬 $catNome", "Pasta de Filmes", "Navega pelos filmes com o comando e carrega OK para ver a sinopse.")
 
         when (catId) {
             "FAVORITES" -> {
@@ -2456,6 +2393,8 @@ class EagleTvActivity : BaseActivity() {
     private fun selecionarCategoriaSeries(catId: String) {
         currentSeriesCategoryId = catId
         catalogGroupAdapter?.selecionarPorId(catId)
+        val catNome = allSeriesCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Séries"
+        definirTopoInformativo("🎞️ $catNome", "Pasta de Séries", "Navega pelas séries com o comando e carrega OK para ver episódios.")
 
         when (catId) {
             "FAVORITES" -> {
@@ -2734,12 +2673,11 @@ class EagleTvActivity : BaseActivity() {
         ivTopHeaderLogo.setImageResource(R.mipmap.ic_launcher)
         tvTopFavBadge.visibility = View.GONE
         tvTopCatchupBadge.visibility = View.GONE
-        tvTopLiveBadge.text = "EAGLE TV"
-        tvTopLiveBadge.visibility = View.VISIBLE
+        tvTopLiveBadge.visibility = View.GONE
         layoutTopProgressRow.visibility = View.GONE
         tvTopProgramDesc.text = descricao
         tvTopNextProgram.text = ""
-        tvTopRemoteHints.text = "[OK] Abrir  •  [◄] Voltar à lista"
+        tvTopRemoteHints.text = "[OK] Abrir  •  [◄] Voltar"
     }
 
     private fun garantirCanaisEmCache(onDone: () -> Unit) {
