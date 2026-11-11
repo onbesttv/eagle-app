@@ -239,7 +239,20 @@ class EagleTvActivity : BaseActivity() {
     private var overlayGroupAdapter: GroupListAdapter? = null
     private var liveChannelAdapter: TiviChannelAdapter? = null
     private var overlayChannelAdapter: TiviChannelAdapter? = null
-    private var catalogGroupAdapter: GroupListAdapter? = null
+    private var movieGroupAdapter: GroupListAdapter? = null
+    private var seriesGroupAdapter: GroupListAdapter? = null
+    private var sportsGroupAdapter: GroupListAdapter? = null
+    private var newspaperGroupAdapter: GroupListAdapter? = null
+    private var catchupGroupAdapter: GroupListAdapter? = null
+    private val catalogGroupAdapter: GroupListAdapter?
+        get() = when (activeSection) {
+            WorkspaceSection.MOVIES -> movieGroupAdapter
+            WorkspaceSection.SERIES -> seriesGroupAdapter
+            WorkspaceSection.SPORTS -> sportsGroupAdapter
+            WorkspaceSection.NEWSPAPERS -> newspaperGroupAdapter
+            WorkspaceSection.CATCHUP -> catchupGroupAdapter
+            else -> movieGroupAdapter ?: seriesGroupAdapter
+        }
     private var catalogPosterAdapter: CatalogPosterAdapter? = null
 
     // Controlo de Retenção e Restauração de Foco (D-Pad / TV Box)
@@ -914,6 +927,11 @@ class EagleTvActivity : BaseActivity() {
         layoutCatalogSection.visibility = if (isCatalog) View.VISIBLE else View.GONE
         layoutVpnSection.visibility = if (isVpn) View.VISIBLE else View.GONE
         layoutSettingsSection.visibility = if (isSettings) View.VISIBLE else View.GONE
+
+        if (isCatalog) {
+            rvCatalogGroups.adapter = null
+            rvCatalogGrid.adapter = null
+        }
 
         when (sec) {
             WorkspaceSection.SPORTS -> {
@@ -2223,9 +2241,7 @@ class EagleTvActivity : BaseActivity() {
     private fun iniciarSecaoFilmes() {
         etCatalogSearch.setText("")
         if (allVodCategories.isNotEmpty()) {
-            if (rvCatalogGroups.adapter !== catalogGroupAdapter || catalogGroupAdapter == null) {
-                montarCategoriasFilmes(allVodCategories)
-            }
+            montarCategoriasFilmes(allVodCategories)
             return
         }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_categories"
@@ -2250,7 +2266,7 @@ class EagleTvActivity : BaseActivity() {
                         if (activeSection == WorkspaceSection.MOVIES) {
                             montarCategoriasFilmes(completas)
                             rvCatalogGroups.post {
-                                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                val pos = (movieGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
                             }
                         }
@@ -2262,7 +2278,7 @@ class EagleTvActivity : BaseActivity() {
 
     private fun montarCategoriasFilmes(categorias: List<VodCategory>) {
         val initialIdx = if (categorias.size > 4) 4 else 0
-        catalogGroupAdapter = GroupListAdapter(
+        movieGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
@@ -2276,7 +2292,7 @@ class EagleTvActivity : BaseActivity() {
             },
             onSelect = { id, _ -> selecionarCategoriaFilmes(id) }
         )
-        rvCatalogGroups.adapter = catalogGroupAdapter
+        rvCatalogGroups.adapter = movieGroupAdapter
         if (categorias.isNotEmpty()) {
             selecionarCategoriaFilmes(categorias[initialIdx].categoryId)
         }
@@ -2364,9 +2380,11 @@ class EagleTvActivity : BaseActivity() {
                             val type = object : TypeToken<List<VodStream>>() {}.type
                             val filmes: List<VodStream> = gson.fromJson(json, type) ?: emptyList()
                             runOnUiThread {
-                                currentVodCategoryMovies = filmes
-                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, mapOf(catId to filmes.size))
-                                atualizarGrelhaFilmes()
+                                if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == catId) {
+                                    currentVodCategoryMovies = filmes
+                                    CategoryCountHelper.saveVodCounts(this@EagleTvActivity, mapOf(catId to filmes.size))
+                                    atualizarGrelhaFilmes()
+                                }
                             }
                         } catch (_: Exception) {}
                     }
@@ -2394,9 +2412,7 @@ class EagleTvActivity : BaseActivity() {
     private fun iniciarSecaoSeries() {
         etCatalogSearch.setText("")
         if (allSeriesCategories.isNotEmpty()) {
-            if (rvCatalogGroups.adapter !== catalogGroupAdapter || catalogGroupAdapter == null) {
-                montarCategoriasSeries(allSeriesCategories)
-            }
+            montarCategoriasSeries(allSeriesCategories)
             return
         }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series_categories"
@@ -2420,7 +2436,7 @@ class EagleTvActivity : BaseActivity() {
                         if (activeSection == WorkspaceSection.SERIES) {
                             montarCategoriasSeries(completas)
                             rvCatalogGroups.post {
-                                val pos = (catalogGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
+                                val pos = (seriesGroupAdapter?.posicaoSelecionada() ?: 0).coerceAtLeast(0)
                                 focarRecyclerViewPosicao(rvCatalogGroups, pos)
                             }
                         }
@@ -2432,7 +2448,7 @@ class EagleTvActivity : BaseActivity() {
 
     private fun montarCategoriasSeries(categorias: List<SeriesCategory>) {
         val initialIdx = if (categorias.size > 3) 3 else 0
-        catalogGroupAdapter = GroupListAdapter(
+        seriesGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
@@ -2445,7 +2461,7 @@ class EagleTvActivity : BaseActivity() {
             },
             onSelect = { id, _ -> selecionarCategoriaSeries(id) }
         )
-        rvCatalogGroups.adapter = catalogGroupAdapter
+        rvCatalogGroups.adapter = seriesGroupAdapter
         if (categorias.isNotEmpty()) {
             selecionarCategoriaSeries(categorias[initialIdx].categoryId)
         }
@@ -2522,9 +2538,11 @@ class EagleTvActivity : BaseActivity() {
                             val type = object : TypeToken<List<SeriesItem>>() {}.type
                             val series: List<SeriesItem> = gson.fromJson(json, type) ?: emptyList()
                             runOnUiThread {
-                                currentSeriesCategoryItems = series
-                                CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, mapOf(catId to series.size))
-                                atualizarGrelhaSeries()
+                                if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == catId) {
+                                    currentSeriesCategoryItems = series
+                                    CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, mapOf(catId to series.size))
+                                    atualizarGrelhaSeries()
+                                }
                             }
                         } catch (_: Exception) {}
                     }
@@ -2844,7 +2862,7 @@ class EagleTvActivity : BaseActivity() {
     // --- JOGOS DO DIA ---
     private fun iniciarSecaoJogos() {
         selectedLeague = leaguesList[0]
-        catalogGroupAdapter = GroupListAdapter(
+        sportsGroupAdapter = GroupListAdapter(
             items = leaguesList.map { it to it },
             initialSelected = 0,
             countProvider = { 0 },
@@ -2853,7 +2871,7 @@ class EagleTvActivity : BaseActivity() {
                 mostrarJogos()
             }
         )
-        rvCatalogGroups.adapter = catalogGroupAdapter
+        rvCatalogGroups.adapter = sportsGroupAdapter
         garantirCanaisEmCache { }
 
         SportsAgendaManager.loadOrRefresh(this, forceOnline = false) { matches ->
@@ -2889,7 +2907,7 @@ class EagleTvActivity : BaseActivity() {
     // --- JORNAIS ---
     private fun iniciarSecaoJornais() {
         selectedNewspaperCategory = newspaperCategories[0]
-        catalogGroupAdapter = GroupListAdapter(
+        newspaperGroupAdapter = GroupListAdapter(
             items = newspaperCategories.map { it to it },
             initialSelected = 0,
             countProvider = { 0 },
@@ -2898,7 +2916,7 @@ class EagleTvActivity : BaseActivity() {
                 mostrarJornais()
             }
         )
-        rvCatalogGroups.adapter = catalogGroupAdapter
+        rvCatalogGroups.adapter = newspaperGroupAdapter
 
         try {
             assets.open("jornais.json").bufferedReader().use { reader ->
@@ -2997,7 +3015,7 @@ class EagleTvActivity : BaseActivity() {
         selectedCatchUpDateLabel = dias[0].second
 
         tvCatalogGroupsHeader.text = "ESCOLHER DATA"
-        catalogGroupAdapter = GroupListAdapter(
+        catchupGroupAdapter = GroupListAdapter(
             items = dias,
             initialSelected = 0,
             countProvider = { 0 },
@@ -3012,7 +3030,7 @@ class EagleTvActivity : BaseActivity() {
                 }
             }
         )
-        rvCatalogGroups.adapter = catalogGroupAdapter
+        rvCatalogGroups.adapter = catchupGroupAdapter
 
         garantirCanaisEmCache {
             if (activeSection != WorkspaceSection.CATCHUP) return@garantirCanaisEmCache

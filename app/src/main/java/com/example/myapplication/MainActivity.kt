@@ -113,21 +113,23 @@ class MainActivity : BaseActivity() {
             btnVpn?.setImageDrawable(null)
         }
 
-        // Destaque visual e sombra ao navegar com comando da Box
-        val interactiveViews = mutableListOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnUpdateService, btnSettings)
-        if (!hideVpn) interactiveViews.add(btnVpn)
-        if (hasSportsAndNews) {
-            cardSportsAgenda?.let { interactiveViews.add(it) }
-            cardNewspapers?.let { interactiveViews.add(it) }
-        }
-        interactiveViews.forEach { view ->
-            view.setOnFocusChangeListener { v, hasFocus ->
-                if (hasFocus) {
-                    v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
-                    v.elevation = 14f
-                } else {
-                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                    v.elevation = 0f
+        // Destaque visual e sombra ao navegar com comando da Box (apenas para layouts dinâmicos padrão)
+        if (!isJoker) {
+            val interactiveViews = mutableListOf(cardLiveTv, cardTvGuide, cardMovies, cardSeries, cardCatchUp, btnUpdateService, btnSettings)
+            if (!hideVpn) interactiveViews.add(btnVpn)
+            if (hasSportsAndNews) {
+                cardSportsAgenda?.let { interactiveViews.add(it) }
+                cardNewspapers?.let { interactiveViews.add(it) }
+            }
+            interactiveViews.forEach { view ->
+                view.setOnFocusChangeListener { v, hasFocus ->
+                    if (hasFocus) {
+                        v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
+                        v.elevation = 14f
+                    } else {
+                        v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
+                        v.elevation = 0f
+                    }
                 }
             }
         }
