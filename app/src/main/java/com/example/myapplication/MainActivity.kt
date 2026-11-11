@@ -15,6 +15,13 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         IptvServiceConfig.initialize(this)
+
+        window.decorView.postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                AppUpdateManager.checkForUpdates(this, manual = false)
+            }
+        }, 600L)
+
         val ivLogo = findViewById<ImageView>(R.id.ivLogo)
 
         val cardLiveTv = findViewById<CardView>(R.id.cardLiveTv)
@@ -97,6 +104,13 @@ class MainActivity : BaseActivity() {
             ivCatchUp?.imageTintList = null
         } else {
             atualizarEstadoBotaoVpn()
+        }
+
+        val isJoker = AppThemeColors.isJokerTheme(this)
+        if (isJoker) {
+            btnSettings?.setImageDrawable(null)
+            btnUpdateService?.setImageDrawable(null)
+            btnVpn?.setImageDrawable(null)
         }
 
         // Destaque visual e sombra ao navegar com comando da Box
@@ -197,7 +211,12 @@ class MainActivity : BaseActivity() {
             btnVpn.isFocusable = true
             btnVpn.imageTintList = null
             btnVpn.colorFilter = null
-            btnVpn.backgroundTintList = if (isVpnConnected) ColorStateList.valueOf(0xFF15803D.toInt()) else null
+            if (AppThemeColors.isJokerTheme(this)) {
+                btnVpn.backgroundTintList = null
+                btnVpn.setImageDrawable(null)
+            } else {
+                btnVpn.backgroundTintList = if (isVpnConnected) ColorStateList.valueOf(0xFF15803D.toInt()) else null
+            }
             btnVpn.setOnClickListener {
                 startActivity(Intent(this, VpnActivity::class.java))
             }

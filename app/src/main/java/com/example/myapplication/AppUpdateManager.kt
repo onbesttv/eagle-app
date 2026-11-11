@@ -115,11 +115,7 @@ object AppUpdateManager {
                 is ReleaseResult.Success -> {
                     val release = result.release
                     if (isNewerVersion(release.tagName, currentVersion)) {
-                        val updatePrefs = activity.getSharedPreferences(UPDATE_PREFS, Context.MODE_PRIVATE)
-                        val updateAlreadyStarted = updatePrefs.getString(KEY_UPDATE_IN_PROGRESS_TAG, null) == release.tagName
-                        if (manual || !updateAlreadyStarted) {
-                            showUpdateAvailableDialog(activity, release)
-                        }
+                        showUpdateAvailableDialog(activity, release)
                     } else if (manual) {
                         showUpToDateDialog(activity, currentVersion)
                     }

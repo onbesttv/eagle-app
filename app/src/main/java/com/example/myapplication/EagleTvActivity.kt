@@ -536,7 +536,7 @@ class EagleTvActivity : BaseActivity() {
         uiHandler.removeCallbacks(clockTickRunnable)
         uiHandler.post(clockTickRunnable)
         atualizarEstadoServidorEVpn()
-        if (player != null && currentStreamId != -1) {
+        if (player != null && currentStreamId != -1 && activeSection == WorkspaceSection.LIVE_TV) {
             player?.playWhenReady = true
         }
         if (activeSection == WorkspaceSection.MOVIES || activeSection == WorkspaceSection.SERIES) {
@@ -885,6 +885,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun selecionarSecao(sec: WorkspaceSection) {
+        val previousSection = activeSection
         activeSection = sec
         aplicarDimensoesTopo()
         atualizarEstilosMenuLateral()
@@ -895,6 +896,19 @@ class EagleTvActivity : BaseActivity() {
                 sec == WorkspaceSection.CATCHUP || sec == WorkspaceSection.SPORTS || sec == WorkspaceSection.NEWSPAPERS)
         val isVpn = (sec == WorkspaceSection.VPN)
         val isSettings = (sec == WorkspaceSection.SETTINGS)
+
+        layoutTopPreviewRow.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        viewTopHorizontalDivider.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+
+        if (!isLiveTv) {
+            // Poupança de RAM e CPU na TV Box: parar a TV completamente quando se sai da secção de TV
+            player?.stop()
+        } else if (previousSection != WorkspaceSection.LIVE_TV) {
+            // Retorno à secção de TV: retomar o último canal reproduzido se existir
+            currentPlayingChannel?.let { canal ->
+                sintonizarCanal(canal, currentPlayingNumber)
+            }
+        }
 
         layoutLiveTvColumns.visibility = if (isLiveTv) View.VISIBLE else View.GONE
         layoutCatalogSection.visibility = if (isCatalog) View.VISIBLE else View.GONE
@@ -1176,16 +1190,20 @@ class EagleTvActivity : BaseActivity() {
             viewRailDivider.visibility = View.VISIBLE
             btnExpandRail.visibility = View.GONE
         }
-        layoutTopProgramDetails.visibility = View.VISIBLE
-        viewTopHorizontalDivider.visibility = View.VISIBLE
-        layoutMiniPlayerBadge.visibility = View.VISIBLE
+        val isLiveTv = (activeSection == WorkspaceSection.LIVE_TV)
+        layoutTopPreviewRow.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        viewTopHorizontalDivider.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        layoutTopProgramDetails.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        layoutMiniPlayerBadge.visibility = if (isLiveTv) View.VISIBLE else View.GONE
 
-        layoutLiveTvColumns.visibility = if (activeSection == WorkspaceSection.LIVE_TV) View.VISIBLE else View.GONE
+        layoutLiveTvColumns.visibility = if (isLiveTv) View.VISIBLE else View.GONE
         layoutCatalogSection.visibility = if (activeSection in listOf(WorkspaceSection.MOVIES, WorkspaceSection.SERIES, WorkspaceSection.CATCHUP, WorkspaceSection.SPORTS, WorkspaceSection.NEWSPAPERS)) View.VISIBLE else View.GONE
         layoutVpnSection.visibility = if (activeSection == WorkspaceSection.VPN) View.VISIBLE else View.GONE
         layoutSettingsSection.visibility = if (activeSection == WorkspaceSection.SETTINGS) View.VISIBLE else View.GONE
 
-        aplicarDimensoesTopo()
+        if (isLiveTv) {
+            aplicarDimensoesTopo()
+        }
 
         restaurarFocoSalvo()
     }
@@ -1193,43 +1211,29 @@ class EagleTvActivity : BaseActivity() {
     private fun aplicarDimensoesTopo() {
         if (isFullScreen) return
         val isLiveTv = (activeSection == WorkspaceSection.LIVE_TV)
-        if (isLiveTv) {
-            val lp = layoutTopPreviewRow.layoutParams
-            lp.height = dp(196)
-            layoutTopPreviewRow.layoutParams = lp
-            val pad = dp(10)
-            layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
-
-            val playerLp = framePlayerWrapper.layoutParams
-            playerLp.width = dp(310)
-            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
-            framePlayerWrapper.layoutParams = playerLp
-
-            layoutTopProgressRow.visibility = View.VISIBLE
-            tvTopProgramDesc.maxLines = 3
-            tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
-            tvTopHeaderTitle.textSize = 17f
-        } else {
-            val lp = layoutTopPreviewRow.layoutParams
-            lp.height = dp(86)
-            layoutTopPreviewRow.layoutParams = lp
-            val padH = dp(8)
-            val padV = dp(4)
-            layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
-
-            val playerLp = framePlayerWrapper.layoutParams
-            playerLp.width = dp(148)
-            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
-            framePlayerWrapper.layoutParams = playerLp
-
-            layoutTopProgressRow.visibility = View.GONE
-            tvTopLiveBadge.visibility = View.GONE
-            tvTopCatchupBadge.visibility = View.GONE
-            tvTopFavBadge.visibility = View.GONE
-            tvTopProgramDesc.maxLines = 2
-            tvMiniPlayerHint.text = "2º Plano"
-            tvTopHeaderTitle.textSize = 15f
+        if (!isLiveTv) {
+            layoutTopPreviewRow.visibility = View.GONE
+            viewTopHorizontalDivider.visibility = View.GONE
+            return
         }
+        layoutTopPreviewRow.visibility = View.VISIBLE
+        viewTopHorizontalDivider.visibility = View.VISIBLE
+
+        val lp = layoutTopPreviewRow.layoutParams
+        lp.height = dp(196)
+        layoutTopPreviewRow.layoutParams = lp
+        val pad = dp(10)
+        layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
+
+        val playerLp = framePlayerWrapper.layoutParams
+        playerLp.width = dp(310)
+        playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
+        framePlayerWrapper.layoutParams = playerLp
+
+        layoutTopProgressRow.visibility = View.VISIBLE
+        tvTopProgramDesc.maxLines = 3
+        tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
+        tvTopHeaderTitle.textSize = 17f
         layoutTopPreviewRow.requestLayout()
         framePlayerWrapper.requestLayout()
 
