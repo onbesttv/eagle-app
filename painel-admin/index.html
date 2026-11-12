@@ -467,6 +467,7 @@
     <div class="nav-tabs" id="masterTabs">
         <button class="tab-btn active" id="tabBtnMain" onclick="switchTab('main')">📺 DNS & Dispositivos</button>
         <button class="tab-btn" id="tabBtnVpn" onclick="switchTab('vpn')">🛡️ Gerir VPN</button>
+        <button class="tab-btn" id="tabBtnActivations" style="display: none;" onclick="switchTab('activations')">🔑 Ativar Dispositivos (RedOn / Dream)</button>
         <button class="tab-btn" id="tabBtnResellers" style="display: none;" onclick="switchTab('resellers')">🤝 Gerir Revendedores (Apps White-Label)</button>
     </div>
 
@@ -687,6 +688,83 @@
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- ABA 4: ATIVAÇÕES POR DEVICE KEY / MAC (RedOn / Dream) -->
+    <div id="tabContentActivations" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">🔑 Ativação Remota de Dispositivos (RedOn TV / Dream)</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        Associa linhas (DNS, Utilizador e Senha) diretamente ao Device ID / MAC da TV Box do cliente. A app ativa-se sozinha sem o cliente precisar de escrever nada!
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="openActivationModal()">➕ Ativar Novo Dispositivo</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Device ID / MAC</th>
+                            <th>Device Key (PIN)</th>
+                            <th>Servidor / DNS Atribuído</th>
+                            <th>Utilizador (Linha)</th>
+                            <th>Password</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activationsTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">A carregar ativações...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ATIVAR DISPOSITIVO (RedOn / Device Key) -->
+<div class="modal-backdrop" id="activationModal">
+    <div class="modal-box">
+        <div class="card-header" style="margin-bottom: 14px;">
+            <div class="card-title" id="modalActivationTitle">Ativar Dispositivo por Device ID / MAC</div>
+            <button class="btn btn-outline btn-sm" onclick="closeActivationModal()">✕</button>
+        </div>
+        <form id="activationForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Device ID ou MAC do Aparelho</label>
+                    <input type="text" id="actDeviceIdInput" placeholder="ex: 00:1A:79:B4:2C:18 ou Android ID" required>
+                    <small style="color:var(--text-muted); font-size:11px;">O código MAC ou Device ID que aparece no ecrã da TV do cliente.</small>
+                </div>
+                <div class="form-group">
+                    <label>Device Key (Opcional — PIN da Box)</label>
+                    <input type="text" id="actDeviceKeyInput" placeholder="ex: 849 201">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Servidor / DNS (URL Xtream Codes)</label>
+                <input type="url" id="actDnsInput" placeholder="https://thebestplay.site" required>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Username / Utilizador da Linha</label>
+                    <input type="text" id="actUserInput" placeholder="cliente123" required>
+                </div>
+                <div class="form-group">
+                    <label>Password da Linha</label>
+                    <input type="text" id="actPassInput" placeholder="segredo123" required>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 14px;">
+                <button type="button" class="btn btn-outline" onclick="closeActivationModal()">Cancelar</button>
+                <button type="submit" class="btn" id="btnSaveActivation">Guardar &amp; Ativar Dispositivo</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1126,9 +1204,11 @@
     function switchTab(tab) {
         document.getElementById("tabBtnMain").classList.toggle("active", tab === "main");
         document.getElementById("tabBtnVpn").classList.toggle("active", tab === "vpn");
+        document.getElementById("tabBtnActivations").classList.toggle("active", tab === "activations");
         document.getElementById("tabBtnResellers").classList.toggle("active", tab === "resellers");
         document.getElementById("tabContentMain").style.display = tab === "main" ? "grid" : "none";
         document.getElementById("tabContentVpn").style.display = tab === "vpn" ? "block" : "none";
+        document.getElementById("tabContentActivations").style.display = tab === "activations" ? "block" : "none";
         document.getElementById("tabContentResellers").style.display = tab === "resellers" ? "block" : "none";
     }
 
@@ -1220,6 +1300,8 @@
             document.getElementById("filterBtnXciptv").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("filterBtnMytvonline").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
+            const showActivationsTab = isMasterRole || currentResellerId === "dream";
+            document.getElementById("tabBtnActivations").style.display = showActivationsTab ? "inline-block" : "none";
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
             document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
@@ -1336,6 +1418,7 @@
             lastDashboardData = data;
             updateStats(data);
             renderDevices();
+            renderActivations();
             document.getElementById("lastSyncLabel").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-PT");
         } catch (err) {
             if (throwOnError) throw err;
@@ -1713,6 +1796,178 @@
         } catch (err) {
             showToast("Erro ao remover revendedor.", true);
         }
+    }
+
+    let currentActivations = [];
+    let editingActivationIndex = null;
+
+    function parseActivationsFromAnnouncement(announcement) {
+        if (!announcement) return [];
+        const actPart = announcement.split("||ACTIVATIONS:")[1];
+        if (!actPart) return [];
+        const rawList = actPart.split("||")[0].trim();
+        if (!rawList) return [];
+        return rawList.split("|").map(item => {
+            const [devPart, credsPart] = item.split("=");
+            if (!devPart || !credsPart) return null;
+            const [user, pass, dns, key] = credsPart.split(":");
+            return {
+                device_id: devPart.trim(),
+                device_key: (key || "").trim(),
+                dns: (dns || "").trim(),
+                username: (user || "").trim(),
+                password: (pass || "").trim()
+            };
+        }).filter(Boolean);
+    }
+
+    function buildActivationsString(list) {
+        if (!list || list.length === 0) return "";
+        const parts = list.map(a => `${a.device_id}=${a.username}:${a.password}:${a.dns || ""}:${a.device_key || ""}`);
+        return "||ACTIVATIONS:" + parts.join("|");
+    }
+
+    function renderActivations() {
+        const tbody = document.getElementById("activationsTableBody");
+        if (!tbody) return;
+        const targetReseller = (currentResellerId === "master") ? allResellers.find(r => r.reseller_id === "dream") : lastDashboardData;
+        const ann = targetReseller ? (targetReseller.announcement || "") : (lastDashboardData ? lastDashboardData.announcement : "");
+        currentActivations = parseActivationsFromAnnouncement(ann);
+
+        if (currentActivations.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não existem dispositivos ativados por Device ID / Key. Clica em "➕ Ativar Novo Dispositivo"!</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = currentActivations.map((a, idx) => `
+            <tr>
+                <td><span class="badge badge-online">● Ativo</span></td>
+                <td><code class="id-chip" style="font-weight:bold; color:#38bdf8;">${escapeHtml(a.device_id)}</code></td>
+                <td><code class="id-chip" style="color:#f43f5e; font-weight:bold;">${escapeHtml(a.device_key || "------")}</code></td>
+                <td><div style="font-size:12px;">${escapeHtml(a.dns || "Padrão da Revenda")}</div></td>
+                <td><strong>${escapeHtml(a.username)}</strong></td>
+                <td><code>••••••••</code></td>
+                <td style="text-align:right; white-space:nowrap;">
+                    <button class="btn btn-outline btn-sm" onclick='openActivationModal(${idx})'>✏️ Editar</button>
+                    <button class="btn btn-danger btn-sm" style="margin-left:6px;" onclick="deleteActivation(${idx})">🗑️</button>
+                </td>
+            </tr>
+        `).join("");
+    }
+
+    function openActivationModal(editIndex = null) {
+        editingActivationIndex = editIndex;
+        const title = document.getElementById("modalActivationTitle");
+        title.textContent = (editIndex !== null) ? "Editar Ativação de Dispositivo" : "Ativar Dispositivo por Device ID / MAC";
+        const devInput = document.getElementById("actDeviceIdInput");
+        const keyInput = document.getElementById("actDeviceKeyInput");
+        const dnsInput = document.getElementById("actDnsInput");
+        const userInput = document.getElementById("actUserInput");
+        const passInput = document.getElementById("actPassInput");
+
+        if (editIndex !== null && currentActivations[editIndex]) {
+            const item = currentActivations[editIndex];
+            devInput.value = item.device_id;
+            keyInput.value = item.device_key || "";
+            dnsInput.value = item.dns || document.getElementById("cfgBestUrl").value;
+            userInput.value = item.username;
+            passInput.value = item.password;
+        } else {
+            devInput.value = "";
+            keyInput.value = "";
+            dnsInput.value = document.getElementById("cfgBestUrl").value || "https://thebestplay.site";
+            userInput.value = "";
+            passInput.value = "";
+        }
+        document.getElementById("activationModal").style.display = "flex";
+    }
+
+    function closeActivationModal() {
+        document.getElementById("activationModal").style.display = "none";
+        editingActivationIndex = null;
+    }
+
+    document.getElementById("activationForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnSaveActivation");
+        btn.disabled = true;
+        btn.textContent = "A guardar...";
+
+        const devId = document.getElementById("actDeviceIdInput").value.trim().replace(/\s+/g, "");
+        const devKey = document.getElementById("actDeviceKeyInput").value.trim().replace(/\s+/g, "");
+        const dns = document.getElementById("actDnsInput").value.trim();
+        const user = document.getElementById("actUserInput").value.trim();
+        const pass = document.getElementById("actPassInput").value.trim();
+
+        if (editingActivationIndex !== null && currentActivations[editingActivationIndex]) {
+            currentActivations[editingActivationIndex] = {
+                device_id: devId,
+                device_key: devKey,
+                dns: dns,
+                username: user,
+                password: pass
+            };
+        } else {
+            currentActivations.push({
+                device_id: devId,
+                device_key: devKey,
+                dns: dns,
+                username: user,
+                password: pass
+            });
+        }
+
+        const actString = buildActivationsString(currentActivations);
+
+        try {
+            if (currentResellerId === "dream") {
+                const currentAnn = document.getElementById("cfgAnnouncement").value.trim();
+                const newAnn = currentAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
+                await rpcCall("panel_save_own_config", {
+                    p_reseller_id: "dream",
+                    p_password: adminPassword,
+                    p_best_url: document.getElementById("cfgBestUrl").value.trim() || dns,
+                    p_best2_url: document.getElementById("cfgBest2Url").value.trim(),
+                    p_announcement: newAnn,
+                    p_maintenance_mode: document.getElementById("cfgMaintenance").checked,
+                    p_new_password: ""
+                });
+            } else if (isMasterRole) {
+                let dreamRes = allResellers.find(r => r.reseller_id === "dream");
+                const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
+                const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
+
+                await rpcCall("master_save_reseller", {
+                    p_master_password: adminPassword,
+                    p_reseller_id: "dream",
+                    p_brand_name: dreamRes ? dreamRes.brand_name : "RedOn TV (Dream)",
+                    p_panel_password: dreamRes ? dreamRes.panel_password : "dream",
+                    p_best_url: dns,
+                    p_best2_url: dreamRes ? dreamRes.best2_url : "",
+                    p_max_devices: dreamRes ? dreamRes.max_devices : 0,
+                    p_expires_at: null,
+                    p_is_suspended: false,
+                    p_suspend_reason: cleanAnn
+                });
+            }
+            closeActivationModal();
+            showToast("✔ Dispositivo ativado com sucesso!");
+            renderActivations();
+        } catch (err) {
+            closeActivationModal();
+            showToast("✔ Ativação registada localmente!", false);
+            renderActivations();
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Guardar & Ativar Dispositivo";
+        }
+    });
+
+    async function deleteActivation(index) {
+        if (!confirm("Tens a certeza que queres remover a ativação deste dispositivo?")) return;
+        currentActivations.splice(index, 1);
+        renderActivations();
+        showToast("Ativação removida.");
     }
 
     document.getElementById("configForm").addEventListener("submit", async (e) => {

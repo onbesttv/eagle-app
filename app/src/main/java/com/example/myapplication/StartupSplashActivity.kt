@@ -30,7 +30,12 @@ class StartupSplashActivity : BaseActivity() {
                     .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, activeService)
             )
         } else {
-            startActivity(Intent(this, ServiceSelectionActivity::class.java))
+            val rid = RemotePanelManager.getResellerId(this)
+            if (rid == "dream") {
+                startActivity(Intent(this, DeviceActivationActivity::class.java))
+            } else {
+                startActivity(Intent(this, ServiceSelectionActivity::class.java))
+            }
         }
         overridePendingTransition(0, 0)
         finish()

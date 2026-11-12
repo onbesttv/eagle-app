@@ -186,9 +186,13 @@ object AppUpdateManager {
                 return ReleaseResult.Error("Não foi possível verificar atualizações de momento. Tenta mais tarde.")
             }
 
-            // Procura nas releases mais recentes a primeira que contenha o APK exclusivo desta variante (eagle.apk ou <reseller_id>.apk)
-            val expectedApkName = if (resellerId == "master") "eagle.apk" else "${resellerId}.apk"
-            val isEagleTv = (resellerId == "eagle_tv")
+            // Procura nas releases mais recentes a primeira que contenha o APK exclusivo desta variante
+            val expectedApkName = when (resellerId) {
+                "master" -> "eagle.apk"
+                "dream" -> "RedOn.apk"
+                else -> "${resellerId}.apk"
+            }
+            val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream")
             val releasesArray = if (bodyString.trimStart().startsWith("[")) {
                 org.json.JSONArray(bodyString)
             } else {
@@ -275,8 +279,12 @@ object AppUpdateManager {
             val xml = response.body?.string().orEmpty()
             if (xml.isBlank()) return null
 
-            val isEagleTv = (resellerId == "eagle_tv")
-            val expectedApkName = if (resellerId == "master") "eagle.apk" else "${resellerId}.apk"
+            val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream")
+            val expectedApkName = when (resellerId) {
+                "master" -> "eagle.apk"
+                "dream" -> "RedOn.apk"
+                else -> "${resellerId}.apk"
+            }
 
             val entryPattern = java.util.regex.Pattern.compile("<entry[\\s>](.*?)</entry>", java.util.regex.Pattern.DOTALL)
             val matcher = entryPattern.matcher(xml)

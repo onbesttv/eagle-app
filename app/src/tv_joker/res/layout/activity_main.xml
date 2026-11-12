@@ -52,28 +52,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.738" />
+        app:layout_constraintGuide_percent="0.790" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnVpnEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.790" />
+        app:layout_constraintGuide_percent="0.840" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnUpdateStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.829" />
+        app:layout_constraintGuide_percent="0.850" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnUpdateEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.881" />
+        app:layout_constraintGuide_percent="0.900" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnSettingsStart"
@@ -109,56 +109,56 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.190" />
+        app:layout_constraintGuide_percent="0.186" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard1End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.334" />
+        app:layout_constraintGuide_percent="0.338" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard2Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.356" />
+        app:layout_constraintGuide_percent="0.352" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard2End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.500" />
+        app:layout_constraintGuide_percent="0.504" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard3Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.522" />
+        app:layout_constraintGuide_percent="0.518" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard3End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.666" />
+        app:layout_constraintGuide_percent="0.670" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard4Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.692" />
+        app:layout_constraintGuide_percent="0.686" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard4End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.836" />
+        app:layout_constraintGuide_percent="0.838" />
 
     <!-- 3 BOTTOM PILLS GUIDELINES (GRAVAÇÕES, JOGOS NA TV, JORNAIS) -->
     <androidx.constraintlayout.widget.Guideline
@@ -180,14 +180,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.205" />
+        app:layout_constraintGuide_percent="0.198" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill1End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.411" />
+        app:layout_constraintGuide_percent="0.404" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill2Start"
@@ -223,28 +223,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.830" />
+        app:layout_constraintGuide_percent="0.838" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glExtrasBottom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.936" />
+        app:layout_constraintGuide_percent="0.944" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glExtrasStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.898" />
+        app:layout_constraintGuide_percent="0.904" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glExtrasEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.958" />
+        app:layout_constraintGuide_percent="0.964" />
 
     <!-- ======================================================== -->
     <!-- HITBOXES DOS BOTÕES DO TOPO (TRANSPARENTES NO ESTADO NORMAL) -->
@@ -476,6 +476,7 @@
         android:clickable="true"
         android:focusable="true"
         android:nextFocusUp="@+id/cardSeries"
+        android:nextFocusDown="@+id/btnExtras"
         android:nextFocusLeft="@+id/cardSportsAgenda"
         android:nextFocusRight="@+id/btnExtras"
         android:foreground="@drawable/fg_home_pill_selector"
@@ -507,7 +508,7 @@
         app:cardMaxElevation="0dp"
         app:cardPreventCornerOverlap="false"
         app:cardBackgroundColor="@android:color/transparent"
-        android:nextFocusUp="@+id/cardSeries"
+        android:nextFocusUp="@+id/cardNewspapers"
         android:nextFocusLeft="@+id/cardNewspapers"
         app:layout_constraintStart_toStartOf="@id/glExtrasStart"
         app:layout_constraintEnd_toEndOf="@id/glExtrasEnd"
