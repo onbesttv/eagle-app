@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#07040B">
+
+    <!-- Fundo escuro futurista do tema Joker -->
+    <ImageView
+        android:id="@+id/ivLoginBgFuturistic"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_app_futuristic" />
+
+    <View
+        android:id="@+id/viewLoginBgOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#4A05030A" />
+
+    <!-- Wrapper central com o Ícone da App em cima e o painel de login ligeiramente descido -->
+    <LinearLayout
+        android:id="@+id/llLoginCenterWrapper"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingTop="18dp">
+
+        <!-- Ícone oficial da app (Coroa TV do Joker) pequeno em cima -->
+        <ImageView
+            android:id="@+id/ivJokerAppLogoLogin"
+            android:layout_width="85dp"
+            android:layout_height="85dp"
+            android:scaleType="fitCenter"
+            android:contentDescription="TV do Joker"
+            android:src="@drawable/eagle_wordmark"
+            android:layout_marginBottom="10dp" />
+
+        <!-- Painel / Card de Login -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/cardServiceLogin"
+            android:layout_width="450dp"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            app:cardBackgroundColor="#E6150D24"
+            app:cardCornerRadius="22dp"
+            app:cardElevation="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:paddingStart="30dp"
+                android:paddingTop="20dp"
+                android:paddingEnd="30dp"
+                android:paddingBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvLoginServiceBrand"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:letterSpacing="0.25"
+                    android:text="STREAMPLAY"
+                    android:textColor="#FBBF24"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/etServiceUsername"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:autofillHints="username"
+                    android:background="@drawable/bg_auth_input"
+                    android:drawableStart="@drawable/ic_auth_user"
+                    android:drawablePadding="12dp"
+                    android:hint="Username"
+                    android:inputType="text"
+                    android:paddingStart="15dp"
+                    android:paddingEnd="15dp"
+                    android:singleLine="true"
+                    android:textColor="#20242B"
+                    android:textColorHint="#697586"
+                    android:textSize="15sp"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:focusedByDefault="true"
+                    android:nextFocusDown="@+id/etServicePassword"
+                    android:nextFocusUp="@+id/etServiceUsername">
+                    <requestFocus />
+                </EditText>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp">
+
+                    <EditText
+                        android:id="@+id/etServicePassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:autofillHints="password"
+                        android:background="@drawable/bg_auth_input"
+                        android:drawableStart="@drawable/ic_auth_lock"
+                        android:drawablePadding="12dp"
+                        android:hint="Password"
+                        android:inputType="textPassword"
+                        android:paddingStart="15dp"
+                        android:paddingEnd="52dp"
+                        android:singleLine="true"
+                        android:textColor="#20242B"
+                        android:textColorHint="#697586"
+                        android:textSize="15sp"
+                        android:focusable="true"
+                        android:focusableInTouchMode="true"
+                        android:nextFocusUp="@+id/etServiceUsername"
+                        android:nextFocusDown="@+id/btnServiceLogin" />
+
+                    <ImageButton
+                        android:id="@+id/btnTogglePassword"
+                        android:layout_width="48dp"
+                        android:layout_height="52dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:background="@android:color/transparent"
+                        android:contentDescription="Mostrar password"
+                        android:padding="14dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_visibility_off"
+                        app:tint="#526779" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/tvServiceLoginStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:textColor="#FFFF8C91"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+
+                <ProgressBar
+                    android:id="@+id/pbServiceLogin"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginTop="12dp"
+                    android:indeterminateTint="#FBBF24"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/btnServiceLogin"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/bg_auth_action"
+                    android:letterSpacing="0.14"
+                    android:text="ENTRAR"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"
+                    android:focusable="true"
+                    android:nextFocusUp="@+id/etServicePassword"
+                    android:nextFocusDown="@+id/btnChooseService" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
+
+    <!-- Painel de Login Automático -->
+    <LinearLayout
+        android:id="@+id/autoLoginProgressPanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:contentDescription="TV do Joker"
+            android:scaleType="fitCenter"
+            android:src="@drawable/eagle_wordmark" />
+
+        <TextView
+            android:id="@+id/tvAutoLoginServiceBrand"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:letterSpacing="0.28"
+            android:text="STREAMPLAY"
+            android:textColor="#FBBF24"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/pbAutoLogin"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="20dp"
+            android:indeterminateTint="#FBBF24" />
+
+        <TextView
+            android:id="@+id/tvAutoLoginStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="A verificar a conta…"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- Botão de Escolher Serviço -->
+    <ImageButton
+        android:id="@+id/btnChooseService"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="18dp"
+        android:background="@drawable/bg_icon_button"
+        android:contentDescription="Escolher serviço"
+        android:padding="12dp"
+        android:src="@drawable/ic_settings"
+        android:focusable="true"
+        android:nextFocusUp="@+id/btnServiceLogin"
+        app:tint="#FBBF24" />
+</FrameLayout>

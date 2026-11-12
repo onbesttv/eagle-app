@@ -178,7 +178,7 @@ if ($Publicar) {
             name       = "Versao $versionName"
             body       = ""
             draft      = $false
-            prerelease = $true
+            prerelease = $false
         } | ConvertTo-Json
         $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases" -Headers $headers -Method Post -Body $payload -ContentType "application/json"
     }

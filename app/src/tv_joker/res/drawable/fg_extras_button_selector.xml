@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Ao clicar ou tocar (state_pressed): 100% transparente para não aparecer qualquer moldura -->
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+    <!-- Foco com comando da Box (apenas com setas do comando na TV) -->
+    <item android:state_focused="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <solid android:color="#26F59E0B" />
+            <stroke android:width="2.5dp" android:color="#FBBF24" />
+        </shape>
+    </item>
+    <!-- Estado normal: 100% transparente para exibir apenas o wallpaper original -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="20dp" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</selector>

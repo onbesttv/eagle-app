@@ -208,10 +208,11 @@ object AppUpdateManager {
                 // Se for app principal (master, etc.), as suas releases usam v4.x, v5.x, v6.x, v7.x!
                 val cleanTag = tagName.removePrefix("v").removePrefix("V")
                 val major = cleanTag.split(".").firstOrNull()?.toIntOrNull() ?: 0
+                val isCustomReseller = (resellerId == "tv_joker")
                 if (isEagleTv && major >= 4) {
                     continue
                 }
-                if (!isEagleTv && major < 4) {
+                if (!isEagleTv && !isCustomReseller && major < 4) {
                     continue
                 }
 
@@ -299,8 +300,9 @@ object AppUpdateManager {
                 // Filtrar conforme variante (Eagle TV < 4, Eagle Mobile >= 4)
                 val cleanTag = tagName.removePrefix("v").removePrefix("V")
                 val major = cleanTag.split(".").firstOrNull()?.toIntOrNull() ?: 0
+                val isCustomReseller = (resellerId == "tv_joker")
                 if (isEagleTv && major >= 4) continue
-                if (!isEagleTv && major < 4) continue
+                if (!isEagleTv && !isCustomReseller && major < 4) continue
 
                 val titlePattern = java.util.regex.Pattern.compile("<title>(.*?)</title>")
                 val titleM = titlePattern.matcher(entryContent)
