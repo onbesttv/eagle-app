@@ -162,6 +162,20 @@ object IptvServiceConfig {
             .putString("SAVED_SERVICE", validService)
             .putString("SAVED_USER", username)
             .putString("SAVED_PASS", password)
+            .remove("USER_LOGGED_OUT")
+            .remove("LOGGED_OUT_USER")
+            .apply()
+    }
+
+    fun clearAllCredentials(context: Context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .remove(BEST_USER)
+            .remove(BEST_PASS)
+            .remove(BEST2_USER)
+            .remove(BEST2_PASS)
+            .remove("SAVED_USER")
+            .remove("SAVED_PASS")
+            .putBoolean("auto_login", false)
             .apply()
     }
 

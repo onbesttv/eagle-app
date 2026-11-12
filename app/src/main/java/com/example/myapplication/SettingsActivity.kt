@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.content.Intent
@@ -175,9 +176,25 @@ class SettingsActivity : BaseActivity() {
             .setMessage(getString(R.string.logout_confirm_message))
             .setNegativeButton(getString(R.string.btn_cancel), null)
             .setPositiveButton(getString(R.string.btn_exit)) { _, _ ->
-                startActivity(Intent(this, StreamPlayLoginActivity::class.java).apply {
+                val activeSrv = IptvServiceConfig.activeServiceId(this)
+                val currentUser = IptvServiceConfig.username(this, activeSrv)
+                IptvServiceConfig.clearAllCredentials(this)
+                getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("USER_LOGGED_OUT", true)
+                    .putString("LOGGED_OUT_USER", currentUser)
+                    .apply()
+
+                val rid = RemotePanelManager.getResellerId(this)
+                val targetClass = if (rid == "dream") {
+                    DeviceActivationActivity::class.java
+                } else {
+                    ServiceSelectionActivity::class.java
+                }
+                startActivity(Intent(this, targetClass).apply {
                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
+                finish()
             }
             .create()
         dialog.show()

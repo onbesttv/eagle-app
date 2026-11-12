@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -25,9 +26,10 @@ class ServiceSelectionActivity : BaseActivity() {
         }
         var selectedService = IptvServiceConfig.activeServiceId(this)
         val manualSelection = intent.getBooleanExtra(EXTRA_MANUAL_SELECTION, false)
+        val isUserLoggedOut = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false)
         val savedUser = IptvServiceConfig.username(this, selectedService)
         val savedPass = IptvServiceConfig.password(this, selectedService)
-        if (!manualSelection && savedUser.isNotBlank() && savedPass.isNotBlank()) {
+        if (!manualSelection && !isUserLoggedOut && savedUser.isNotBlank() && savedPass.isNotBlank()) {
             findViewById<LinearLayout>(R.id.serviceChoices).visibility = View.GONE
             findViewById<LinearLayout>(R.id.autoLoginPanel).visibility = View.VISIBLE
             findViewById<ProgressBar>(R.id.pbServiceSelection).visibility = View.VISIBLE

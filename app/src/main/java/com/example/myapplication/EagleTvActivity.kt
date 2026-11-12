@@ -4501,13 +4501,22 @@ class EagleTvActivity : BaseActivity() {
 
         val btnSair = criarBotaoTvDialogo("SIM, TERMINAR SESSÃO", perigo = true) {
             dialog.dismiss()
+            val activeSrv = IptvServiceConfig.activeServiceId(this)
+            val currentUser = IptvServiceConfig.username(this, activeSrv)
+            IptvServiceConfig.clearAllCredentials(this)
             getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
                 .edit()
-                .putBoolean("auto_login", false)
-                .remove("SAVED_USER")
-                .remove("SAVED_PASS")
+                .putBoolean("USER_LOGGED_OUT", true)
+                .putString("LOGGED_OUT_USER", currentUser)
                 .apply()
-            startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
+
+            val rid = RemotePanelManager.getResellerId(this)
+            val targetClass = if (rid == "dream") {
+                DeviceActivationActivity::class.java
+            } else {
+                ServiceSelectionActivity::class.java
+            }
+            startActivity(Intent(this, targetClass).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             })
             finish()

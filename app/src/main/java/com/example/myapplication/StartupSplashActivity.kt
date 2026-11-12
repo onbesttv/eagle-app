@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -23,7 +24,9 @@ class StartupSplashActivity : BaseActivity() {
         val savedUser = IptvServiceConfig.username(this, activeService)
         val savedPass = IptvServiceConfig.password(this, activeService)
 
-        if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
+        val isUserLoggedOut = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false)
+
+        if (!isUserLoggedOut && savedUser.isNotBlank() && savedPass.isNotBlank()) {
             startActivity(
                 Intent(this, StreamPlayLoginActivity::class.java)
                     .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)

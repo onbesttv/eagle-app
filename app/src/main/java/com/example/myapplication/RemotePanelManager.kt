@@ -111,6 +111,12 @@ object RemotePanelManager {
                         val pass = creds[1].trim()
                         val dns = creds.getOrNull(2)?.trim()?.ifBlank { null }
                         if (user.isNotBlank() && pass.isNotBlank()) {
+                            val prefs = context.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+                            val loggedOutUser = prefs.getString("LOGGED_OUT_USER", "")
+                            if (prefs.getBoolean("USER_LOGGED_OUT", false) && user.equals(loggedOutUser, ignoreCase = true)) {
+                                return false
+                            }
+                            prefs.edit().remove("USER_LOGGED_OUT").remove("LOGGED_OUT_USER").apply()
                             val appContext = context.applicationContext
                             IptvServiceConfig.initialize(appContext)
                             val activeSrv = IptvServiceConfig.activeServiceId(appContext)
@@ -118,7 +124,7 @@ object RemotePanelManager {
                             if (!dns.isNullOrBlank()) {
                                 IptvServiceConfig.updateRemoteUrls(appContext, dns, "")
                             }
-                            appContext.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                            prefs.edit()
                                 .putString("SAVED_USER", user)
                                 .putString("SAVED_PASS", pass)
                                 .apply()

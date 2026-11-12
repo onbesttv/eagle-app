@@ -43,11 +43,17 @@ class DeviceActivationActivity : BaseActivity() {
         tvKey.text = "${key.take(3)} ${key.drop(3)}"
 
         btnCheckActivation.setOnClickListener {
+            getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                .remove("USER_LOGGED_OUT")
+                .remove("LOGGED_OUT_USER")
+                .apply()
             checkActivationStatus(silent = false)
         }
 
         btnManualLogin.setOnClickListener {
-            startActivity(Intent(this, ServiceSelectionActivity::class.java))
+            startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
+                putExtra(ServiceSelectionActivity.EXTRA_MANUAL_SELECTION, true)
+            })
             finish()
         }
 
@@ -68,6 +74,9 @@ class DeviceActivationActivity : BaseActivity() {
     }
 
     private fun checkActivationStatus(silent: Boolean) {
+        if (silent && getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false)) {
+            return
+        }
         if (isChecking) return
         isChecking = true
 
