@@ -498,11 +498,11 @@
         <!-- SECÇÃO EXCLUSIVA REDON TV (DREAM): DOWNLOAD E ATIVAÇÃO DE DISPOSITIVOS -->
         <div id="dreamSection" style="grid-column: 1 / -1; display: none;">
             <!-- CARTÃO 1: ACESSO & DOWNLOAD DA APP REDON TV -->
-            <div class="card" style="margin-bottom: 24px; border-left: 4px solid #e11d48; background: linear-gradient(135deg, rgba(225,29,72,0.08), rgba(15,23,42,0.6));">
+            <div class="card" style="margin-bottom: 24px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
                     <div style="max-width:720px;">
                         <div style="font-size:18px; font-weight:bold; color:#fff; display:flex; align-items:center; gap:8px;">
-                            <span style="background:#e11d48; color:#fff; padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
+                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
                             Aplicação RedOn TV (v3.13) — Acesso dos Teus Clientes
                         </div>
                         <div style="font-size:13px; color:var(--text-muted); margin-top:6px; line-height: 1.5;">
@@ -514,15 +514,15 @@
                                 <code style="font-size:13px; color:#38bdf8; font-weight:bold;">http://aftv.news/6718437</code>
                                 <button type="button" class="btn btn-outline btn-sm" onclick="copyText('http://aftv.news/6718437', 'Link copiado com sucesso!')">📋 Copiar Link</button>
                             </div>
-                            <div style="background: rgba(225,29,72,0.12); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(225,29,72,0.3); display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:12px; color:#fca5a5; font-weight:600;">⚡ Código Downloader:</span>
-                                <code style="font-size:14px; color:#fff; font-weight:bold; letter-spacing:1px;">6718437</code>
+                            <div style="background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:12px; color:var(--text-muted); font-weight:600;">⚡ Código Downloader:</span>
+                                <code style="font-size:14px; color:#38bdf8; font-weight:bold; letter-spacing:1px;">6718437</code>
                                 <button type="button" class="btn btn-outline btn-sm" onclick="copyText('6718437', 'Código Downloader copiado!')">📋 Copiar Código</button>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <a href="http://aftv.news/6718437" target="_blank" class="btn btn-primary" style="background:#e11d48; border-color:#e11d48; font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        <a href="http://aftv.news/6718437" target="_blank" class="btn btn-primary" style="font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
                             📥 Baixar RedOn.apk
                         </a>
                     </div>
@@ -1024,8 +1024,9 @@
     function buildEncodedAnnouncement() {
         const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
-        const vpnUser = (document.getElementById("cfgVpnUser") ? document.getElementById("cfgVpnUser").value.trim() : "");
-        const vpnPass = (document.getElementById("cfgVpnPass") ? document.getElementById("cfgVpnPass").value.trim() : "");
+        const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
+        const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
+        const vpnPass = (document.getElementById("cfgVpnPass") && document.getElementById("cfgVpnPass").value.trim()) || defaultAcc.pass;
         const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
         const vpnUsersPart = hasPerUserVpnControl()
             ? `||VPN_USERS:restricted|${Array.from(allowedVpnUsers).join(",")}`
@@ -1326,13 +1327,16 @@
             document.title = brandTitle;
             document.getElementById("brandBadge").textContent = (data.brand_name || "P").trim().charAt(0).toUpperCase();
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
+            const isJoker = (currentResellerId === "joker" || currentResellerId === "tv_joker");
             const hasVpnInApp = currentResellerId !== "pereira_tv";
-            const hasBest2InApp = currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream";
+            const hasBest2InApp = !isJoker && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream";
             document.getElementById("masterTabs").style.display = "flex";
             document.getElementById("tabBtnVpn").style.display = hasVpnInApp ? "inline-block" : "none";
-            document.getElementById("best1UrlLabel").textContent = hasBest2InApp
-                ? "DNS Serviço 1 (StreamPlay / Principal)"
-                : (currentResellerId === "dream" ? "Servidor / DNS Xtream Codes" : "DNS do Servidor (StreamPlay)");
+            document.getElementById("best1UrlLabel").textContent = isJoker
+                ? "Servidor / DNS da App"
+                : (hasBest2InApp
+                    ? "DNS Serviço 1 (StreamPlay / Principal)"
+                    : (currentResellerId === "dream" ? "Servidor / DNS Xtream Codes" : "DNS do Servidor (StreamPlay)"));
             document.getElementById("best2UrlGroup").style.display = hasBest2InApp ? "block" : "none";
             document.getElementById("filterBtnBest").style.display = hasBest2InApp ? "inline-block" : "none";
             document.getElementById("filterBtnBest2").style.display = hasBest2InApp ? "inline-block" : "none";
@@ -1411,7 +1415,7 @@
 
             const credCard = document.getElementById("vpnCredentialsCard");
             if (credCard) {
-                credCard.style.display = (currentResellerId === "godinho_tv") ? "none" : "block";
+                credCard.style.display = (currentResellerId === "godinho_tv" || isJoker) ? "none" : (isMasterRole ? "block" : "none");
             }
             const userInp = document.getElementById("cfgVpnUser");
             const passInp = document.getElementById("cfgVpnPass");
