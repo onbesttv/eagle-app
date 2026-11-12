@@ -457,9 +457,7 @@
             </div>
         </div>
         <div class="topbar-actions">
-            <a id="btnDownloadAppTop" href="http://aftv.news/6718437" target="_blank" class="btn" style="background:#e11d48; border-color:#e11d48; color:#fff; font-weight:bold; display:none; text-decoration:none; align-items:center; gap:6px;">📲 Descarregar RedOn.apk</a>
             <span id="roleBadge" class="badge badge-best" style="padding: 7px 12px; font-size: 12px;">MASTER</span>
-            <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar Dados</button>
             <button class="btn btn-outline" onclick="logout()">Sair</button>
         </div>
     </div>
@@ -1379,13 +1377,7 @@
             const isDream = (currentResellerId === "dream");
             const dreamSec = document.getElementById("dreamSection");
             if (dreamSec) {
-                dreamSec.style.display = (isDream || isMasterRole) ? "block" : "none";
-            }
-
-            const btnDownloadTop = document.getElementById("btnDownloadAppTop");
-            if (btnDownloadTop) {
-                btnDownloadTop.href = "http://aftv.news/6718437";
-                btnDownloadTop.style.display = (isDream || isMasterRole) ? "inline-flex" : "none";
+                dreamSec.style.display = isDream ? "block" : "none";
             }
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
@@ -1485,9 +1477,34 @@
 
             const rawDevices = Array.isArray(data.devices) ? data.devices : [];
             allDevices = isMasterRole
-                ? rawDevices
+                ? [...rawDevices]
                 : rawDevices.filter(d => (d.username || "").trim().toLowerCase() !== "xsrupyh");
             allResellers = Array.isArray(data.resellers) ? data.resellers : [];
+
+            // Integrar os dispositivos ativados do RedOn (Dream) diretamente na lista geral de dispositivos
+            const dreamResellerObj = isMasterRole ? allResellers.find(r => r.reseller_id === "dream") : (currentResellerId === "dream" ? data : null);
+            if (dreamResellerObj && dreamResellerObj.announcement) {
+                const dreamActs = parseActivationsFromAnnouncement(dreamResellerObj.announcement);
+                dreamActs.forEach(act => {
+                    const normMac = act.device_id.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+                    const alreadyExists = allDevices.some(d => {
+                        const devNorm = (d.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+                        return devNorm === normMac || (d.username && d.username.toLowerCase() === act.username.toLowerCase());
+                    });
+                    if (!alreadyExists) {
+                        allDevices.push({
+                            device_id: act.device_id,
+                            username: act.username,
+                            reseller_id: "dream",
+                            active_service: "best",
+                            device_name: "RedOn TV Box" + (act.device_key ? ` (PIN: ${act.device_key})` : ""),
+                            app_version: "3.13",
+                            last_seen: new Date().toISOString(),
+                            is_blocked: false
+                        });
+                    }
+                });
+            }
 
             if (!isMasterRole && allowedVpnUsers.has("xsrupyh")) {
                 allowedVpnUsers.delete("xsrupyh");
