@@ -77,6 +77,60 @@ object RemotePanelManager {
         return finalId
     }
 
+    fun getDeviceMac(context: Context): String {
+        val rawId = getDeviceId(context).replace("-", "").lowercase()
+        val clean = if (rawId.length >= 12) rawId.take(12) else rawId.padEnd(12, '0')
+        return clean.chunked(2).joinToString(":").uppercase()
+    }
+
+    fun getDeviceKey(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        var key = prefs.getString("DEVICE_KEY", null)
+        if (key.isNullOrBlank()) {
+            val randomNum = (100000..999999).random()
+            key = randomNum.toString()
+            prefs.edit().putString("DEVICE_KEY", key).apply()
+        }
+        return key
+    }
+
+    fun applyActivationIfPresent(context: Context, rawAnnouncement: String): Boolean {
+        val actPart = rawAnnouncement.substringAfter("||ACTIVATIONS:", "").substringBefore("||")
+        if (actPart.isBlank()) return false
+        val myId = getDeviceId(context).lowercase()
+        val myMac = getDeviceMac(context).replace(":", "").lowercase()
+        val entries = actPart.split("|")
+        for (entry in entries) {
+            val parts = entry.split("=", limit = 2)
+            if (parts.size == 2) {
+                val dev = parts[0].trim().replace(":", "").lowercase()
+                if (dev == myId || dev == myMac) {
+                    val creds = parts[1].trim().split(":", limit = 3)
+                    if (creds.size >= 2) {
+                        val user = creds[0].trim()
+                        val pass = creds[1].trim()
+                        val dns = creds.getOrNull(2)?.trim()?.ifBlank { null }
+                        if (user.isNotBlank() && pass.isNotBlank()) {
+                            val appContext = context.applicationContext
+                            IptvServiceConfig.initialize(appContext)
+                            val activeSrv = IptvServiceConfig.activeServiceId(appContext)
+                            IptvServiceConfig.saveCredentials(appContext, activeSrv, user, pass)
+                            if (!dns.isNullOrBlank()) {
+                                IptvServiceConfig.updateRemoteUrls(appContext, dns, "")
+                            }
+                            appContext.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                                .putString("SAVED_USER", user)
+                                .putString("SAVED_PASS", pass)
+                                .apply()
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+        return false
+    }
+
     private fun getDeviceName(): String {
         val manufacturer = Build.MANUFACTURER?.trim().orEmpty()
         val model = Build.MODEL?.trim().orEmpty()
@@ -153,6 +207,7 @@ object RemotePanelManager {
                         val bestUrl = json.optString("best_url", "").trim()
                         val best2Url = json.optString("best2_url", "").trim()
                         val rawAnnouncement = json.optString("announcement", "").trim()
+                        applyActivationIfPresent(appContext, rawAnnouncement)
                         val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
                         val announcement = announcementParts[0].trim()
                         if (announcementParts.size > 1) {
