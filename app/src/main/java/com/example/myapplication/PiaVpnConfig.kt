@@ -132,7 +132,7 @@ object PiaVpnConfig {
 
     fun isVpnAllowedForCurrentUser(context: Context): Boolean {
         val resId = RemotePanelManager.getResellerId(context).trim().lowercase()
-        val hasPerUserVpnControl = (resId == "master" || resId == "eagle_tv" || resId == "godinho_tv")
+        val hasPerUserVpnControl = (resId == "master" || resId == "eagle_tv" || resId == "godinho_tv" || resId == "dream" || resId == "joker" || resId == "tv_joker")
         if (!hasPerUserVpnControl) {
             return true
         }

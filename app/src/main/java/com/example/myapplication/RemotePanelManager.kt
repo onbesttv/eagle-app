@@ -228,7 +228,9 @@ object RemotePanelManager {
                         val rawAnnouncement = json.optString("announcement", "").trim()
                         applyActivationIfPresent(appContext, rawAnnouncement)
                         val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
-                        val announcement = announcementParts[0].trim()
+                        val announcement = announcementParts[0]
+                            .replace(Regex("\\|\\|ACTIVATIONS:[^|]+(\\|[^|]+)*"), "")
+                            .trim()
                         if (announcementParts.size > 1) {
                             val vpnRaw = announcementParts[1].trim()
                             val killSplit = vpnRaw.split("||VPN_KILL:", limit = 2)
@@ -326,7 +328,9 @@ object RemotePanelManager {
             activeBlockDialog = null
         }
 
-        val announcement = prefs.getString(KEY_ANNOUNCEMENT, "").orEmpty().trim()
+        val announcement = prefs.getString(KEY_ANNOUNCEMENT, "").orEmpty()
+            .replace(Regex("\\|\\|ACTIVATIONS:[^|]+(\\|[^|]+)*"), "")
+            .trim()
         val lastShown = prefs.getString(KEY_LAST_SHOWN_ANNOUNCEMENT, "").orEmpty().trim()
         if (announcement.isNotBlank() && announcement != lastShown) {
             prefs.edit().putString(KEY_LAST_SHOWN_ANNOUNCEMENT, announcement).apply()

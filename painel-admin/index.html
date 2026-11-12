@@ -523,7 +523,7 @@
                     </div>
                     <div>
                         <a href="http://aftv.news/6718437" target="_blank" class="btn btn-primary" style="font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-                            📥 Baixar RedOn.apk
+                            Baixar RedON
                         </a>
                     </div>
                 </div>
@@ -546,10 +546,6 @@
                             <input type="text" id="quickActDeviceId" placeholder="ex: 00:1A:79:B4:2C:18" maxlength="17" oninput="formatMacInput(this)" style="text-transform: uppercase; font-family: monospace; font-weight: 600;" required>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
-                            <label>Device Key (PIN - Opcional)</label>
-                            <input type="text" id="quickActDeviceKey" placeholder="ex: 849 201">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
                             <label>Servidor / DNS Xtream Codes</label>
                             <input type="url" id="quickActDns" value="https://topnextplay.online:443" placeholder="https://topnextplay.online:443" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
                         </div>
@@ -564,7 +560,7 @@
                     </div>
                     <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
                         <button type="submit" class="btn btn-primary" id="btnQuickSaveAct" style="padding: 10px 24px; font-weight:bold; background:#10b981; border-color:#10b981;">
-                            🚀 Ativar Aparelho Agora
+                            Ativar Aparelho
                         </button>
                     </div>
                 </form>
@@ -1748,14 +1744,10 @@
             if (currentFilter === "best2" && srv !== "best2") return false;
             if (currentFilter === "blocked" && !d.is_blocked) return false;
 
-            // Só mostrar utilizadores com sessão iniciada (username).
-            // No caso da app RedOn / Dream (ativação por MAC/Device ID), só mostrar se o Device ID constar nos ativados do painel
-            if (!d.username || !d.username.trim()) return false;
-            if (devReseller === "dream" || currentResellerId === "dream") {
-                const cleanDevId = (d.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-                const isActivatedInPanel = Array.isArray(currentActivations) && currentActivations.some(a => (a.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase() === cleanDevId);
-                if (!isActivatedInPanel) return false;
-            }
+            // Apenas mostrar utilizadores com sessão iniciada (login feito).
+            // Quem não fez login (não foi ativado o ID) fica oculto. Estando online ou offline, aparecem todos os que têm login.
+            const u = (d.username || "").trim();
+            if (!u || u.toLowerCase() === "sem login") return false;
 
             if (q) {
                 const isJokerApp = devReseller === "tv_joker" || devReseller === "joker";
@@ -2002,8 +1994,19 @@
     async function saveActivationsToBackend(newList, fallbackDns = "") {
         const actString = buildActivationsString(newList);
         if (currentResellerId === "dream") {
-            const currentAnn = document.getElementById("cfgAnnouncement").value.trim();
-            const newAnn = currentAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
+            const currentAnn = document.getElementById("cfgAnnouncement").value
+                .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
+                .trim();
+            const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
+            const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
+            const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
+            const vpnPass = (document.getElementById("cfgVpnPass") && document.getElementById("cfgVpnPass").value.trim()) || defaultAcc.pass;
+            const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
+            const vpnUsersPart = hasPerUserVpnControl()
+                ? `||VPN_USERS:restricted|${Array.from(allowedVpnUsers).join(",")}`
+                : "";
+            const vpnKillPart = vpnKillTimestamp > 0 ? `||VPN_KILL:${vpnKillTimestamp}` : "";
+            const newAnn = `${currentAnn} ${actString} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
             const dns = document.getElementById("cfgBestUrl").value.trim() || fallbackDns || "https://topnextplay.online:443";
             await rpcCall("panel_save_own_config", {
                 p_reseller_id: "dream",
@@ -2020,7 +2023,8 @@
         } else if (isMasterRole) {
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
-            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
+            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim();
+            const newAnn = `${cleanAnn} ${actString}`.trim();
             const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://topnextplay.online:443") : "https://topnextplay.online:443");
             await rpcCall("master_save_reseller", {
                 p_master_password: adminPassword,
@@ -2032,10 +2036,10 @@
                 p_max_devices: dreamRes ? dreamRes.max_devices : 0,
                 p_expires_at: null,
                 p_is_suspended: false,
-                p_suspend_reason: cleanAnn
+                p_suspend_reason: newAnn
             });
             if (dreamRes) {
-                dreamRes.announcement = cleanAnn;
+                dreamRes.announcement = newAnn;
             }
         }
     }

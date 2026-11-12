@@ -447,7 +447,11 @@ class EagleTvActivity : BaseActivity() {
         if (IptvServiceConfig.username(this).isBlank()) {
             IptvServiceConfig.saveCredentials(this, IptvServiceConfig.activeServiceId(this), user, pass)
         }
-        RemotePanelManager.sync(this)
+        RemotePanelManager.sync(this) {
+            if (!isFinishing && !isDestroyed) {
+                atualizarEstadoServidorEVpn()
+            }
+        }
 
         inicializarViews()
         configurarMenuLateral()
@@ -1054,9 +1058,9 @@ class EagleTvActivity : BaseActivity() {
             navVpn.alpha = 1.0f
             navVpn.setTextColor(0xFF10B981.toInt())
         } else {
-            navVpn.text = "🛡️  VPN: OFF"
+            navVpn.text = "🛡️  VPN: Ativa"
             navVpn.alpha = 1.0f
-            navVpn.setTextColor(0xFFF1F5F9.toInt())
+            navVpn.setTextColor(0xFF38BDF8.toInt())
         }
     }
 
@@ -3813,6 +3817,7 @@ class EagleTvActivity : BaseActivity() {
 
         RemotePanelManager.sync(this) {
             if (!isFinishing && !isDestroyed) {
+                atualizarEstadoServidorEVpn()
                 PiaVpnManager.getRegions(this) { updatedList ->
                     if (updatedList.map { it.id } != vpnRegionsList.map { it.id }) {
                         renderizarLista(updatedList)
