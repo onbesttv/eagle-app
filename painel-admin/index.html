@@ -543,7 +543,7 @@
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Device ID ou MAC da TV *</label>
-                            <input type="text" id="quickActDeviceId" placeholder="ex: 00:1A:79:B4:2C:18" required>
+                            <input type="text" id="quickActDeviceId" placeholder="ex: 00:1A:79:B4:2C:18" maxlength="17" oninput="formatMacInput(this)" style="text-transform: uppercase; font-family: monospace; font-weight: 600;" required>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Device Key (PIN - Opcional)</label>
@@ -775,7 +775,7 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Device ID ou MAC do Aparelho</label>
-                    <input type="text" id="actDeviceIdInput" placeholder="ex: 00:1A:79:B4:2C:18 ou Android ID" required>
+                    <input type="text" id="actDeviceIdInput" placeholder="ex: 00:1A:79:B4:2C:18" maxlength="17" oninput="formatMacInput(this)" style="text-transform: uppercase; font-family: monospace; font-weight: 600;" required>
                     <small style="color:var(--text-muted); font-size:11px;">O código MAC ou Device ID que aparece no ecrã da TV do cliente.</small>
                 </div>
                 <div class="form-group">
@@ -2040,6 +2040,17 @@
     function closeActivationModal() {
         document.getElementById("activationModal").style.display = "none";
         editingActivationIndex = null;
+    }
+
+    function formatMacInput(el) {
+        if (!el) return;
+        const raw = el.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 12);
+        if (!raw) {
+            el.value = "";
+            return;
+        }
+        const parts = raw.match(/.{1,2}/g) || [];
+        el.value = parts.join(":");
     }
 
     async function handleQuickActivation(e) {
