@@ -33,11 +33,12 @@ if (Test-Path $panelDir) {
 New-Item -ItemType Directory -Path $panelDir | Out-Null
 Copy-Item "painel-admin\index.html" -Destination (Join-Path $panelDir "index.html") -Force
 Set-Content -Path (Join-Path $panelDir "CNAME") -Value "eaglepanel.site" -NoNewline -Encoding ASCII
+New-Item -ItemType File -Path (Join-Path $panelDir ".nojekyll") -Force | Out-Null
 
 Push-Location $panelDir
 git init | Out-Null
 git checkout -b main | Out-Null
-git add index.html CNAME
+git add index.html CNAME .nojekyll
 git commit -m "Painel Web + Dominio eaglepanel.site" | Out-Null
 git remote add origin "https://onbesttv:$token@github.com/onbesttv/painel-tv.git"
 git push -f origin main
