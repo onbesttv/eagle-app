@@ -457,6 +457,8 @@
             </div>
         </div>
         <div class="topbar-actions">
+            <a id="btnDownloadAppTop" href="https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk" target="_blank" class="btn" style="background:#e11d48; border-color:#e11d48; color:#fff; font-weight:bold; display:none; text-decoration:none; align-items:center; gap:6px;">📲 Descarregar RedOn.apk</a>
+            <button id="btnQuickAddDeviceTop" class="btn btn-primary" onclick="openActivationModal()" style="display:none; font-weight:bold; background:#10b981; border-color:#10b981;">➕ Adicionar Dispositivo</button>
             <span id="roleBadge" class="badge badge-best" style="padding: 7px 12px; font-size: 12px;">MASTER</span>
             <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar Dados</button>
             <button class="btn btn-outline" onclick="logout()">Sair</button>
@@ -536,6 +538,7 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
+                <button class="btn btn-sm btn-primary" onclick="openActivationModal()" style="font-weight:bold; background:#10b981; border-color:#10b981;">➕ Ativar / Adicionar Dispositivo</button>
             </div>
 
             <div class="filters-bar">
@@ -692,12 +695,78 @@
 
     <!-- ABA 4: ATIVAÇÕES POR DEVICE KEY / MAC (RedOn / Dream) -->
     <div id="tabContentActivations" style="display: none;">
+        <!-- CARTÃO 1: ACESSO À APP DO REVENDEDOR (RedOn TV) -->
+        <div class="card" style="margin-bottom: 24px; border-left: 4px solid #e11d48; background: linear-gradient(135deg, rgba(225,29,72,0.08), rgba(15,23,42,0.6));">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                <div style="max-width:720px;">
+                    <div style="font-size:18px; font-weight:bold; color:#fff; display:flex; align-items:center; gap:8px;">
+                        <span style="background:#e11d48; color:#fff; padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
+                        Aplicação RedOn TV (v3.13) — Acesso dos Teus Clientes
+                    </div>
+                    <div style="font-size:13px; color:var(--text-muted); margin-top:6px; line-height: 1.5;">
+                        Disponibiliza este ficheiro APK aos teus clientes para instalarem na Smart TV Android, TV Box ou telemóvel. Ao abrir a app, o cliente apenas te fornece o <strong>Device ID / MAC</strong> que aparece no ecrã.
+                    </div>
+                    <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                        <code class="id-chip" style="font-size:12px; color:#38bdf8; padding:6px 10px;" id="redonApkUrlText">https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk</code>
+                        <button type="button" class="btn btn-outline btn-sm" onclick="copyRedonLink()">📋 Copiar Link de Envio</button>
+                    </div>
+                </div>
+                <div>
+                    <a href="https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk" target="_blank" class="btn btn-primary" style="background:#e11d48; border-color:#e11d48; font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                        📥 Descarregar RedOn.apk
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARTÃO 2: ADICIONAR NOVO DISPOSITIVO (FORMULÁRIO RÁPIDO) -->
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header" style="margin-bottom: 16px;">
+                <div>
+                    <div class="card-title">➕ Adicionar / Ativar Dispositivo do Cliente</div>
+                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        Insere o <strong>Device ID / MAC</strong> da TV Box do cliente e a linha atribuída (DNS, User e Pass). O cliente fica com a box a funcionar de imediato!
+                    </div>
+                </div>
+            </div>
+            <form id="quickActivationForm" onsubmit="handleQuickActivation(event)">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Device ID ou MAC da TV *</label>
+                        <input type="text" id="quickActDeviceId" placeholder="ex: 00:1A:79:B4:2C:18" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Device Key (PIN - Opcional)</label>
+                        <input type="text" id="quickActDeviceKey" placeholder="ex: 849 201">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Servidor / DNS Xtream Codes *</label>
+                        <input type="url" id="quickActDns" placeholder="https://thebestplay.site" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Username / Utilizador da Linha *</label>
+                        <input type="text" id="quickActUser" placeholder="cliente123" required>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Password da Linha *</label>
+                        <input type="text" id="quickActPass" placeholder="senha123" required>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
+                    <button type="submit" class="btn btn-primary" id="btnQuickSaveAct" style="padding: 10px 24px; font-weight:bold; background:#10b981; border-color:#10b981;">
+                        🚀 Ativar Aparelho Agora
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- CARTÃO 3: TABELA DE DISPOSITIVOS ATIVADOS -->
         <div class="card">
             <div class="card-header">
                 <div>
-                    <div class="card-title">🔑 Ativação Remota de Dispositivos (RedOn TV / Dream)</div>
+                    <div class="card-title">📋 Dispositivos Ativados no RedOn TV</div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-                        Associa linhas (DNS, Utilizador e Senha) diretamente ao Device ID / MAC da TV Box do cliente. A app ativa-se sozinha sem o cliente precisar de escrever nada!
+                        Lista de aparelhos ativados por Device ID / MAC com as respetivas linhas associadas.
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="openActivationModal()">➕ Ativar Novo Dispositivo</button>
@@ -1301,7 +1370,26 @@
             document.getElementById("filterBtnMytvonline").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
             const showActivationsTab = isMasterRole || currentResellerId === "dream";
-            document.getElementById("tabBtnActivations").style.display = showActivationsTab ? "inline-block" : "none";
+            const tabActBtn = document.getElementById("tabBtnActivations");
+            tabActBtn.style.display = showActivationsTab ? "inline-block" : "none";
+            if (currentResellerId === "dream") {
+                tabActBtn.textContent = "🔑 Dispositivos & Ativações (RedOn)";
+                if (!sessionStorage.getItem("dream_tab_auto_switched")) {
+                    switchTab("activations");
+                    sessionStorage.setItem("dream_tab_auto_switched", "1");
+                }
+            } else {
+                tabActBtn.textContent = "🔑 Ativar Dispositivos (RedOn / Dream)";
+            }
+
+            const btnDownloadTop = document.getElementById("btnDownloadAppTop");
+            if (btnDownloadTop) {
+                btnDownloadTop.style.display = (currentResellerId === "dream" || isMasterRole) ? "inline-flex" : "none";
+            }
+            const btnQuickTop = document.getElementById("btnQuickAddDeviceTop");
+            if (btnQuickTop) {
+                btnQuickTop.style.display = showActivationsTab ? "inline-flex" : "none";
+            }
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
             document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
@@ -1827,12 +1915,67 @@
         return "||ACTIVATIONS:" + parts.join("|");
     }
 
+    function copyRedonLink() {
+        const url = "https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk";
+        navigator.clipboard.writeText(url).then(() => {
+            showToast("✔ Link copiado para a área de transferência!");
+        }).catch(() => {
+            prompt("Copia o link:", url);
+        });
+    }
+
+    async function saveActivationsToBackend(newList, fallbackDns = "") {
+        const actString = buildActivationsString(newList);
+        if (currentResellerId === "dream") {
+            const currentAnn = document.getElementById("cfgAnnouncement").value.trim();
+            const newAnn = currentAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
+            const dns = document.getElementById("cfgBestUrl").value.trim() || fallbackDns || "https://thebestplay.site";
+            await rpcCall("panel_save_own_config", {
+                p_reseller_id: "dream",
+                p_password: adminPassword,
+                p_best_url: dns,
+                p_best2_url: document.getElementById("cfgBest2Url").value.trim(),
+                p_announcement: newAnn,
+                p_maintenance_mode: document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false,
+                p_new_password: ""
+            });
+            if (lastDashboardData) {
+                lastDashboardData.announcement = newAnn;
+            }
+        } else if (isMasterRole) {
+            let dreamRes = allResellers.find(r => r.reseller_id === "dream");
+            const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
+            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
+            const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://thebestplay.site") : "https://thebestplay.site");
+            await rpcCall("master_save_reseller", {
+                p_master_password: adminPassword,
+                p_reseller_id: "dream",
+                p_brand_name: dreamRes ? dreamRes.brand_name : "RedOn TV (Dream)",
+                p_panel_password: dreamRes ? dreamRes.panel_password : "dream",
+                p_best_url: dns,
+                p_best2_url: dreamRes ? dreamRes.best2_url : "",
+                p_max_devices: dreamRes ? dreamRes.max_devices : 0,
+                p_expires_at: null,
+                p_is_suspended: false,
+                p_suspend_reason: cleanAnn
+            });
+            if (dreamRes) {
+                dreamRes.announcement = cleanAnn;
+            }
+        }
+    }
+
     function renderActivations() {
         const tbody = document.getElementById("activationsTableBody");
         if (!tbody) return;
         const targetReseller = (currentResellerId === "master") ? allResellers.find(r => r.reseller_id === "dream") : lastDashboardData;
         const ann = targetReseller ? (targetReseller.announcement || "") : (lastDashboardData ? lastDashboardData.announcement : "");
         currentActivations = parseActivationsFromAnnouncement(ann);
+
+        const quickDnsEl = document.getElementById("quickActDns");
+        if (quickDnsEl && !quickDnsEl.value) {
+            quickDnsEl.value = document.getElementById("cfgBestUrl").value || "https://thebestplay.site";
+        }
 
         if (currentActivations.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não existem dispositivos ativados por Device ID / Key. Clica em "➕ Ativar Novo Dispositivo"!</td></tr>`;
@@ -1887,6 +2030,54 @@
         editingActivationIndex = null;
     }
 
+    async function handleQuickActivation(e) {
+        e.preventDefault();
+        const btn = document.getElementById("btnQuickSaveAct");
+        btn.disabled = true;
+        btn.textContent = "A ativar...";
+
+        const devId = document.getElementById("quickActDeviceId").value.trim().replace(/\s+/g, "");
+        const devKey = document.getElementById("quickActDeviceKey").value.trim().replace(/\s+/g, "");
+        const dns = document.getElementById("quickActDns").value.trim();
+        const user = document.getElementById("quickActUser").value.trim();
+        const pass = document.getElementById("quickActPass").value.trim();
+
+        const existingIdx = currentActivations.findIndex(a => a.device_id.toLowerCase() === devId.toLowerCase());
+        if (existingIdx >= 0) {
+            currentActivations[existingIdx] = {
+                device_id: devId,
+                device_key: devKey,
+                dns: dns,
+                username: user,
+                password: pass
+            };
+        } else {
+            currentActivations.push({
+                device_id: devId,
+                device_key: devKey,
+                dns: dns,
+                username: user,
+                password: pass
+            });
+        }
+
+        try {
+            await saveActivationsToBackend(currentActivations, dns);
+            showToast("✔ Dispositivo ativado com sucesso!");
+            document.getElementById("quickActDeviceId").value = "";
+            document.getElementById("quickActDeviceKey").value = "";
+            document.getElementById("quickActUser").value = "";
+            document.getElementById("quickActPass").value = "";
+            renderActivations();
+        } catch (err) {
+            showToast("✔ Ativação registada localmente!", false);
+            renderActivations();
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "🚀 Ativar Aparelho Agora";
+        }
+    }
+
     document.getElementById("activationForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btnSaveActivation");
@@ -1917,39 +2108,8 @@
             });
         }
 
-        const actString = buildActivationsString(currentActivations);
-
         try {
-            if (currentResellerId === "dream") {
-                const currentAnn = document.getElementById("cfgAnnouncement").value.trim();
-                const newAnn = currentAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
-                await rpcCall("panel_save_own_config", {
-                    p_reseller_id: "dream",
-                    p_password: adminPassword,
-                    p_best_url: document.getElementById("cfgBestUrl").value.trim() || dns,
-                    p_best2_url: document.getElementById("cfgBest2Url").value.trim(),
-                    p_announcement: newAnn,
-                    p_maintenance_mode: document.getElementById("cfgMaintenance").checked,
-                    p_new_password: ""
-                });
-            } else if (isMasterRole) {
-                let dreamRes = allResellers.find(r => r.reseller_id === "dream");
-                const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
-                const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
-
-                await rpcCall("master_save_reseller", {
-                    p_master_password: adminPassword,
-                    p_reseller_id: "dream",
-                    p_brand_name: dreamRes ? dreamRes.brand_name : "RedOn TV (Dream)",
-                    p_panel_password: dreamRes ? dreamRes.panel_password : "dream",
-                    p_best_url: dns,
-                    p_best2_url: dreamRes ? dreamRes.best2_url : "",
-                    p_max_devices: dreamRes ? dreamRes.max_devices : 0,
-                    p_expires_at: null,
-                    p_is_suspended: false,
-                    p_suspend_reason: cleanAnn
-                });
-            }
+            await saveActivationsToBackend(currentActivations, dns);
             closeActivationModal();
             showToast("✔ Dispositivo ativado com sucesso!");
             renderActivations();
@@ -1966,8 +2126,13 @@
     async function deleteActivation(index) {
         if (!confirm("Tens a certeza que queres remover a ativação deste dispositivo?")) return;
         currentActivations.splice(index, 1);
+        try {
+            await saveActivationsToBackend(currentActivations);
+            showToast("✔ Ativação removida com sucesso!");
+        } catch (err) {
+            showToast("Ativação removida localmente.");
+        }
         renderActivations();
-        showToast("Ativação removida.");
     }
 
     document.getElementById("configForm").addEventListener("submit", async (e) => {
