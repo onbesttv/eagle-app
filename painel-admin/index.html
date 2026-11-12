@@ -551,7 +551,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Servidor / DNS Xtream Codes</label>
-                            <input type="url" id="quickActDns" placeholder="https://thebestplay.site" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
+                            <input type="url" id="quickActDns" value="https://topnextplay.online:443" placeholder="https://topnextplay.online:443" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Username</label>
@@ -785,7 +785,7 @@
             </div>
             <div class="form-group">
                 <label>Servidor / DNS Xtream Codes</label>
-                <input type="url" id="actDnsInput" placeholder="https://thebestplay.site" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
+                <input type="url" id="actDnsInput" value="https://topnextplay.online:443" placeholder="https://topnextplay.online:443" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
             </div>
             <div class="form-grid">
                 <div class="form-group">
@@ -908,11 +908,44 @@
         godinho_tv: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Godinho TV)" },
         tv_joker: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (TV do Joker)" },
         joker: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (TV do Joker)" },
-        tv_fabio: { user: "p6255571", pass: "EqwvpMqb6e", label: "Conta Fpinto (tv_fabio)" }
+        tv_fabio: { user: "p6255571", pass: "EqwvpMqb6e", label: "Conta Fpinto (tv_fabio)" },
+        dream: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (RedOn / Dream)" }
     };
 
     function hasPerUserVpnControl() {
-        return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker";
+        return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker" || currentResellerId === "dream";
+    }
+
+    function syncLockedDns(explicitDns = null) {
+        let dns = (explicitDns !== null) ? explicitDns : "";
+        if (!dns) {
+            if (currentResellerId === "dream") {
+                dns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
+                    || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") 
+                    || "https://topnextplay.online:443";
+            } else if (isMasterRole) {
+                const dreamRes = (typeof allResellers !== "undefined" && Array.isArray(allResellers)) ? allResellers.find(r => r.reseller_id === "dream") : null;
+                dns = (dreamRes ? (dreamRes.best_url || "").trim() : "") 
+                    || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
+                    || "https://topnextplay.online:443";
+            } else {
+                dns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
+                    || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") 
+                    || "https://topnextplay.online:443";
+            }
+        }
+        if (!dns) dns = "https://topnextplay.online:443";
+
+        const quickEl = document.getElementById("quickActDns");
+        if (quickEl) {
+            quickEl.value = dns;
+            quickEl.placeholder = dns;
+        }
+        const actEl = document.getElementById("actDnsInput");
+        if (actEl) {
+            actEl.value = dns;
+            actEl.placeholder = dns;
+        }
     }
 
     function isUserVpnEnabled(username) {
@@ -935,7 +968,9 @@
                     ? "👤 Controlo de Acesso à VPN por Utilizador (Fpinto TV)"
                     : (currentResellerId === "tv_joker" || currentResellerId === "joker"
                         ? "👤 Controlo de Acesso à VPN por Utilizador (TV do Joker)"
-                        : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)"));
+                        : (currentResellerId === "dream"
+                            ? "👤 Controlo de Acesso à VPN por Utilizador (RedOn)"
+                            : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)")));
         }
 
         const killBtn = document.getElementById("btnKillAllVpn");
@@ -1361,6 +1396,7 @@
 
             document.getElementById("cfgBestUrl").value = data.best_url || "";
             document.getElementById("cfgBest2Url").value = data.best2_url || "";
+            syncLockedDns(data.best_url);
             const rawAnn = String(data.announcement || "");
             const vpnSplit = rawAnn.split("||VPN:");
             document.getElementById("cfgAnnouncement").value = (vpnSplit[0] || "").trim();
@@ -1489,9 +1525,9 @@
             }
 
             lastDashboardData = data;
+            renderActivations();
             updateStats(data);
             renderDevices();
-            renderActivations();
             document.getElementById("lastSyncLabel").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-PT");
         } catch (err) {
             if (throwOnError) throw err;
@@ -1608,14 +1644,23 @@
     function updateStats(data) {
         if (!data) data = lastDashboardData || {};
         const now = Date.now();
-        const total = allDevices.length;
-        const online = allDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000).length;
-        const today = allDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 24 * 60 * 60 * 1000).length;
-        const bestCount = allDevices.filter(d => (d.active_service || "best").toLowerCase() === "best").length;
-        const best2Count = allDevices.filter(d => (d.active_service || "").toLowerCase() === "best2").length;
-        const blockedCount = allDevices.filter(d => d.is_blocked).length;
-        const xciptvCount = allDevices.filter(d => getDeviceAppType(d) === "xciptv").length;
-        const mytvonlineCount = allDevices.filter(d => getDeviceAppType(d) === "mytvonline").length;
+        const baseDevices = allDevices.filter(d => {
+            if (!d.username || !d.username.trim()) return false;
+            const devReseller = (d.reseller_id || "master").toLowerCase();
+            if (devReseller === "dream" || currentResellerId === "dream") {
+                const cleanDevId = (d.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+                return Array.isArray(currentActivations) && currentActivations.some(a => (a.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase() === cleanDevId);
+            }
+            return true;
+        });
+        const total = baseDevices.length;
+        const online = baseDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000).length;
+        const today = baseDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 24 * 60 * 60 * 1000).length;
+        const bestCount = baseDevices.filter(d => (d.active_service || "best").toLowerCase() === "best").length;
+        const best2Count = baseDevices.filter(d => (d.active_service || "").toLowerCase() === "best2").length;
+        const blockedCount = baseDevices.filter(d => d.is_blocked).length;
+        const xciptvCount = baseDevices.filter(d => getDeviceAppType(d) === "xciptv").length;
+        const mytvonlineCount = baseDevices.filter(d => getDeviceAppType(d) === "mytvonline").length;
 
         document.getElementById("statTotal").textContent = data.max_devices > 0 ? `${total} / ${data.max_devices}` : total;
         document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
@@ -1703,6 +1748,15 @@
             if (currentFilter === "best2" && srv !== "best2") return false;
             if (currentFilter === "blocked" && !d.is_blocked) return false;
 
+            // Só mostrar utilizadores com sessão iniciada (username).
+            // No caso da app RedOn / Dream (ativação por MAC/Device ID), só mostrar se o Device ID constar nos ativados do painel
+            if (!d.username || !d.username.trim()) return false;
+            if (devReseller === "dream" || currentResellerId === "dream") {
+                const cleanDevId = (d.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+                const isActivatedInPanel = Array.isArray(currentActivations) && currentActivations.some(a => (a.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase() === cleanDevId);
+                if (!isActivatedInPanel) return false;
+            }
+
             if (q) {
                 const isJokerApp = devReseller === "tv_joker" || devReseller === "joker";
                 const appNameText = isJokerApp ? "tv do joker tv_joker joker" : (appType === "mytvonline" ? "eagle mytvonline mytv" : (appType === "xciptv" ? "eagle xciptv xc" : appType));
@@ -1742,11 +1796,13 @@
                     ? `<span class="badge badge-best2">Templarios</span>`
                     : `<span class="badge badge-best">StreamPlay</span>`);
 
-            const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
+            const devIdText = d.device_id ? escapeHtml(d.device_id) : "";
+            const devIdHtml = devIdText ? `<div style="font-size:11px; color:#38bdf8; font-family:monospace; margin-top:3px; font-weight:600; letter-spacing:0.5px;">${devIdText}</div>` : "";
+            const userLabel = `<div>${d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`}</div>${devIdHtml}`;
             const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
                 devResLower === currentResellerId ||
                 ((currentResellerId === "tv_joker" || currentResellerId === "joker") && (devResLower === "tv_joker" || devResLower === "joker")) ||
-                (isMasterRole && (devResLower === "master" || devResLower === "eagle_tv"))
+                (isMasterRole && (devResLower === "master" || devResLower === "eagle_tv" || devResLower === "dream"))
             );
             const userVpnOn = isTargetVpnDev && isUserVpnEnabled(d.username);
             const vpnToggleBtn = !isTargetVpnDev
@@ -1948,7 +2004,7 @@
         if (currentResellerId === "dream") {
             const currentAnn = document.getElementById("cfgAnnouncement").value.trim();
             const newAnn = currentAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
-            const dns = document.getElementById("cfgBestUrl").value.trim() || fallbackDns || "https://thebestplay.site";
+            const dns = document.getElementById("cfgBestUrl").value.trim() || fallbackDns || "https://topnextplay.online:443";
             await rpcCall("panel_save_own_config", {
                 p_reseller_id: "dream",
                 p_password: adminPassword,
@@ -1965,7 +2021,7 @@
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
             const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "") + actString;
-            const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://thebestplay.site") : "https://thebestplay.site");
+            const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://topnextplay.online:443") : "https://topnextplay.online:443");
             await rpcCall("master_save_reseller", {
                 p_master_password: adminPassword,
                 p_reseller_id: "dream",
@@ -1991,17 +2047,22 @@
         const ann = targetReseller ? (targetReseller.announcement || "") : (lastDashboardData ? lastDashboardData.announcement : "");
         currentActivations = parseActivationsFromAnnouncement(ann);
 
-        const quickDnsEl = document.getElementById("quickActDns");
-        if (quickDnsEl && !quickDnsEl.value) {
-            quickDnsEl.value = document.getElementById("cfgBestUrl").value || "https://thebestplay.site";
-        }
+        syncLockedDns();
 
         if (currentActivations.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não existem dispositivos ativados por Device ID / Key. Utiliza o formulário acima para ativar!</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = currentActivations.map((a, idx) => `
+        tbody.innerHTML = currentActivations.map((a, idx) => {
+            const u = (a.username || "").trim().toLowerCase();
+            const userVpnOn = u && isUserVpnEnabled(u);
+            const vpnBtn = (u && hasPerUserVpnControl())
+                ? (userVpnOn
+                    ? `<button class="btn btn-outline btn-sm" style="margin-right:6px; border-color: var(--success); color: #34d399; background: rgba(16, 185, 129, 0.14);" onclick="toggleUserVpn('${escapeHtml(a.username)}')" title="Clica para desativar a VPN neste utilizador">🛡️ VPN: ON</button>`
+                    : `<button class="btn btn-outline btn-sm" style="margin-right:6px; color: var(--text-muted);" onclick="toggleUserVpn('${escapeHtml(a.username)}')" title="Clica para ativar a VPN neste utilizador">🔒 VPN: OFF</button>`)
+                : "";
+            return `
             <tr>
                 <td><span class="badge badge-online">● Ativo</span></td>
                 <td><code class="id-chip" style="font-weight:bold; color:#38bdf8;">${escapeHtml(a.device_id)}</code></td>
@@ -2010,11 +2071,13 @@
                 <td><strong>${escapeHtml(a.username)}</strong></td>
                 <td><code>••••••••</code></td>
                 <td style="text-align:right; white-space:nowrap;">
+                    ${vpnBtn}
                     <button class="btn btn-outline btn-sm" onclick='openActivationModal(${idx})'>✏️ Editar</button>
                     <button class="btn btn-danger btn-sm" style="margin-left:6px;" onclick="deleteActivation(${idx})">🗑️</button>
                 </td>
             </tr>
-        `).join("");
+            `;
+        }).join("");
     }
 
     function openActivationModal(editIndex = null) {
@@ -2027,17 +2090,18 @@
         const userInput = document.getElementById("actUserInput");
         const passInput = document.getElementById("actPassInput");
 
+        const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || "https://topnextplay.online:443";
         if (editIndex !== null && currentActivations[editIndex]) {
             const item = currentActivations[editIndex];
             devInput.value = item.device_id;
             keyInput.value = item.device_key || "";
-            dnsInput.value = item.dns || document.getElementById("cfgBestUrl").value;
+            dnsInput.value = item.dns || curDns;
             userInput.value = item.username;
             passInput.value = item.password;
         } else {
             devInput.value = "";
             keyInput.value = "";
-            dnsInput.value = document.getElementById("cfgBestUrl").value || "https://thebestplay.site";
+            dnsInput.value = curDns;
             userInput.value = "";
             passInput.value = "";
         }
@@ -2143,10 +2207,12 @@
             closeActivationModal();
             showToast("✔ Dispositivo ativado com sucesso!");
             renderActivations();
+            renderDevices();
         } catch (err) {
             closeActivationModal();
             showToast("✔ Ativação registada localmente!", false);
             renderActivations();
+            renderDevices();
         } finally {
             btn.disabled = false;
             btn.textContent = "Guardar & Ativar Dispositivo";
@@ -2163,6 +2229,7 @@
             showToast("Ativação removida localmente.");
         }
         renderActivations();
+        renderDevices();
     }
 
     document.getElementById("configForm").addEventListener("submit", async (e) => {
@@ -2204,6 +2271,7 @@
             }
             showToast("✅ Configurações e DNS atualizados com sucesso!");
             await loadDashboard();
+            syncLockedDns(bestUrl);
         } catch (err) {
             showToast("Erro ao guardar configurações.", true);
         } finally {
@@ -2211,6 +2279,13 @@
             btn.textContent = "💾 Guardar Alterações";
         }
     });
+
+    const cfgBestUrlInput = document.getElementById("cfgBestUrl");
+    if (cfgBestUrlInput) {
+        cfgBestUrlInput.addEventListener("input", function() {
+            syncLockedDns(this.value.trim());
+        });
+    }
 
     async function toggleBlock(deviceId, shouldBlock) {
         let reason = "Acesso suspenso pelo administrador.";
