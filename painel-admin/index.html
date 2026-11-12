@@ -943,11 +943,13 @@
     const VPN_ACCOUNTS = {
         master: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Eagle Master & Godinho TV)" },
         godinho_tv: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (Godinho TV)" },
+        tv_joker: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (TV do Joker)" },
+        joker: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (TV do Joker)" },
         tv_fabio: { user: "p6255571", pass: "EqwvpMqb6e", label: "Conta Fpinto (tv_fabio)" }
     };
 
     function hasPerUserVpnControl() {
-        return isMasterRole || currentResellerId === "godinho_tv";
+        return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker";
     }
 
     function isUserVpnEnabled(username) {
@@ -968,7 +970,9 @@
                 ? "👤 Controlo de Acesso à VPN por Utilizador (App Eagle)"
                 : (currentResellerId === "tv_fabio"
                     ? "👤 Controlo de Acesso à VPN por Utilizador (Fpinto TV)"
-                    : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)");
+                    : (currentResellerId === "tv_joker" || currentResellerId === "joker"
+                        ? "👤 Controlo de Acesso à VPN por Utilizador (TV do Joker)"
+                        : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)"));
         }
 
         const killBtn = document.getElementById("btnKillAllVpn");
@@ -1469,7 +1473,9 @@
                     ? "Conta PIA VPN associada à aplicação Fpinto TV."
                     : (currentResellerId === "godinho_tv")
                         ? "Conta PIA VPN associada à aplicação Godinho TV (Acesso Próprio)."
-                        : "Conta PIA VPN própria / principal associada à aplicação Eagle e Godinho TV.";
+                        : (currentResellerId === "tv_joker" || currentResellerId === "joker")
+                            ? "Conta PIA VPN associada à aplicação TV do Joker (Acesso Próprio)."
+                            : "Conta PIA VPN própria / principal associada à aplicação Eagle e Godinho TV.";
             }
             renderVpnCountriesGrid();
             document.getElementById("cfgMaintenance").checked = !!data.maintenance_mode;
@@ -1562,6 +1568,9 @@
         if (devRes === "master" || devRes === "eagle_tv") {
             return `<span class="badge" style="background: rgba(59, 130, 246, 0.16); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.35);">👑 Master</span>`;
         }
+        if (devRes === "tv_joker" || devRes === "joker") {
+            return `<span class="badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-weight:600;">🃏 TV do Joker</span>`;
+        }
         const found = allResellers.find(r => (r.reseller_id || '').toLowerCase() === devRes);
         const label = found ? (found.brand_name || found.reseller_id) : (d.reseller_id || devRes);
         return `<span class="badge badge-reseller">🤝 ${escapeHtml(label)}</span>`;
@@ -1569,6 +1578,9 @@
 
     function renderAppBadge(d) {
         const r = (d.reseller_id || "").toLowerCase();
+        if (r === "tv_joker" || r === "joker") {
+            return `<span class="badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-weight:600;">🃏 TV do Joker</span>`;
+        }
         if (r === "dream" || r === "redon") {
             return `<span class="badge" style="background: rgba(225,29,72,0.18); color: #f43f5e; border: 1px solid rgba(225,29,72,0.35); font-weight:600;">🦅 RedOn (MyTv)</span>`;
         }
@@ -1589,14 +1601,19 @@
         `;
         const otherResellers = allResellers.filter(r => r.reseller_id !== "master" && r.reseller_id !== "eagle_tv");
         if (otherResellers.length > 0) {
-            html += otherResellers.map(r =>
-                `<option value="${escapeHtml(r.reseller_id)}">🤝 Revenda: ${escapeHtml(r.brand_name || r.reseller_id)}</option>`
-            ).join("");
+            html += otherResellers.map(r => {
+                const rid = (r.reseller_id || "").toLowerCase();
+                const isJoker = rid === "joker" || rid === "tv_joker";
+                const icon = isJoker ? "🃏" : "🤝";
+                return `<option value="${escapeHtml(r.reseller_id)}">${icon} Revenda: ${escapeHtml(r.brand_name || r.reseller_id)}</option>`;
+            }).join("");
         }
         const known = new Set(["master", "eagle_tv", ...allResellers.map(r => (r.reseller_id || "").toLowerCase())]);
         const extras = [...new Set(allDevices.map(d => (d.reseller_id || "master").toLowerCase()))].filter(id => !known.has(id));
         for (const ext of extras) {
-            html += `<option value="${escapeHtml(ext)}">📱 Revenda: ${escapeHtml(ext)}</option>`;
+            const isJoker = ext === "joker" || ext === "tv_joker";
+            const label = isJoker ? "🃏 TV do Joker" : `📱 Revenda: ${escapeHtml(ext)}`;
+            html += `<option value="${escapeHtml(ext)}">${label}</option>`;
         }
         sel.innerHTML = html;
         sel.value = prev;
@@ -1686,6 +1703,9 @@
             if (resellerFilter !== "all") {
                 const normDevReseller = (devReseller === "eagle_tv") ? "master" : devReseller;
                 if (resellerFilter === "master" && normDevReseller !== "master") return false;
+                else if (resellerFilter === "tv_joker" || resellerFilter === "joker") {
+                    if (devReseller !== "tv_joker" && devReseller !== "joker") return false;
+                }
                 else if (resellerFilter !== "master" && devReseller !== resellerFilter) return false;
             }
 
@@ -1697,7 +1717,8 @@
             if (currentFilter === "blocked" && !d.is_blocked) return false;
 
             if (q) {
-                const appNameText = appType === "mytvonline" ? "eagle mytvonline mytv" : (appType === "xciptv" ? "eagle xciptv xc" : appType);
+                const isJokerApp = devReseller === "tv_joker" || devReseller === "joker";
+                const appNameText = isJokerApp ? "tv do joker tv_joker joker" : (appType === "mytvonline" ? "eagle mytvonline mytv" : (appType === "xciptv" ? "eagle xciptv xc" : appType));
                 const hay = `${d.username || ""} ${d.device_name || ""} ${d.device_id || ""} ${devReseller} ${appNameText}`.toLowerCase();
                 if (!hay.includes(q)) return false;
             }
@@ -1727,6 +1748,7 @@
             const devResLower = devReseller.toLowerCase();
             const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
                 devResLower === currentResellerId ||
+                ((currentResellerId === "tv_joker" || currentResellerId === "joker") && (devResLower === "tv_joker" || devResLower === "joker")) ||
                 (isMasterRole && (devResLower === "master" || devResLower === "eagle_tv"))
             );
             const userVpnOn = isTargetVpnDev && isUserVpnEnabled(d.username);
@@ -1792,7 +1814,7 @@
                     <td><code class="id-chip">${escapeHtml(r.reseller_id)}</code></td>
                     <td>
                         <strong>${escapeHtml(r.brand_name)}</strong>
-                        <div>${r.reseller_id === 'pereira_tv' ? '<span class=\"badge badge-offline\" style=\"font-size:10px; margin-top:4px;\">Sem VPN</span>' : r.reseller_id === 'tv_fabio' ? '<span class=\"badge badge-best2\" style=\"font-size:10px; margin-top:4px;\">🛡️ VPN Fpinto (p6255571)</span>' : '<span class=\"badge badge-online\" style=\"font-size:10px; margin-top:4px;\">🛡️ VPN Própria (p7426501)</span>'}</div>
+                        <div>${r.reseller_id === 'pereira_tv' ? '<span class=\"badge badge-offline\" style=\"font-size:10px; margin-top:4px;\">Sem VPN</span>' : r.reseller_id === 'tv_fabio' ? '<span class=\"badge badge-best2\" style=\"font-size:10px; margin-top:4px;\">🛡️ VPN Fpinto (p6255571)</span>' : (r.reseller_id === 'tv_joker' || r.reseller_id === 'joker') ? '<span class=\"badge\" style=\"background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-size:10px; margin-top:4px;\">🃏 🛡️ VPN Própria (p7426501)</span>' : '<span class=\"badge badge-online\" style=\"font-size:10px; margin-top:4px;\">🛡️ VPN Própria (p7426501)</span>'}</div>
                     </td>
                     <td><code class="id-chip">${escapeHtml(r.panel_password)}</code></td>
                     <td>
