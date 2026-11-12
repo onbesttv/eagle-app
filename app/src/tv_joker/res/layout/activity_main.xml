@@ -52,28 +52,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.766" />
+        app:layout_constraintGuide_percent="0.778" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnVpnEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.816" />
+        app:layout_constraintGuide_percent="0.828" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnUpdateStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.838" />
+        app:layout_constraintGuide_percent="0.844" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnUpdateEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.888" />
+        app:layout_constraintGuide_percent="0.894" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnSettingsStart"
