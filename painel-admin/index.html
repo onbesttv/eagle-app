@@ -457,8 +457,7 @@
             </div>
         </div>
         <div class="topbar-actions">
-            <a id="btnDownloadAppTop" href="https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk" target="_blank" class="btn" style="background:#e11d48; border-color:#e11d48; color:#fff; font-weight:bold; display:none; text-decoration:none; align-items:center; gap:6px;">📲 Descarregar RedOn.apk</a>
-            <button id="btnQuickAddDeviceTop" class="btn btn-primary" onclick="openActivationModal()" style="display:none; font-weight:bold; background:#10b981; border-color:#10b981;">➕ Adicionar Dispositivo</button>
+            <a id="btnDownloadAppTop" href="http://aftv.news/6718437" target="_blank" class="btn" style="background:#e11d48; border-color:#e11d48; color:#fff; font-weight:bold; display:none; text-decoration:none; align-items:center; gap:6px;">📲 Descarregar RedOn.apk</a>
             <span id="roleBadge" class="badge badge-best" style="padding: 7px 12px; font-size: 12px;">MASTER</span>
             <button class="btn btn-outline" onclick="loadDashboard()">↻ Atualizar Dados</button>
             <button class="btn btn-outline" onclick="logout()">Sair</button>
@@ -469,7 +468,6 @@
     <div class="nav-tabs" id="masterTabs">
         <button class="tab-btn active" id="tabBtnMain" onclick="switchTab('main')">📺 DNS & Dispositivos</button>
         <button class="tab-btn" id="tabBtnVpn" onclick="switchTab('vpn')">🛡️ Gerir VPN</button>
-        <button class="tab-btn" id="tabBtnActivations" style="display: none;" onclick="switchTab('activations')">🔑 Ativar Dispositivos (RedOn / Dream)</button>
         <button class="tab-btn" id="tabBtnResellers" style="display: none;" onclick="switchTab('resellers')">🤝 Gerir Revendedores (Apps White-Label)</button>
     </div>
 
@@ -499,6 +497,115 @@
 
     <!-- ABA 1: DNS & DISPOSITIVOS -->
     <div id="tabContentMain" class="grid-2col">
+        <!-- SECÇÃO EXCLUSIVA REDON TV (DREAM): DOWNLOAD E ATIVAÇÃO DE DISPOSITIVOS -->
+        <div id="dreamSection" style="grid-column: 1 / -1; display: none;">
+            <!-- CARTÃO 1: ACESSO & DOWNLOAD DA APP REDON TV -->
+            <div class="card" style="margin-bottom: 24px; border-left: 4px solid #e11d48; background: linear-gradient(135deg, rgba(225,29,72,0.08), rgba(15,23,42,0.6));">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                    <div style="max-width:720px;">
+                        <div style="font-size:18px; font-weight:bold; color:#fff; display:flex; align-items:center; gap:8px;">
+                            <span style="background:#e11d48; color:#fff; padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
+                            Aplicação RedOn TV (v3.13) — Acesso dos Teus Clientes
+                        </div>
+                        <div style="font-size:13px; color:var(--text-muted); margin-top:6px; line-height: 1.5;">
+                            Disponibiliza este link ou código Downloader aos teus clientes para instalarem na Smart TV Android, TV Box ou Fire Stick.
+                        </div>
+                        <div style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                            <div style="background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:12px; color:var(--text-muted);">Link:</span>
+                                <code style="font-size:13px; color:#38bdf8; font-weight:bold;">http://aftv.news/6718437</code>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('http://aftv.news/6718437', 'Link copiado com sucesso!')">📋 Copiar Link</button>
+                            </div>
+                            <div style="background: rgba(225,29,72,0.12); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(225,29,72,0.3); display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:12px; color:#fca5a5; font-weight:600;">⚡ Código Downloader:</span>
+                                <code style="font-size:14px; color:#fff; font-weight:bold; letter-spacing:1px;">6718437</code>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('6718437', 'Código Downloader copiado!')">📋 Copiar Código</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <a href="http://aftv.news/6718437" target="_blank" class="btn btn-primary" style="background:#e11d48; border-color:#e11d48; font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
+                            📥 Baixar RedOn.apk
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARTÃO 2: ADICIONAR NOVO DISPOSITIVO (FORMULÁRIO RÁPIDO) -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="margin-bottom: 16px;">
+                    <div>
+                        <div class="card-title">➕ Adicionar / Ativar Dispositivo do Cliente</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            Insere o <strong>Device ID / MAC</strong> da TV Box do cliente e a linha atribuída (DNS bloqueado automaticamente). A app ativa-se sozinha em segundos!
+                        </div>
+                    </div>
+                </div>
+                <form id="quickActivationForm" onsubmit="handleQuickActivation(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Device ID ou MAC da TV *</label>
+                            <input type="text" id="quickActDeviceId" placeholder="ex: 00:1A:79:B4:2C:18" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Device Key (PIN - Opcional)</label>
+                            <input type="text" id="quickActDeviceKey" placeholder="ex: 849 201">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Servidor / DNS Xtream Codes (Bloqueado) 🔒</label>
+                            <input type="url" id="quickActDns" placeholder="https://thebestplay.site" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Username / Utilizador da Linha *</label>
+                            <input type="text" id="quickActUser" placeholder="cliente123" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Password da Linha *</label>
+                            <input type="text" id="quickActPass" placeholder="senha123" required>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
+                        <button type="submit" class="btn btn-primary" id="btnQuickSaveAct" style="padding: 10px 24px; font-weight:bold; background:#10b981; border-color:#10b981;">
+                            🚀 Ativar Aparelho Agora
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- CARTÃO 3: TABELA DE DISPOSITIVOS ATIVADOS -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">📋 Dispositivos Ativados no RedOn TV</div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            Lista de aparelhos ativados por Device ID / MAC com as respetivas linhas associadas.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Estado</th>
+                                <th>Device ID / MAC</th>
+                                <th>Device Key (PIN)</th>
+                                <th>Servidor / DNS Atribuído</th>
+                                <th>Utilizador (Linha)</th>
+                                <th>Password</th>
+                                <th style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activationsTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">A carregar ativações...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS & Avisos</div>
@@ -538,7 +645,6 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
-                <button class="btn btn-sm btn-primary" onclick="openActivationModal()" style="font-weight:bold; background:#10b981; border-color:#10b981;">➕ Ativar / Adicionar Dispositivo</button>
             </div>
 
             <div class="filters-bar">
@@ -693,109 +799,6 @@
         </div>
     </div>
 
-    <!-- ABA 4: ATIVAÇÕES POR DEVICE KEY / MAC (RedOn / Dream) -->
-    <div id="tabContentActivations" style="display: none;">
-        <!-- CARTÃO 1: ACESSO À APP DO REVENDEDOR (RedOn TV) -->
-        <div class="card" style="margin-bottom: 24px; border-left: 4px solid #e11d48; background: linear-gradient(135deg, rgba(225,29,72,0.08), rgba(15,23,42,0.6));">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-                <div style="max-width:720px;">
-                    <div style="font-size:18px; font-weight:bold; color:#fff; display:flex; align-items:center; gap:8px;">
-                        <span style="background:#e11d48; color:#fff; padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
-                        Aplicação RedOn TV (v3.13) — Acesso dos Teus Clientes
-                    </div>
-                    <div style="font-size:13px; color:var(--text-muted); margin-top:6px; line-height: 1.5;">
-                        Disponibiliza este ficheiro APK aos teus clientes para instalarem na Smart TV Android, TV Box ou telemóvel. Ao abrir a app, o cliente apenas te fornece o <strong>Device ID / MAC</strong> que aparece no ecrã.
-                    </div>
-                    <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                        <code class="id-chip" style="font-size:12px; color:#38bdf8; padding:6px 10px;" id="redonApkUrlText">https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk</code>
-                        <button type="button" class="btn btn-outline btn-sm" onclick="copyRedonLink()">📋 Copiar Link de Envio</button>
-                    </div>
-                </div>
-                <div>
-                    <a href="https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk" target="_blank" class="btn btn-primary" style="background:#e11d48; border-color:#e11d48; font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-                        📥 Descarregar RedOn.apk
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- CARTÃO 2: ADICIONAR NOVO DISPOSITIVO (FORMULÁRIO RÁPIDO) -->
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="card-header" style="margin-bottom: 16px;">
-                <div>
-                    <div class="card-title">➕ Adicionar / Ativar Dispositivo do Cliente</div>
-                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-                        Insere o <strong>Device ID / MAC</strong> da TV Box do cliente e a linha atribuída (DNS, User e Pass). O cliente fica com a box a funcionar de imediato!
-                    </div>
-                </div>
-            </div>
-            <form id="quickActivationForm" onsubmit="handleQuickActivation(event)">
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Device ID ou MAC da TV *</label>
-                        <input type="text" id="quickActDeviceId" placeholder="ex: 00:1A:79:B4:2C:18" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Device Key (PIN - Opcional)</label>
-                        <input type="text" id="quickActDeviceKey" placeholder="ex: 849 201">
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Servidor / DNS Xtream Codes *</label>
-                        <input type="url" id="quickActDns" placeholder="https://thebestplay.site" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Username / Utilizador da Linha *</label>
-                        <input type="text" id="quickActUser" placeholder="cliente123" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Password da Linha *</label>
-                        <input type="text" id="quickActPass" placeholder="senha123" required>
-                    </div>
-                </div>
-                <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
-                    <button type="submit" class="btn btn-primary" id="btnQuickSaveAct" style="padding: 10px 24px; font-weight:bold; background:#10b981; border-color:#10b981;">
-                        🚀 Ativar Aparelho Agora
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- CARTÃO 3: TABELA DE DISPOSITIVOS ATIVADOS -->
-        <div class="card">
-            <div class="card-header">
-                <div>
-                    <div class="card-title">📋 Dispositivos Ativados no RedOn TV</div>
-                    <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-                        Lista de aparelhos ativados por Device ID / MAC com as respetivas linhas associadas.
-                    </div>
-                </div>
-                <button class="btn btn-primary" onclick="openActivationModal()">➕ Ativar Novo Dispositivo</button>
-            </div>
-
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Estado</th>
-                            <th>Device ID / MAC</th>
-                            <th>Device Key (PIN)</th>
-                            <th>Servidor / DNS Atribuído</th>
-                            <th>Utilizador (Linha)</th>
-                            <th>Password</th>
-                            <th style="text-align: right;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activationsTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">A carregar ativações...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- MODAL ATIVAR DISPOSITIVO (RedOn / Device Key) -->
 <div class="modal-backdrop" id="activationModal">
     <div class="modal-box">
@@ -816,7 +819,9 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Servidor / DNS (URL Xtream Codes)</label>
+                <label>Servidor / DNS Xtream Codes (Bloqueado) 🔒</label>
+                <input type="url" id="actDnsInput" placeholder="https://thebestplay.site" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
+            </div>
                 <input type="url" id="actDnsInput" placeholder="https://thebestplay.site" required>
             </div>
             <div class="form-grid">
@@ -1273,11 +1278,9 @@
     function switchTab(tab) {
         document.getElementById("tabBtnMain").classList.toggle("active", tab === "main");
         document.getElementById("tabBtnVpn").classList.toggle("active", tab === "vpn");
-        document.getElementById("tabBtnActivations").classList.toggle("active", tab === "activations");
         document.getElementById("tabBtnResellers").classList.toggle("active", tab === "resellers");
         document.getElementById("tabContentMain").style.display = tab === "main" ? "grid" : "none";
         document.getElementById("tabContentVpn").style.display = tab === "vpn" ? "block" : "none";
-        document.getElementById("tabContentActivations").style.display = tab === "activations" ? "block" : "none";
         document.getElementById("tabContentResellers").style.display = tab === "resellers" ? "block" : "none";
     }
 
@@ -1369,26 +1372,16 @@
             document.getElementById("filterBtnXciptv").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("filterBtnMytvonline").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
-            const showActivationsTab = isMasterRole || currentResellerId === "dream";
-            const tabActBtn = document.getElementById("tabBtnActivations");
-            tabActBtn.style.display = showActivationsTab ? "inline-block" : "none";
-            if (currentResellerId === "dream") {
-                tabActBtn.textContent = "🔑 Dispositivos & Ativações (RedOn)";
-                if (!sessionStorage.getItem("dream_tab_auto_switched")) {
-                    switchTab("activations");
-                    sessionStorage.setItem("dream_tab_auto_switched", "1");
-                }
-            } else {
-                tabActBtn.textContent = "🔑 Ativar Dispositivos (RedOn / Dream)";
+            const isDream = (currentResellerId === "dream");
+            const dreamSec = document.getElementById("dreamSection");
+            if (dreamSec) {
+                dreamSec.style.display = (isDream || isMasterRole) ? "block" : "none";
             }
 
             const btnDownloadTop = document.getElementById("btnDownloadAppTop");
             if (btnDownloadTop) {
-                btnDownloadTop.style.display = (currentResellerId === "dream" || isMasterRole) ? "inline-flex" : "none";
-            }
-            const btnQuickTop = document.getElementById("btnQuickAddDeviceTop");
-            if (btnQuickTop) {
-                btnQuickTop.style.display = showActivationsTab ? "inline-flex" : "none";
+                btnDownloadTop.href = "http://aftv.news/6718437";
+                btnDownloadTop.style.display = (isDream || isMasterRole) ? "inline-flex" : "none";
             }
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
@@ -1526,11 +1519,15 @@
 
     function getDeviceAppType(d) {
         if (!d) return "xciptv";
+        const r = (d.reseller_id || "master").toLowerCase();
+        if (r === "dream" || r === "redon" || r === "eagle_tv" || r === "eagle_mytvonline" || r === "mytvonline") {
+            return "mytvonline";
+        }
         const v = String(d.app_version || "").trim();
         // Detetar com precisão pelo número de versão da app:
-        // Eagle MyTvOnline usa ramo v1.x e v2.x (ex: 1.0, 2.4, 2.5, 2.6)
-        // Eagle XCIPTV usa ramo v4.x, v5.x, v6.x e v7.x (ex: 6.8, 6.9, 7.0)
-        if (v.startsWith("1.") || v.startsWith("2.")) {
+        // Eagle MyTvOnline / RedOn usa ramo v1.x, v2.x e v3.x (ex: 1.0, 2.4, 2.5, 3.12, 3.13)
+        // Eagle XCIPTV usa ramo v4.x, v5.x, v6.x e v7.x (ex: 6.8, 6.9, 7.0, 7.4)
+        if (v.startsWith("1.") || v.startsWith("2.") || v.startsWith("3.")) {
             return "mytvonline";
         }
         if (v.startsWith("4.") || v.startsWith("5.") || v.startsWith("6.") || v.startsWith("7.")) {
@@ -1539,10 +1536,6 @@
         const manual = getManualAppTags();
         if (d.device_id && manual[d.device_id]) {
             return manual[d.device_id];
-        }
-        const r = (d.reseller_id || "master").toLowerCase();
-        if (r === "eagle_tv" || r === "eagle_mytvonline" || r === "mytvonline") {
-            return "mytvonline";
         }
         if (r === "master" || r === "eagle_xciptv" || r === "xciptv") {
             return "xciptv";
@@ -1575,6 +1568,10 @@
     }
 
     function renderAppBadge(d) {
+        const r = (d.reseller_id || "").toLowerCase();
+        if (r === "dream" || r === "redon") {
+            return `<span class="badge" style="background: rgba(225,29,72,0.18); color: #f43f5e; border: 1px solid rgba(225,29,72,0.35); font-weight:600;">🦅 RedOn (MyTv)</span>`;
+        }
         const appType = getDeviceAppType(d);
         if (appType === "mytvonline") {
             return `<span class="badge badge-mytvonline" ${isMasterRole ? `onclick="toggleDeviceAppType('${escapeHtml(d.device_id)}')" title="Clica para alternar entre Eagle XCIPTV e Eagle MyTvOnline"` : ''}>🦅 Eagle MyTvOnline</span>`;
@@ -1915,13 +1912,16 @@
         return "||ACTIVATIONS:" + parts.join("|");
     }
 
-    function copyRedonLink() {
-        const url = "https://github.com/onbesttv/eagle-app/releases/download/v3.13/RedOn.apk";
-        navigator.clipboard.writeText(url).then(() => {
-            showToast("✔ Link copiado para a área de transferência!");
+    function copyText(str, msg) {
+        navigator.clipboard.writeText(str).then(() => {
+            showToast("✔ " + msg);
         }).catch(() => {
-            prompt("Copia o link:", url);
+            prompt("Copiar:", str);
         });
+    }
+
+    function copyRedonLink() {
+        copyText("http://aftv.news/6718437", "Link copiado!");
     }
 
     async function saveActivationsToBackend(newList, fallbackDns = "") {
@@ -1978,7 +1978,7 @@
         }
 
         if (currentActivations.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não existem dispositivos ativados por Device ID / Key. Clica em "➕ Ativar Novo Dispositivo"!</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não existem dispositivos ativados por Device ID / Key. Utiliza o formulário acima para ativar!</td></tr>`;
             return;
         }
 
