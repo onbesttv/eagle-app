@@ -511,8 +511,8 @@
                         <div style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
                             <div style="background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
                                 <span style="font-size:12px; color:var(--text-muted);">Link:</span>
-                                <code style="font-size:13px; color:#38bdf8; font-weight:bold;">http://aftv.news/6718437</code>
-                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('http://aftv.news/6718437', 'Link copiado com sucesso!')">📋 Copiar Link</button>
+                                <code style="font-size:13px; color:#38bdf8; font-weight:bold;">https://aftv.news/6718437</code>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('https://aftv.news/6718437', 'Link copiado com sucesso!')">📋 Copiar Link</button>
                             </div>
                             <div style="background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
                                 <span style="font-size:12px; color:var(--text-muted); font-weight:600;">⚡ Código Downloader:</span>
@@ -551,11 +551,11 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Username</label>
-                            <input type="text" id="quickActUser" placeholder="user" required>
+                            <input type="text" id="quickActUser" placeholder="Username" required>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Password</label>
-                            <input type="text" id="quickActPass" placeholder="pass" required>
+                            <input type="text" id="quickActPass" placeholder="Password" required>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
@@ -1053,7 +1053,9 @@
     }
 
     function buildEncodedAnnouncement() {
-        const cleanAnnouncement = document.getElementById("cfgAnnouncement").value.trim();
+        const cleanAnnouncement = document.getElementById("cfgAnnouncement").value
+            .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
+            .trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
         const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -1063,7 +1065,10 @@
             ? `||VPN_USERS:restricted|${Array.from(allowedVpnUsers).join(",")}`
             : "";
         const vpnKillPart = vpnKillTimestamp > 0 ? `||VPN_KILL:${vpnKillTimestamp}` : "";
-        return `${cleanAnnouncement} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+        const actPart = (typeof currentActivations !== "undefined" && Array.isArray(currentActivations) && currentActivations.length > 0)
+            ? buildActivationsString(currentActivations)
+            : "";
+        return `${cleanAnnouncement} ${actPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
 
     function injectVpnMetadataIntoRawAnnouncement(rawAnn, options = {}) {
@@ -1395,7 +1400,8 @@
             syncLockedDns(data.best_url);
             const rawAnn = String(data.announcement || "");
             const vpnSplit = rawAnn.split("||VPN:");
-            document.getElementById("cfgAnnouncement").value = (vpnSplit[0] || "").trim();
+            const cleanNotice = (vpnSplit[0] || "").replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim();
+            document.getElementById("cfgAnnouncement").value = cleanNotice;
 
             const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
             let vpnUser = defaultAcc.user;
