@@ -569,75 +569,6 @@
                     </div>
                 </form>
             </div>
-
-            <!-- CARTÃO 3: TABELA DE DISPOSITIVOS ATIVADOS -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <div>
-                        <div class="card-title">📋 Dispositivos Ativados no RedOn TV</div>
-                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-                            Lista de aparelhos ativados por Device ID / MAC com as respetivas linhas associadas.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Estado</th>
-                                <th>Device ID / MAC</th>
-                                <th>Device Key (PIN)</th>
-                                <th>Servidor / DNS Atribuído</th>
-                                <th>Utilizador (Linha)</th>
-                                <th>Password</th>
-                                <th style="text-align: right;">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activationsTableBody">
-                            <tr>
-                                <td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">A carregar ativações...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS & Avisos</div>
-                <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
-            </div>
-            <form id="configForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label id="best1UrlLabel">DNS Serviço 1 (StreamPlay / Principal)</label>
-                        <input type="url" id="cfgBestUrl" placeholder="https://thebestplay.site" required>
-                    </div>
-                    <div class="form-group" id="best2UrlGroup">
-                        <label>DNS Serviço 2 (Templarios / Secundário)</label>
-                        <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080">
-                    </div>
-                </div>
-                <div class="form-grid">
-                    <div class="form-group" id="announcementGroup">
-                        <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
-                        <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
-                    </div>
-                    <div class="form-group" id="newPasswordGroup">
-                        <label>Nova Password deste Painel (Opcional)</label>
-                        <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a tua senha">
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 6px;">
-                    <label class="switch-row" id="maintenanceSwitchLabel" style="cursor: pointer;">
-                        <input type="checkbox" id="cfgMaintenance">
-                        <span style="font-size: 13px; font-weight: 600;">Ativar Modo de Manutenção (suspende temporariamente a entrada na app)</span>
-                    </label>
-                    <button type="submit" class="btn" id="btnSaveConfig" style="margin-left: auto;">💾 Guardar Alterações</button>
-                </div>
-            </form>
         </div>
 
         <div class="card">
@@ -681,6 +612,42 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS & Avisos</div>
+                <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
+            </div>
+            <form id="configForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label id="best1UrlLabel">DNS Serviço 1 (StreamPlay / Principal)</label>
+                        <input type="url" id="cfgBestUrl" placeholder="https://thebestplay.site" required>
+                    </div>
+                    <div class="form-group" id="best2UrlGroup">
+                        <label>DNS Serviço 2 (Templarios / Secundário)</label>
+                        <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080">
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group" id="announcementGroup">
+                        <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
+                        <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
+                    </div>
+                    <div class="form-group" id="newPasswordGroup">
+                        <label>Nova Password deste Painel (Opcional)</label>
+                        <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a tua senha">
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-top: 6px;">
+                    <label class="switch-row" id="maintenanceSwitchLabel" style="cursor: pointer;">
+                        <input type="checkbox" id="cfgMaintenance">
+                        <span style="font-size: 13px; font-weight: 600;">Ativar Modo de Manutenção (suspende temporariamente a entrada na app)</span>
+                    </label>
+                    <button type="submit" class="btn" id="btnSaveConfig" style="margin-left: auto;">💾 Guardar Alterações</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1759,7 +1726,11 @@
                 ? `<span class="badge badge-best2">Templarios</span>`
                 : `<span class="badge badge-best">StreamPlay</span>`;
 
-            const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
+            const uText = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
+            const devIdText = d.device_id
+                ? `<div style="font-size:11px; margin-top:3px;"><span style="color:#38bdf8; font-family:monospace; background:rgba(56,189,248,0.1); padding:2px 6px; border-radius:4px; font-weight:600;">${escapeHtml(d.device_id)}</span></div>`
+                : "";
+            const userLabel = uText + devIdText;
             const devResLower = devReseller.toLowerCase();
             const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
                 devResLower === currentResellerId ||
@@ -2105,10 +2076,10 @@
             document.getElementById("quickActDeviceKey").value = "";
             document.getElementById("quickActUser").value = "";
             document.getElementById("quickActPass").value = "";
-            renderActivations();
+            await loadDashboard();
         } catch (err) {
             showToast("✔ Ativação registada localmente!", false);
-            renderActivations();
+            await loadDashboard();
         } finally {
             btn.disabled = false;
             btn.textContent = "🚀 Ativar Aparelho Agora";
@@ -2253,6 +2224,14 @@
     async function deleteDevice(deviceId) {
         if (!confirm("Remover este dispositivo da lista?")) return;
         try {
+            if (currentResellerId === "dream" || currentActivations.some(a => a.device_id.toLowerCase() === deviceId.toLowerCase())) {
+                const actIdx = currentActivations.findIndex(a => a.device_id.toLowerCase() === deviceId.toLowerCase());
+                if (actIdx >= 0) {
+                    currentActivations.splice(actIdx, 1);
+                    const dns = (lastDashboardData && lastDashboardData.best_url) || "https://thebestplay.site";
+                    await saveActivationsToBackend(currentActivations, dns);
+                }
+            }
             if (multiResellerEnabled) {
                 await rpcCall("panel_delete_device", {
                     p_reseller_id: currentResellerId,
