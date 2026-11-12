@@ -37,8 +37,8 @@ android {
         create("dream") {
             dimension = "reseller"
             applicationId = "com.redon.tv"
-            versionCode = 85
-            versionName = "3.15"
+            versionCode = 86
+            versionName = "3.16"
             resValue("string", "app_name", "RedOn")
             resValue("string", "reseller_id", "dream")
         }
