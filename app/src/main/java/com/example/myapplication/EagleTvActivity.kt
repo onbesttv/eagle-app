@@ -868,8 +868,12 @@ class EagleTvActivity : BaseActivity() {
                 allLiveStreamsCache.clear()
                 allMoviesCache.clear()
                 allSeriesCache.clear()
+                allVodCategories = emptyList()
+                allSeriesCategories = emptyList()
                 try { File(cacheDir, "vod_movies_cache.json").delete() } catch (_: Exception) {}
                 try { File(cacheDir, "vod_series_cache.json").delete() } catch (_: Exception) {}
+                try { File(cacheDir, "vod_categories_cache.json").delete() } catch (_: Exception) {}
+                try { File(cacheDir, "series_categories_cache.json").delete() } catch (_: Exception) {}
                 carregarTudoLiveTv()
                 SportsAgendaManager.loadOrRefresh(this, forceOnline = true) { matches ->
                     allMatches.clear()
@@ -2273,9 +2277,33 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
+    private fun salvarCategoriasFilmesCache(categorias: List<VodCategory>) {
+        try {
+            val file = File(cacheDir, "vod_categories_cache.json")
+            val json = gson.toJson(categorias)
+            file.writeText(json)
+        } catch (_: Exception) {}
+    }
+
+    private fun carregarCategoriasFilmesCache() {
+        try {
+            val file = File(cacheDir, "vod_categories_cache.json")
+            if (file.exists() && file.length() > 0) {
+                val type = object : TypeToken<List<VodCategory>>() {}.type
+                val cached: List<VodCategory>? = FileReader(file).use { gson.fromJson(it, type) }
+                if (!cached.isNullOrEmpty()) {
+                    allVodCategories = cached
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     private fun iniciarSecaoFilmes() {
         etCatalogSearch.setText("")
         carregarTodosFilmesEmCache()
+        if (allVodCategories.isEmpty()) {
+            carregarCategoriasFilmesCache()
+        }
         if (allVodCategories.isNotEmpty()) {
             montarCategoriasFilmes(allVodCategories)
             rvCatalogGroups.post {
@@ -2314,9 +2342,15 @@ class EagleTvActivity : BaseActivity() {
                     completas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
                     completas.addAll(remotas)
                     allVodCategories = completas
+                    salvarCategoriasFilmesCache(completas)
                     runOnUiThread {
                         if (activeSection == WorkspaceSection.MOVIES) {
-                            montarCategoriasFilmes(completas)
+                            if (movieGroupAdapter != null && rvCatalogGroups.adapter === movieGroupAdapter) {
+                                // Atualiza os itens preservando a categoria atualmente focada/selecionada pelo utilizador
+                                movieGroupAdapter?.updateItems(completas.map { it.categoryId to it.categoryName })
+                            } else {
+                                montarCategoriasFilmes(completas)
+                            }
                         }
                     }
                 } catch (_: Exception) {}
@@ -2571,9 +2605,33 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
+    private fun salvarCategoriasSeriesCache(categorias: List<SeriesCategory>) {
+        try {
+            val file = File(cacheDir, "series_categories_cache.json")
+            val json = gson.toJson(categorias)
+            file.writeText(json)
+        } catch (_: Exception) {}
+    }
+
+    private fun carregarCategoriasSeriesCache() {
+        try {
+            val file = File(cacheDir, "series_categories_cache.json")
+            if (file.exists() && file.length() > 0) {
+                val type = object : TypeToken<List<SeriesCategory>>() {}.type
+                val cached: List<SeriesCategory>? = FileReader(file).use { gson.fromJson(it, type) }
+                if (!cached.isNullOrEmpty()) {
+                    allSeriesCategories = cached
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     private fun iniciarSecaoSeries() {
         etCatalogSearch.setText("")
         carregarTodasSeriesEmCache()
+        if (allSeriesCategories.isEmpty()) {
+            carregarCategoriasSeriesCache()
+        }
         if (allSeriesCategories.isNotEmpty()) {
             montarCategoriasSeries(allSeriesCategories)
             rvCatalogGroups.post {
@@ -2610,9 +2668,15 @@ class EagleTvActivity : BaseActivity() {
                     completas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
                     completas.addAll(remotas)
                     allSeriesCategories = completas
+                    salvarCategoriasSeriesCache(completas)
                     runOnUiThread {
                         if (activeSection == WorkspaceSection.SERIES) {
-                            montarCategoriasSeries(completas)
+                            if (seriesGroupAdapter != null && rvCatalogGroups.adapter === seriesGroupAdapter) {
+                                // Atualiza os itens preservando a categoria atualmente focada/selecionada pelo utilizador
+                                seriesGroupAdapter?.updateItems(completas.map { it.categoryId to it.categoryName })
+                            } else {
+                                montarCategoriasSeries(completas)
+                            }
                         }
                     }
                 } catch (_: Exception) {}
@@ -4572,12 +4636,13 @@ class EagleTvActivity : BaseActivity() {
     // =========================================================================
 
     inner class GroupListAdapter(
-        private val items: List<Pair<String, String>>,
+        items: List<Pair<String, String>>,
         initialSelected: Int,
         private val countProvider: (String) -> Int,
         private val onSelect: (String, String) -> Unit
     ) : RecyclerView.Adapter<GroupListAdapter.ViewHolder>() {
 
+        private val items: MutableList<Pair<String, String>> = items.toMutableList()
         private var selectedPosition = initialSelected
         private var recyclerViewRef: RecyclerView? = null
 
@@ -4593,6 +4658,14 @@ class EagleTvActivity : BaseActivity() {
 
         fun posicaoSelecionada(): Int = selectedPosition
 
+        fun idSelecionado(): String? {
+            return if (selectedPosition in items.indices) items[selectedPosition].first else null
+        }
+
+        fun idNaPosicao(pos: Int): String? {
+            return if (pos in items.indices) items[pos].first else null
+        }
+
         fun selecionarPorId(id: String) {
             val idx = items.indexOfFirst { it.first == id }
             if (idx >= 0 && idx != selectedPosition) {
@@ -4600,6 +4673,34 @@ class EagleTvActivity : BaseActivity() {
                 selectedPosition = idx
                 atualizarEstiloItem(old)
                 atualizarEstiloItem(selectedPosition)
+            }
+        }
+
+        fun updateItems(newItems: List<Pair<String, String>>) {
+            val currentSelectedId = idSelecionado()
+            val rv = recyclerViewRef
+            val focusedChild = rv?.focusedChild
+            val focusedPos = if (focusedChild != null) rv.getChildAdapterPosition(focusedChild) else RecyclerView.NO_POSITION
+            val focusedId = idNaPosicao(focusedPos)
+
+            items.clear()
+            items.addAll(newItems)
+
+            val targetId = focusedId ?: currentSelectedId
+            val newIdx = if (targetId != null) items.indexOfFirst { it.first == targetId } else -1
+            if (newIdx >= 0) {
+                selectedPosition = newIdx
+            } else {
+                selectedPosition = selectedPosition.coerceIn(0, (items.size - 1).coerceAtLeast(0))
+            }
+
+            notifyDataSetChanged()
+
+            if (focusedPos != RecyclerView.NO_POSITION && newIdx >= 0) {
+                rv?.post {
+                    val vh = rv.findViewHolderForAdapterPosition(newIdx)
+                    vh?.itemView?.requestFocus()
+                }
             }
         }
 
