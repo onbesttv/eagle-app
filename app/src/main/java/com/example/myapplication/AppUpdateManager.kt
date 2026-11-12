@@ -99,8 +99,8 @@ object AppUpdateManager {
         val now = System.currentTimeMillis()
         if (!manual) {
             val lastCheck = prefs.getLong("last_check_time", 0L)
-            // Se já verificou há menos de 15 minutos em background silencioso, não repete
-            if (now - lastCheck < 15 * 60 * 1000L) {
+            // Debounce curto de 5s para evitar chamadas simultâneas idênticas
+            if (now - lastCheck < 5_000L) {
                 return
             }
         }
