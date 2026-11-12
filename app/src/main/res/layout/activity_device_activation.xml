@@ -65,14 +65,14 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="20dp"
             android:background="@drawable/bg_service_card"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="18dp"
-            android:paddingTop="12dp"
+            android:paddingTop="14dp"
             android:paddingEnd="18dp"
-            android:paddingBottom="12dp">
+            android:paddingBottom="14dp">
 
             <TextView
                 android:layout_width="0dp"
@@ -80,7 +80,7 @@
                 android:layout_weight="1"
                 android:text="DEVICE ID / MAC"
                 android:textColor="#94A3B8"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -91,40 +91,6 @@
                 android:letterSpacing="0.08"
                 android:text="00:1A:79:00:00:00"
                 android:textColor="#38BDF8"
-                android:textSize="15sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Cartão Device Key -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="18dp"
-            android:background="@drawable/bg_service_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="18dp"
-            android:paddingTop="12dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="12dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="DEVICE KEY"
-                android:textColor="#94A3B8"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/tvDeviceKey"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:letterSpacing="0.14"
-                android:text="849 201"
-                android:textColor="#F43F5E"
                 android:textSize="17sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -134,11 +100,11 @@
             android:id="@+id/tvActivationStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="20dp"
             android:gravity="center"
             android:text="● A aguardar ativação no painel..."
             android:textColor="#FBBF24"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <!-- Botão Principal: Verificar Ativação -->
@@ -146,7 +112,6 @@
             android:id="@+id/btnCheckActivation"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:layout_marginBottom="10dp"
             android:background="@drawable/bg_button_selector"
             android:elevation="4dp"
             android:focusable="true"
@@ -156,19 +121,6 @@
             android:textColor="#FFFFFF"
             android:textSize="14sp"
             android:textStyle="bold" />
-
-        <!-- Botão Secundário: Login Manual -->
-        <Button
-            android:id="@+id/btnManualLogin"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:background="@drawable/bg_button_selector"
-            android:focusable="true"
-            android:focusableInTouchMode="false"
-            android:letterSpacing="0.04"
-            android:text="⚙️ LOGIN MANUAL (USER / PASS)"
-            android:textColor="#94A3B8"
-            android:textSize="12sp" />
 
     </LinearLayout>
 

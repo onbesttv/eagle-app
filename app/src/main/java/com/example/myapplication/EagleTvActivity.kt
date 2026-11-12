@@ -4158,8 +4158,10 @@ class EagleTvActivity : BaseActivity() {
                 cornerRadius = dp(14).toFloat()
                 setStroke(dp(1), 0xFF19324F.toInt())
             }
-            setPadding(dp(22), dp(18), dp(22), dp(18))
+            setPadding(dp(24), dp(20), dp(24), dp(20))
             elevation = dp(16).toFloat()
+            clipChildren = false
+            clipToPadding = false
         }
 
         val layoutHeader = LinearLayout(this).apply {
@@ -4197,13 +4199,15 @@ class EagleTvActivity : BaseActivity() {
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            clipChildren = false
+            clipToPadding = false
         }
         root.addView(content)
 
         dialog.setContentView(root)
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            val width = (resources.displayMetrics.widthPixels * 0.52f).toInt().coerceIn(dp(360), dp(560))
+            val width = (resources.displayMetrics.widthPixels * 0.54f).toInt().coerceIn(dp(400), dp(600))
             setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             setDimAmount(0.72f)
@@ -4227,9 +4231,9 @@ class EagleTvActivity : BaseActivity() {
             isAllCaps = false
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(42)
+                dp(44)
             ).apply {
-                setMargins(0, dp(4), 0, dp(4))
+                setMargins(dp(6), dp(5), dp(6), dp(5))
             }
 
             val normalBg = GradientDrawable().apply {
@@ -4503,9 +4507,20 @@ class EagleTvActivity : BaseActivity() {
             dialog.dismiss()
             val activeSrv = IptvServiceConfig.activeServiceId(this)
             val currentUser = IptvServiceConfig.username(this, activeSrv)
+            val currentPass = IptvServiceConfig.password(this, activeSrv)
+            val currentDns = IptvServiceConfig.baseUrl(this, activeSrv)
+
+            val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+            if (currentUser.isNotBlank() && currentPass.isNotBlank()) {
+                prefs.edit()
+                    .putString("LAST_ACTIVATED_USER", currentUser)
+                    .putString("LAST_ACTIVATED_PASS", currentPass)
+                    .putString("LAST_ACTIVATED_DNS", currentDns)
+                    .apply()
+            }
+
             IptvServiceConfig.clearAllCredentials(this)
-            getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-                .edit()
+            prefs.edit()
                 .putBoolean("USER_LOGGED_OUT", true)
                 .putString("LOGGED_OUT_USER", currentUser)
                 .apply()

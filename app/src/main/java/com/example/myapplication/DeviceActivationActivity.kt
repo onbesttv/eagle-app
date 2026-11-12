@@ -31,16 +31,11 @@ class DeviceActivationActivity : BaseActivity() {
         setContentView(R.layout.activity_device_activation)
 
         val tvMac = findViewById<TextView>(R.id.tvDeviceMac)
-        val tvKey = findViewById<TextView>(R.id.tvDeviceKey)
         tvActivationStatus = findViewById(R.id.tvActivationStatus)
         btnCheckActivation = findViewById(R.id.btnCheckActivation)
-        val btnManualLogin = findViewById<Button>(R.id.btnManualLogin)
 
         val mac = RemotePanelManager.getDeviceMac(this)
-        val key = RemotePanelManager.getDeviceKey(this)
-
         tvMac.text = mac
-        tvKey.text = "${key.take(3)} ${key.drop(3)}"
 
         btnCheckActivation.setOnClickListener {
             getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
@@ -48,13 +43,6 @@ class DeviceActivationActivity : BaseActivity() {
                 .remove("LOGGED_OUT_USER")
                 .apply()
             checkActivationStatus(silent = false)
-        }
-
-        btnManualLogin.setOnClickListener {
-            startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
-                putExtra(ServiceSelectionActivity.EXTRA_MANUAL_SELECTION, true)
-            })
-            finish()
         }
 
         btnCheckActivation.post {
@@ -98,13 +86,33 @@ class DeviceActivationActivity : BaseActivity() {
             var savedUser = IptvServiceConfig.username(this, activeService)
             var savedPass = IptvServiceConfig.password(this, activeService)
 
+            val loginPrefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
             if (savedUser.isBlank()) {
-                val loginPrefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
                 savedUser = loginPrefs.getString("SAVED_USER", "").orEmpty()
                 savedPass = loginPrefs.getString("SAVED_PASS", "").orEmpty()
             }
 
+            // Se fechou sessão por engano, compara se o Device ID continua ativo no painel e restaura os dados
+            if (savedUser.isBlank() && RemotePanelManager.isDeviceActivatedInPanel(this)) {
+                val lastUser = loginPrefs.getString("LAST_ACTIVATED_USER", "").orEmpty()
+                val lastPass = loginPrefs.getString("LAST_ACTIVATED_PASS", "").orEmpty()
+                val lastDns = loginPrefs.getString("LAST_ACTIVATED_DNS", "").orEmpty()
+                if (lastUser.isNotBlank() && lastPass.isNotBlank()) {
+                    IptvServiceConfig.saveCredentials(this, activeService, lastUser, lastPass)
+                    if (lastDns.isNotBlank()) {
+                        IptvServiceConfig.updateRemoteUrls(this, lastDns, "")
+                    }
+                    savedUser = lastUser
+                    savedPass = lastPass
+                }
+            }
+
             if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
+                loginPrefs.edit()
+                    .putString("LAST_ACTIVATED_USER", savedUser)
+                    .putString("LAST_ACTIVATED_PASS", savedPass)
+                    .apply()
+
                 tvActivationStatus.text = "✔ Dispositivo Ativado com Sucesso! A iniciar..."
                 tvActivationStatus.setTextColor(0xFF34D399.toInt())
                 Toast.makeText(this, "Dispositivo ativado! Bem-vindo.", Toast.LENGTH_SHORT).show()

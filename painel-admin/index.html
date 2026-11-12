@@ -503,7 +503,7 @@
                     <div style="max-width:720px;">
                         <div style="font-size:18px; font-weight:bold; color:#fff; display:flex; align-items:center; gap:8px;">
                             <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
-                            Aplicação RedOn TV (v3.14) — Acesso dos Teus Clientes
+                            Aplicação RedOn TV (v3.15) — Acesso dos Teus Clientes
                         </div>
                         <div style="font-size:13px; color:var(--text-muted); margin-top:6px; line-height: 1.5;">
                             Disponibiliza este link ou código Downloader aos teus clientes para instalarem na Smart TV Android, TV Box ou Fire Stick.
@@ -596,7 +596,7 @@
                         <tr>
                             <th>Estado</th>
                             <th>Utilizador (Linha)</th>
-                            <th>Revenda</th>
+                            <th id="thColReseller">Revenda</th>
                             <th>Aplicação</th>
                             <th>Serviço</th>
                             <th>Box / Dispositivo</th>
@@ -1467,7 +1467,7 @@
                             reseller_id: "dream",
                             active_service: "best",
                             device_name: "RedOn TV Box" + (act.device_key ? ` (PIN: ${act.device_key})` : ""),
-                            app_version: "3.14",
+                            app_version: "3.15",
                             last_seen: new Date().toISOString(),
                             is_blocked: false
                         });
@@ -1624,7 +1624,7 @@
         const isJoker = (currentResellerId === "joker" || currentResellerId === "tv_joker");
         if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || isJoker) {
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
-            document.getElementById("statServices").textContent = isJoker ? "TV do Joker" : (currentResellerId === "dream" ? "RedOn TV" : "StreamPlay");
+            document.getElementById("statServices").textContent = isJoker ? "Templarios" : (currentResellerId === "dream" ? "RedOn TV" : "StreamPlay");
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
         } else if (isMasterRole) {
             document.getElementById("statServicesLabel").textContent = "Apps Eagle Ativas";
@@ -1712,8 +1712,15 @@
             return true;
         });
 
+        const showResellerCol = isMasterRole && (resellerFilter === "all");
+        const thReseller = document.getElementById("thColReseller");
+        if (thReseller) {
+            thReseller.style.display = showResellerCol ? "" : "none";
+        }
+
         if (filtered.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
+            const colSpan = showResellerCol ? 9 : 8;
+            tbody.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; color: var(--text-muted); padding: 28px;">Nenhum dispositivo encontrado.</td></tr>`;
             return;
         }
 
@@ -1727,15 +1734,15 @@
                     ? `<span class="badge badge-online">● Online</span>`
                     : `<span class="badge badge-offline">● Offline</span>`;
 
-            const isJokerReseller = (currentResellerId === "tv_joker" || currentResellerId === "joker");
-            const srvBadge = isJokerReseller
-                ? `<span class="badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-weight:600;">TV do Joker</span>`
+            const devResLower = devReseller.toLowerCase();
+            const isJokerDev = (devResLower === "tv_joker" || devResLower === "joker" || currentResellerId === "tv_joker" || currentResellerId === "joker");
+            const srvBadge = isJokerDev
+                ? `<span class="badge badge-best2">Templarios</span>`
                 : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream")
                     ? `<span class="badge badge-best2">Templarios</span>`
                     : `<span class="badge badge-best">StreamPlay</span>`);
 
             const userLabel = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
-            const devResLower = devReseller.toLowerCase();
             const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
                 devResLower === currentResellerId ||
                 ((currentResellerId === "tv_joker" || currentResellerId === "joker") && (devResLower === "tv_joker" || devResLower === "joker")) ||
@@ -1756,7 +1763,7 @@
                 <tr>
                     <td>${statusBadge}</td>
                     <td>${userLabel}</td>
-                    <td>${renderResellerBadge(d)}</td>
+                    ${showResellerCol ? `<td>${renderResellerBadge(d)}</td>` : ""}
                     <td>${renderAppBadge(d)}</td>
                     <td>${srvBadge}</td>
                     <td>

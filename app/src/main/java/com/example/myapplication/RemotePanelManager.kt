@@ -94,6 +94,19 @@ object RemotePanelManager {
         return key
     }
 
+    fun getRawAnnouncement(context: Context): String {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getString("RAW_ANNOUNCEMENT", "").orEmpty()
+    }
+
+    fun isDeviceActivatedInPanel(context: Context): Boolean {
+        val raw = getRawAnnouncement(context).lowercase()
+        val myMac = getDeviceMac(context).replace(":", "").replace("-", "").lowercase()
+        val myId = getDeviceId(context).replace(":", "").replace("-", "").lowercase()
+        val actPart = raw.substringAfter("||activations:", "").substringBefore("||")
+        return actPart.contains(myMac) || actPart.contains(myId)
+    }
+
     fun applyActivationIfPresent(context: Context, rawAnnouncement: String): Boolean {
         val actPart = rawAnnouncement.substringAfter("||ACTIVATIONS:", "").substringBefore("||")
         if (actPart.isBlank()) return false
@@ -271,6 +284,7 @@ object RemotePanelManager {
                             .putString(KEY_BLOCK_REASON, blockReason)
                             .putBoolean(KEY_MAINTENANCE, maintenance)
                             .putString(KEY_ANNOUNCEMENT, announcement)
+                            .putString("RAW_ANNOUNCEMENT", rawAnnouncement)
                             .apply()
 
                         success = true
