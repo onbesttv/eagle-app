@@ -52,42 +52,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.762" />
+        app:layout_constraintGuide_percent="0.805" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnVpnEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.811" />
+        app:layout_constraintGuide_percent="0.852" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnUpdateStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.825" />
+        app:layout_constraintGuide_percent="0.860" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnUpdateEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.874" />
+        app:layout_constraintGuide_percent="0.907" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnSettingsStart"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.889" />
+        app:layout_constraintGuide_percent="0.915" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glBtnSettingsEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.938" />
+        app:layout_constraintGuide_percent="0.962" />
 
     <!-- 4 MAIN CARDS GUIDELINES (LIVE TV, GUIA TV, FILMES, SÉRIES) -->
     <androidx.constraintlayout.widget.Guideline
@@ -109,56 +109,56 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.190" />
+        app:layout_constraintGuide_percent="0.206" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard1End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.342" />
+        app:layout_constraintGuide_percent="0.358" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard2Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.350" />
+        app:layout_constraintGuide_percent="0.366" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard2End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.501" />
+        app:layout_constraintGuide_percent="0.517" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard3Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.509" />
+        app:layout_constraintGuide_percent="0.525" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard3End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.660" />
+        app:layout_constraintGuide_percent="0.676" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard4Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.668" />
+        app:layout_constraintGuide_percent="0.684" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glCard4End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.819" />
+        app:layout_constraintGuide_percent="0.835" />
 
     <!-- 3 BOTTOM PILLS GUIDELINES (GRAVAÇÕES, JOGOS NA TV, JORNAIS) -->
     <androidx.constraintlayout.widget.Guideline
@@ -180,42 +180,42 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.190" />
+        app:layout_constraintGuide_percent="0.204" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill1End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.396" />
+        app:layout_constraintGuide_percent="0.410" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill2Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.403" />
+        app:layout_constraintGuide_percent="0.425" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill2End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.608" />
+        app:layout_constraintGuide_percent="0.630" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill3Start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.616" />
+        app:layout_constraintGuide_percent="0.640" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glPill3End"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.819" />
+        app:layout_constraintGuide_percent="0.843" />
 
     <!-- EXTRAS GUIDELINES (CANTO INFERIOR DIREITO) -->
     <androidx.constraintlayout.widget.Guideline
@@ -237,14 +237,14 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.879" />
+        app:layout_constraintGuide_percent="0.905" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/glExtrasEnd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.943" />
+        app:layout_constraintGuide_percent="0.969" />
 
     <!-- ======================================================== -->
     <!-- HITBOXES DOS BOTÕES DO TOPO (TRANSPARENTES NO ESTADO NORMAL) -->
