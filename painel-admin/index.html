@@ -1096,7 +1096,7 @@
 
     async function saveVpnConfigSilent(toastMessage) {
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         try {
@@ -1621,9 +1621,10 @@
         document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
         document.getElementById("statOnline").textContent = online;
         document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
-        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream") {
+        const isJoker = (currentResellerId === "joker" || currentResellerId === "tv_joker");
+        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || isJoker) {
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
-            document.getElementById("statServices").textContent = (currentResellerId === "dream" ? "RedOn TV" : "StreamPlay");
+            document.getElementById("statServices").textContent = isJoker ? "TV do Joker" : (currentResellerId === "dream" ? "RedOn TV" : "StreamPlay");
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
         } else if (isMasterRole) {
             document.getElementById("statServicesLabel").textContent = "Apps Eagle Ativas";
@@ -1726,9 +1727,12 @@
                     ? `<span class="badge badge-online">● Online</span>`
                     : `<span class="badge badge-offline">● Offline</span>`;
 
-            const srvBadge = (srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream")
-                ? `<span class="badge badge-best2">Templarios</span>`
-                : `<span class="badge badge-best">StreamPlay</span>`;
+            const isJokerReseller = (currentResellerId === "tv_joker" || currentResellerId === "joker");
+            const srvBadge = isJokerReseller
+                ? `<span class="badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-weight:600;">TV do Joker</span>`
+                : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream")
+                    ? `<span class="badge badge-best2">Templarios</span>`
+                    : `<span class="badge badge-best">StreamPlay</span>`);
 
             const uText = d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`;
             const devIdText = d.device_id
@@ -2151,7 +2155,7 @@
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         const newPass = document.getElementById("cfgNewPassword").value.trim();
