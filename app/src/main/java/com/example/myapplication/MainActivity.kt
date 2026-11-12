@@ -70,7 +70,7 @@ class MainActivity : BaseActivity() {
         }
 
         val resId = RemotePanelManager.getResellerId(this)
-        val hasSportsAndNews = resId.equals("master", ignoreCase = true) || resId.equals("tv_joker", ignoreCase = true)
+        val hasSportsAndNews = resId.equals("master", ignoreCase = true) || resId.equals("tv_joker", ignoreCase = true) || resId.equals("joker", ignoreCase = true)
         if (hasSportsAndNews) {
             cardSportsAgenda?.visibility = android.view.View.VISIBLE
             cardNewspapers?.visibility = android.view.View.VISIBLE

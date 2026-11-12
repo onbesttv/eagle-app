@@ -28,7 +28,8 @@ object AppThemeColors {
     }
 
     fun isJokerTheme(context: Context): Boolean {
-        return RemotePanelManager.getResellerId(context).equals("tv_joker", ignoreCase = true)
+        val id = RemotePanelManager.getResellerId(context)
+        return id.equals("tv_joker", ignoreCase = true) || id.equals("joker", ignoreCase = true)
     }
 
     /**
