@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.app.PictureInPictureParams
 import android.app.UiModeManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.GradientDrawable
@@ -399,6 +400,77 @@ class LiveTvActivity : BaseActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val target = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
+        if (!target.isNullOrBlank()) {
+            currentStreamId = -1
+            carregarCategorias()
+        }
+    }
+
+    private fun expandirNomesCanal(nome: String): List<String> {
+        val results = mutableListOf<String>()
+        results.add(nome)
+        if (nome.contains("/") || nome.contains(",") || nome.contains("+") || nome.contains("|")) {
+            nome.split('/', ',', '+', '|').map { it.trim() }.filter { it.isNotBlank() }.forEach { results.add(it) }
+        }
+        val lower = nome.lowercase()
+        if (lower.contains("btv") || lower.contains("benfica")) {
+            results.add("Benfica TV 1")
+            results.add("Benfica TV")
+            results.add("BTV 1")
+            results.add("BTV")
+        }
+        if (lower.contains("dazn") || lower.contains("eleven")) {
+            val num = Regex("\\d+").find(lower)?.value ?: "1"
+            results.add("DAZN $num")
+            results.add("Eleven Sports $num")
+            results.add("Eleven $num")
+        }
+        if (lower.contains("sport") && lower.contains("tv")) {
+            val num = Regex("\\d+").find(lower)?.value
+            if (num != null) {
+                results.add("Sport TV $num")
+                results.add("SportTV $num")
+                results.add("Sport.TV $num")
+                results.add("SPT $num")
+            } else if (lower.contains("+") || lower.contains("mais")) {
+                results.add("Sport TV +")
+                results.add("Sport TV Mais")
+                results.add("SportTV +")
+            }
+        }
+        return results.distinct()
+    }
+
+    private fun encontrarCanalAlvo(streams: List<LiveStream>, targetChannelName: String): LiveStream? {
+        val variantes = expandirNomesCanal(targetChannelName)
+        for (variante in variantes) {
+            val clean = variante.replace(Regex("[^a-zA-Z0-9 ]"), "").trim().lowercase()
+            val tokens = clean.split(Regex("\\s+")).filter { it.isNotBlank() }
+            if (tokens.isEmpty()) continue
+
+            // 1. Prioridade: todos os tokens aparecem no nome do canal (com correspondência exata de números)
+            val regexTokens = tokens.map { t ->
+                if (t.all { it.isDigit() }) "(?<!\\d)$t(?!\\d)" else "\\b$t\\b"
+            }
+            val regex = Regex("(?i)" + regexTokens.joinToString(".*"))
+            val matchA = streams.firstOrNull { regex.containsMatchIn(it.name) }
+            if (matchA != null) return matchA
+
+            // 2. Sem espaços
+            val noSpaces = clean.replace(" ", "")
+            val matchB = streams.firstOrNull {
+                val streamClean = it.name.replace(Regex("[^a-zA-Z0-9]"), "").lowercase()
+                streamClean.contains(noSpaces)
+            }
+            if (matchB != null) return matchB
+        }
+        return null
+    }
+
     private fun carregarCategorias() {
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_categories"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
@@ -421,15 +493,75 @@ class LiveTvActivity : BaseActivity() {
                             carregarCanaisDaCategoria(categoria.categoryId, iniciarReproducao = false)
                             focarPastaSelecionada()
                         }
-                        if (categorias.isNotEmpty()) {
-                            carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
-                            rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
+
+                        val targetChannelName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
+                        if (!targetChannelName.isNullOrBlank()) {
+                            carregarContadoresELocalizarCanal(categorias, targetChannelName)
+                        } else {
+                            if (categorias.isNotEmpty()) {
+                                carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                                rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
+                            }
+                            carregarContadoresLive()
                         }
-                        carregarContadoresLive()
                     }
                 } catch (e: Exception) {
                     runOnUiThread {
                         Toast.makeText(this@LiveTvActivity, "Erro no formato de categorias", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun carregarContadoresELocalizarCanal(categorias: List<LiveCategory>, targetChannelName: String) {
+        val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_streams"
+        val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+        client.newCall(req).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                runOnUiThread {
+                    if (categorias.isNotEmpty()) {
+                        carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                        rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
+                    }
+                }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                val json = response.body?.string() ?: return
+                try {
+                    val type = object : TypeToken<List<LiveStream>>() {}.type
+                    val streams: List<LiveStream> = gson.fromJson(json, type)
+                    val counts = streams.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
+                    CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, counts)
+
+                    val canalAlvo = encontrarCanalAlvo(streams, targetChannelName)
+                    runOnUiThread {
+                        (rvCategories.adapter as? CategoryAdapter)?.atualizarTextosVisiveis()
+                        if (canalAlvo != null && !canalAlvo.categoryId.isNullOrBlank()) {
+                            val cat = categorias.firstOrNull { it.categoryId == canalAlvo.categoryId }
+                            if (cat != null) {
+                                val pos = (rvCategories.adapter as? CategoryAdapter)?.selecionarCategoriaPorId(cat.categoryId) ?: -1
+                                if (pos >= 0) {
+                                    rvCategories.scrollToPosition(pos)
+                                }
+                                intent.removeExtra("TARGET_CHANNEL_NAME")
+                                Toast.makeText(this@LiveTvActivity, "A sintonizar ${canalAlvo.name}...", Toast.LENGTH_SHORT).show()
+                                carregarCanaisDaCategoria(cat.categoryId, iniciarReproducao = true, targetStreamId = canalAlvo.streamId)
+                                return@runOnUiThread
+                            }
+                        }
+                        // Fallback se não encontrar o canal específico
+                        if (categorias.isNotEmpty()) {
+                            carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                            rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
+                        }
+                    }
+                } catch (_: Exception) {
+                    runOnUiThread {
+                        if (categorias.isNotEmpty()) {
+                            carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                            rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
+                        }
                     }
                 }
             }
@@ -472,7 +604,7 @@ class LiveTvActivity : BaseActivity() {
         }
     }
 
-    private fun carregarCanaisDaCategoria(catId: String, iniciarReproducao: Boolean = false) {
+    private fun carregarCanaisDaCategoria(catId: String, iniciarReproducao: Boolean = false, targetStreamId: Int = -1) {
         val requestId = ++categoryLoadRequestId
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_streams&category_id=$catId"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
@@ -506,20 +638,25 @@ class LiveTvActivity : BaseActivity() {
                         rvOverlayChannels.adapter = overlayAdapter
 
                         if (iniciarReproducao && currentStreamId == -1 && canais.isNotEmpty()) {
-                            val targetChannelName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
-                            val selectedByTarget = if (!targetChannelName.isNullOrBlank()) {
-                                val cleanTarget = targetChannelName.replace(" ", "").lowercase()
-                                canais.firstOrNull { it.name.replace(" ", "").lowercase().contains(cleanTarget) }
-                                    ?: canais.firstOrNull { cleanTarget.contains(it.name.replace(" ", "").lowercase()) }
-                            } else null
+                            val canalInicial = if (targetStreamId != -1) {
+                                canais.firstOrNull { it.streamId == targetStreamId } ?: canais[0]
+                            } else {
+                                val targetChannelName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
+                                val selectedByTarget = if (!targetChannelName.isNullOrBlank()) {
+                                    val cleanTarget = targetChannelName.replace(" ", "").lowercase()
+                                    canais.firstOrNull { it.name.replace(" ", "").lowercase().contains(cleanTarget) }
+                                        ?: canais.firstOrNull { cleanTarget.contains(it.name.replace(" ", "").lowercase()) }
+                                } else null
 
-                            val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-                            val lastId = appSettings.getInt("last_live_stream_id", -1)
-                            val resumeLast = appSettings.getBoolean("last_live", false)
-                            val selected = selectedByTarget ?: if (resumeLast) canais.firstOrNull { it.streamId == lastId } else null
-                            val canalInicial = selected ?: canais[0]
+                                val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+                                val lastId = appSettings.getInt("last_live_stream_id", -1)
+                                val resumeLast = appSettings.getBoolean("last_live", false)
+                                selectedByTarget ?: if (resumeLast) canais.firstOrNull { it.streamId == lastId } else null
+                            } ?: canais[0]
+
                             channelAdapter?.selecionarCanalPorId(canalInicial.streamId)
                             tocarNoMiniPlayer(canalInicial)
+                            focarCanalAtual()
                         }
                     }
                 } catch (e: Exception) {
@@ -603,6 +740,17 @@ class LiveTvActivity : BaseActivity() {
         private var selectedPosition = 0
 
         fun posicaoSelecionada(): Int = selectedPosition
+
+        fun selecionarCategoriaPorId(categoryId: String): Int {
+            val position = list.indexOfFirst { it.categoryId == categoryId }
+            if (position >= 0) {
+                val prev = selectedPosition
+                selectedPosition = position
+                if (prev != RecyclerView.NO_POSITION) notifyItemChanged(prev)
+                notifyItemChanged(selectedPosition)
+            }
+            return position
+        }
 
         fun atualizarTextoVisivel(categoryId: String) {
             val position = list.indexOfFirst { it.categoryId == categoryId }
