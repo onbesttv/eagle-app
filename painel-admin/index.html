@@ -550,16 +550,16 @@
                             <input type="text" id="quickActDeviceKey" placeholder="ex: 849 201">
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
-                            <label>Servidor / DNS Xtream Codes (Bloqueado) 🔒</label>
+                            <label>Servidor / DNS Xtream Codes</label>
                             <input type="url" id="quickActDns" placeholder="https://thebestplay.site" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
-                            <label>Username / Utilizador da Linha *</label>
-                            <input type="text" id="quickActUser" placeholder="cliente123" required>
+                            <label>Username</label>
+                            <input type="text" id="quickActUser" placeholder="user" required>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
-                            <label>Password da Linha *</label>
-                            <input type="text" id="quickActPass" placeholder="senha123" required>
+                            <label>Password</label>
+                            <input type="text" id="quickActPass" placeholder="pass" required>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
@@ -817,19 +817,17 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Servidor / DNS Xtream Codes (Bloqueado) 🔒</label>
+                <label>Servidor / DNS Xtream Codes</label>
                 <input type="url" id="actDnsInput" placeholder="https://thebestplay.site" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
-            </div>
-                <input type="url" id="actDnsInput" placeholder="https://thebestplay.site" required>
             </div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Username / Utilizador da Linha</label>
-                    <input type="text" id="actUserInput" placeholder="cliente123" required>
+                    <label>Username</label>
+                    <input type="text" id="actUserInput" placeholder="user" required>
                 </div>
                 <div class="form-group">
-                    <label>Password da Linha</label>
-                    <input type="text" id="actPassInput" placeholder="segredo123" required>
+                    <label>Password</label>
+                    <input type="text" id="actPassInput" placeholder="pass" required>
                 </div>
             </div>
             <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 14px;">
@@ -1130,7 +1128,7 @@
 
     async function saveVpnConfigSilent(toastMessage) {
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         try {
@@ -1362,12 +1360,12 @@
             document.getElementById("brandBadge").textContent = (data.brand_name || "P").trim().charAt(0).toUpperCase();
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
             const hasVpnInApp = currentResellerId !== "pereira_tv";
-            const hasBest2InApp = currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv";
+            const hasBest2InApp = currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream";
             document.getElementById("masterTabs").style.display = "flex";
             document.getElementById("tabBtnVpn").style.display = hasVpnInApp ? "inline-block" : "none";
             document.getElementById("best1UrlLabel").textContent = hasBest2InApp
                 ? "DNS Serviço 1 (StreamPlay / Principal)"
-                : "DNS do Servidor (StreamPlay)";
+                : (currentResellerId === "dream" ? "Servidor / DNS Xtream Codes" : "DNS do Servidor (StreamPlay)");
             document.getElementById("best2UrlGroup").style.display = hasBest2InApp ? "block" : "none";
             document.getElementById("filterBtnBest").style.display = hasBest2InApp ? "inline-block" : "none";
             document.getElementById("filterBtnBest2").style.display = hasBest2InApp ? "inline-block" : "none";
@@ -1652,9 +1650,9 @@
         document.getElementById("statLimitSub").textContent = data.max_devices > 0 ? "Limite do teu plano de revenda" : "Boxes / TVs registadas";
         document.getElementById("statOnline").textContent = online;
         document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
-        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") {
+        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream") {
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
-            document.getElementById("statServices").textContent = "StreamPlay";
+            document.getElementById("statServices").textContent = (currentResellerId === "dream" ? "RedOn TV" : "StreamPlay");
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
         } else if (isMasterRole) {
             document.getElementById("statServicesLabel").textContent = "Apps Eagle Ativas";
@@ -1757,7 +1755,7 @@
                     ? `<span class="badge badge-online">● Online</span>`
                     : `<span class="badge badge-offline">● Offline</span>`;
 
-            const srvBadge = (srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv")
+            const srvBadge = (srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream")
                 ? `<span class="badge badge-best2">Templarios</span>`
                 : `<span class="badge badge-best">StreamPlay</span>`;
 
@@ -2178,7 +2176,7 @@
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         const newPass = document.getElementById("cfgNewPassword").value.trim();
