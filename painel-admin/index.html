@@ -949,6 +949,21 @@
         return allowedVpnUsers.has(String(username).trim().toLowerCase());
     }
 
+    function getAppName(resellerId) {
+        const r = String(resellerId || "master").toLowerCase();
+        if (r === "master" || r === "eagle_tv") return "Eagle TV";
+        if (r === "dream" || r === "redon") return "RedOn";
+        if (r === "godinho_tv") return "Godinho TV";
+        if (r === "tv_joker" || r === "joker") return "TV do Joker";
+        if (r === "tv_fabio") return "Fpinto TV";
+        if (r === "pereira_tv") return "Pereira TV";
+        if (typeof allResellers !== "undefined" && Array.isArray(allResellers)) {
+            const found = allResellers.find(item => (item.reseller_id || "").toLowerCase() === r);
+            if (found && found.brand_name) return found.brand_name;
+        }
+        return r.toUpperCase();
+    }
+
     function renderVpnAllowedUsers() {
         const card = document.getElementById("vpnUserAccessCard");
         if (!card) return;
@@ -959,7 +974,7 @@
         const titleEl = document.getElementById("vpnUserAccessTitle");
         if (titleEl) {
             titleEl.textContent = isMasterRole
-                ? "👤 Controlo de Acesso à VPN por Utilizador (App Eagle)"
+                ? "👤 Controlo de Acesso à VPN por Utilizador (Todas as Apps)"
                 : (currentResellerId === "tv_fabio"
                     ? "👤 Controlo de Acesso à VPN por Utilizador (Fpinto TV)"
                     : (currentResellerId === "tv_joker" || currentResellerId === "joker"
@@ -967,6 +982,11 @@
                         : (currentResellerId === "dream"
                             ? "👤 Controlo de Acesso à VPN por Utilizador (RedOn)"
                             : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)")));
+        }
+
+        const subtitleEl = document.getElementById("vpnUserAccessSubtitle");
+        if (subtitleEl && isMasterRole) {
+            subtitleEl.textContent = "Como Super Admin (Master), podes ativar ou desativar o acesso à VPN para qualquer utilizador de qualquer app (Eagle, RedOn, Godinho TV, TV do Joker, etc.).";
         }
 
         const killBtn = document.getElementById("btnKillAllVpn");
@@ -989,29 +1009,42 @@
         const usersMap = new Map();
         Array.from(allowedVpnUsers).forEach(u => {
             if (u && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
-                usersMap.set(u, true);
+                usersMap.set(u, { active: true, app: "" });
             }
         });
         allDevices.forEach(d => {
             const devRes = (d.reseller_id || "master").toLowerCase();
             const u = (d.username || "").trim().toLowerCase();
-            const isTargetDev = (devRes === currentResellerId) || (isMasterRole && (devRes === "master" || devRes === "eagle_tv"));
-            if (isTargetDev && u && (isMasterRole || !MASTER_OWN_USERS.has(u)) && !usersMap.has(u)) {
-                usersMap.set(u, false);
+            const isTargetDev = isMasterRole || (devRes === currentResellerId);
+            if (isTargetDev && u && u !== "sem login" && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
+                const foundApp = getAppName(devRes);
+                if (!usersMap.has(u)) {
+                    usersMap.set(u, { active: false, app: foundApp });
+                } else if (!usersMap.get(u).app) {
+                    usersMap.get(u).app = foundApp;
+                }
             }
         });
 
-        const allKnownUsers = Array.from(usersMap.keys());
+        const allKnownUsers = Array.from(usersMap.keys()).sort((a, b) => {
+            const aActive = allowedVpnUsers.has(a) ? 0 : 1;
+            const bActive = allowedVpnUsers.has(b) ? 0 : 1;
+            if (aActive !== bActive) return aActive - bActive;
+            return a.localeCompare(b);
+        });
+
         if (allKnownUsers.length === 0) {
             container.innerHTML = `<span style="font-size: 12px; color: var(--text-muted);">Ainda não há utilizadores autorizados. Escreve um username acima ou clica no botão "🔒 VPN: OFF" na tabela de dispositivos!</span>`;
             return;
         }
 
         container.innerHTML = allKnownUsers.map(u => {
+            const item = usersMap.get(u) || { active: allowedVpnUsers.has(u), app: "" };
             const isActive = allowedVpnUsers.has(u);
+            const appLabel = (isMasterRole && item.app) ? `<span style="font-size: 10px; opacity: 0.8; margin-left: 6px; font-weight: normal; background: rgba(255,255,255,0.1); padding: 1px 6px; border-radius: 4px;">${escapeHtml(item.app)}</span>` : '';
             return `
                 <div class="vpn-country-chip ${isActive ? 'active' : ''}" onclick="toggleUserVpn('${escapeHtml(u)}')" style="min-width: 150px;">
-                    <span>👤 <strong>${escapeHtml(u)}</strong></span>
+                    <span>👤 <strong>${escapeHtml(u)}</strong>${appLabel}</span>
                     <span class="vpn-check">${isActive ? 'ON' : 'OFF'}</span>
                 </div>
             `;
@@ -1155,6 +1188,14 @@
                     p_maintenance_mode: maintenance,
                     p_new_password: ""
                 });
+            }
+            if (isMasterRole && multiResellerEnabled && Array.isArray(allResellers)) {
+                const usersCsv = Array.from(allowedVpnUsers).join(",");
+                for (const r of allResellers) {
+                    if (r && r.reseller_id && r.reseller_id !== "master") {
+                        await syncResellerVpnMetadata(r, { usersCsv });
+                    }
+                }
             }
             if (toastMessage) showToast(toastMessage);
         } catch (err) {
@@ -1518,6 +1559,18 @@
                 saveVpnConfigSilent();
             }
 
+            // Se for Master, carregar e unir todos os utilizadores com VPN autorizada em todas as apps
+            if (isMasterRole && Array.isArray(allResellers)) {
+                allResellers.forEach(r => {
+                    if (r && r.announcement && r.announcement.includes("||VPN_USERS:")) {
+                        const parts = r.announcement.split("||VPN_USERS:")[1].split("||")[0].split("|");
+                        if (parts.length > 1) {
+                            parts[1].split(",").map(s => s.trim().toLowerCase()).filter(Boolean).forEach(u => allowedVpnUsers.add(u));
+                        }
+                    }
+                });
+            }
+
             renderVpnAllowedUsers();
             if (isMasterRole) {
                 populateResellerFilter();
@@ -1798,9 +1851,9 @@
             const devIdHtml = devIdText ? `<div style="font-size:11px; color:#38bdf8; font-family:monospace; margin-top:3px; font-weight:600; letter-spacing:0.5px;">${devIdText}</div>` : "";
             const userLabel = `<div>${d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`}</div>${devIdHtml}`;
             const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
+                isMasterRole ||
                 devResLower === currentResellerId ||
-                ((currentResellerId === "tv_joker" || currentResellerId === "joker") && (devResLower === "tv_joker" || devResLower === "joker")) ||
-                (isMasterRole && (devResLower === "master" || devResLower === "eagle_tv" || devResLower === "dream"))
+                ((currentResellerId === "tv_joker" || currentResellerId === "joker") && (devResLower === "tv_joker" || devResLower === "joker"))
             );
             const userVpnOn = isTargetVpnDev && isUserVpnEnabled(d.username);
             const vpnToggleBtn = !isTargetVpnDev
