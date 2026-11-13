@@ -1096,7 +1096,8 @@
     }
 
     function buildEncodedAnnouncement() {
-        const cleanAnnouncement = document.getElementById("cfgAnnouncement").value
+        const annEl = document.getElementById("cfgAnnouncement");
+        const cleanAnnouncement = (annEl ? annEl.value : "")
             .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
             .trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
@@ -2041,22 +2042,57 @@
         const rawList = actPart.split("||")[0].trim();
         if (!rawList) return [];
         return rawList.split("|").map(item => {
-            const [devPart, credsPart] = item.split("=");
+            const eqIdx = item.indexOf("=");
+            if (eqIdx === -1) return null;
+            const devPart = item.slice(0, eqIdx).trim();
+            const credsPart = item.slice(eqIdx + 1).trim();
             if (!devPart || !credsPart) return null;
-            const [user, pass, dns, key] = credsPart.split(":");
+
+            const firstColon = credsPart.indexOf(":");
+            if (firstColon === -1) return null;
+            const secondColon = credsPart.indexOf(":", firstColon + 1);
+            if (secondColon === -1) {
+                return {
+                    device_id: devPart,
+                    device_key: "",
+                    dns: "",
+                    username: credsPart.slice(0, firstColon).trim(),
+                    password: credsPart.slice(firstColon + 1).trim()
+                };
+            }
+            const user = credsPart.slice(0, firstColon).trim();
+            const pass = credsPart.slice(firstColon + 1, secondColon).trim();
+            let dns = credsPart.slice(secondColon + 1).trim().replace(/:+$/, "").trim();
+            let key = "";
+
+            if (dns.includes("://")) {
+                const schemeIdx = dns.indexOf("://");
+                const afterScheme = dns.slice(schemeIdx + 3);
+                const colons = (afterScheme.match(/:/g) || []).length;
+                if (colons > 1) {
+                    const lastColon = dns.lastIndexOf(":");
+                    key = dns.slice(lastColon + 1).trim();
+                    dns = dns.slice(0, lastColon).trim();
+                }
+            }
+
             return {
-                device_id: devPart.trim(),
-                device_key: (key || "").trim(),
-                dns: (dns || "").trim(),
-                username: (user || "").trim(),
-                password: (pass || "").trim()
+                device_id: devPart,
+                device_key: key,
+                dns: dns,
+                username: user,
+                password: pass
             };
         }).filter(Boolean);
     }
 
     function buildActivationsString(list) {
         if (!list || list.length === 0) return "";
-        const parts = list.map(a => `${a.device_id}=${a.username}:${a.password}:${a.dns || ""}:${a.device_key || ""}`);
+        const parts = list.map(a => {
+            const d = (a.dns || "").trim().replace(/:+$/, "");
+            const k = (a.device_key || "").trim();
+            return `${a.device_id}=${a.username}:${a.password}:${d}${k ? `:${k}` : ''}`;
+        });
         return "||ACTIVATIONS:" + parts.join("|");
     }
 
@@ -2075,9 +2111,8 @@
     async function saveActivationsToBackend(newList, fallbackDns = "") {
         const actString = buildActivationsString(newList);
         if (currentResellerId === "dream") {
-            const currentAnn = document.getElementById("cfgAnnouncement").value
-                .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
-                .trim();
+            const annEl = document.getElementById("cfgAnnouncement");
+            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim() : "";
             const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
             const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
             const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -2088,14 +2123,17 @@
                 : "";
             const vpnKillPart = vpnKillTimestamp > 0 ? `||VPN_KILL:${vpnKillTimestamp}` : "";
             const newAnn = `${currentAnn} ${actString} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
-            const dns = document.getElementById("cfgBestUrl").value.trim() || fallbackDns || "https://topnextplay.online:443";
+            const dns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || fallbackDns || "https://topnextplay.online:443";
+            const best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || dns;
+            const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
+
             await rpcCall("panel_save_own_config", {
                 p_reseller_id: "dream",
                 p_password: adminPassword,
                 p_best_url: dns,
-                p_best2_url: document.getElementById("cfgBest2Url").value.trim(),
+                p_best2_url: best2,
                 p_announcement: newAnn,
-                p_maintenance_mode: document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false,
+                p_maintenance_mode: maintenance,
                 p_new_password: ""
             });
             if (lastDashboardData) {
@@ -2107,18 +2145,32 @@
             const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim();
             const newAnn = `${cleanAnn} ${actString}`.trim();
             const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://topnextplay.online:443") : "https://topnextplay.online:443");
-            await rpcCall("master_save_reseller", {
-                p_master_password: adminPassword,
-                p_reseller_id: "dream",
-                p_brand_name: dreamRes ? dreamRes.brand_name : "RedOn TV (Dream)",
-                p_panel_password: dreamRes ? dreamRes.panel_password : "dream",
-                p_best_url: dns,
-                p_best2_url: dreamRes ? dreamRes.best2_url : "",
-                p_max_devices: dreamRes ? dreamRes.max_devices : 0,
-                p_expires_at: null,
-                p_is_suspended: false,
-                p_suspend_reason: newAnn
-            });
+            const dreamPass = dreamRes ? dreamRes.panel_password : "dream";
+
+            try {
+                await rpcCall("panel_save_own_config", {
+                    p_reseller_id: "dream",
+                    p_password: dreamPass,
+                    p_best_url: dns,
+                    p_best2_url: dreamRes ? (dreamRes.best2_url || dns) : dns,
+                    p_announcement: newAnn,
+                    p_maintenance_mode: false,
+                    p_new_password: ""
+                });
+            } catch (err) {
+                await rpcCall("master_save_reseller", {
+                    p_master_password: adminPassword,
+                    p_reseller_id: "dream",
+                    p_brand_name: dreamRes ? dreamRes.brand_name : "RedOn TV (Dream)",
+                    p_panel_password: dreamPass,
+                    p_best_url: dns,
+                    p_best2_url: dreamRes ? dreamRes.best2_url : "",
+                    p_max_devices: dreamRes ? dreamRes.max_devices : 0,
+                    p_expires_at: null,
+                    p_is_suspended: false,
+                    p_suspend_reason: newAnn
+                });
+            }
             if (dreamRes) {
                 dreamRes.announcement = newAnn;
             }
@@ -2210,84 +2262,121 @@
     }
 
     async function handleQuickActivation(e) {
-        e.preventDefault();
+        if (e) e.preventDefault();
         const btn = document.getElementById("btnQuickSaveAct");
-        btn.disabled = true;
-        btn.textContent = "A ativar...";
-
-        const devId = document.getElementById("quickActDeviceId").value.trim().replace(/\s+/g, "");
-        const devKey = document.getElementById("quickActDeviceKey").value.trim().replace(/\s+/g, "");
-        const dns = document.getElementById("quickActDns").value.trim();
-        const user = document.getElementById("quickActUser").value.trim();
-        const pass = document.getElementById("quickActPass").value.trim();
-
-        const existingIdx = currentActivations.findIndex(a => a.device_id.toLowerCase() === devId.toLowerCase());
-        if (existingIdx >= 0) {
-            currentActivations[existingIdx] = {
-                device_id: devId,
-                device_key: devKey,
-                dns: dns,
-                username: user,
-                password: pass
-            };
-        } else {
-            currentActivations.push({
-                device_id: devId,
-                device_key: devKey,
-                dns: dns,
-                username: user,
-                password: pass
-            });
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "A ativar...";
         }
 
         try {
+            const devIdEl = document.getElementById("quickActDeviceId");
+            const devKeyEl = document.getElementById("quickActDeviceKey");
+            const dnsEl = document.getElementById("quickActDns");
+            const userEl = document.getElementById("quickActUser");
+            const passEl = document.getElementById("quickActPass");
+
+            const devId = devIdEl ? devIdEl.value.trim().replace(/\s+/g, "") : "";
+            const devKey = devKeyEl ? devKeyEl.value.trim().replace(/\s+/g, "") : "";
+            const dns = (dnsEl && dnsEl.value.trim()) || "https://topnextplay.online:443";
+            const user = userEl ? userEl.value.trim() : "";
+            const pass = passEl ? passEl.value.trim() : "";
+
+            if (!devId) {
+                showToast("Por favor insere o Device ID ou MAC da TV.", true);
+                return;
+            }
+            if (!user || !pass) {
+                showToast("Por favor insere o Username e a Senha da linha.", true);
+                return;
+            }
+
+            const existingIdx = currentActivations.findIndex(a => a.device_id.toLowerCase() === devId.toLowerCase());
+            if (existingIdx >= 0) {
+                currentActivations[existingIdx] = {
+                    device_id: devId,
+                    device_key: devKey,
+                    dns: dns,
+                    username: user,
+                    password: pass
+                };
+            } else {
+                currentActivations.push({
+                    device_id: devId,
+                    device_key: devKey,
+                    dns: dns,
+                    username: user,
+                    password: pass
+                });
+            }
+
             await saveActivationsToBackend(currentActivations, dns);
             showToast("✔ Dispositivo ativado com sucesso!");
-            document.getElementById("quickActDeviceId").value = "";
-            document.getElementById("quickActDeviceKey").value = "";
-            document.getElementById("quickActUser").value = "";
-            document.getElementById("quickActPass").value = "";
+            if (devIdEl) devIdEl.value = "";
+            if (devKeyEl) devKeyEl.value = "";
+            if (userEl) userEl.value = "";
+            if (passEl) passEl.value = "";
             await loadDashboard();
         } catch (err) {
-            showToast("✔ Ativação registada localmente!", false);
+            console.error("Erro na ativação:", err);
+            showToast("Erro ao guardar ativação no servidor.", true);
             await loadDashboard();
         } finally {
-            btn.disabled = false;
-            btn.textContent = "🚀 Ativar Aparelho Agora";
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Ativar Aparelho";
+            }
         }
     }
 
     document.getElementById("activationForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btnSaveActivation");
-        btn.disabled = true;
-        btn.textContent = "A guardar...";
-
-        const devId = document.getElementById("actDeviceIdInput").value.trim().replace(/\s+/g, "");
-        const devKey = document.getElementById("actDeviceKeyInput").value.trim().replace(/\s+/g, "");
-        const dns = document.getElementById("actDnsInput").value.trim();
-        const user = document.getElementById("actUserInput").value.trim();
-        const pass = document.getElementById("actPassInput").value.trim();
-
-        if (editingActivationIndex !== null && currentActivations[editingActivationIndex]) {
-            currentActivations[editingActivationIndex] = {
-                device_id: devId,
-                device_key: devKey,
-                dns: dns,
-                username: user,
-                password: pass
-            };
-        } else {
-            currentActivations.push({
-                device_id: devId,
-                device_key: devKey,
-                dns: dns,
-                username: user,
-                password: pass
-            });
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "A guardar...";
         }
 
         try {
+            const devIdEl = document.getElementById("actDeviceIdInput");
+            const devKeyEl = document.getElementById("actDeviceKeyInput");
+            const dnsEl = document.getElementById("actDnsInput");
+            const userEl = document.getElementById("actUserInput");
+            const passEl = document.getElementById("actPassInput");
+
+            const devId = devIdEl ? devIdEl.value.trim().replace(/\s+/g, "") : "";
+            const devKey = devKeyEl ? devKeyEl.value.trim().replace(/\s+/g, "") : "";
+            const dns = dnsEl ? dnsEl.value.trim() : "";
+            const user = userEl ? userEl.value.trim() : "";
+            const pass = passEl ? passEl.value.trim() : "";
+
+            if (!devId) {
+                showToast("Por favor insere o Device ID ou MAC.", true);
+                return;
+            }
+            if (!user || !pass) {
+                showToast("Por favor insere o Username e a Senha.", true);
+                return;
+            }
+
+            if (editingActivationIndex !== null && currentActivations[editingActivationIndex]) {
+                currentActivations[editingActivationIndex] = {
+                    device_id: devId,
+                    device_key: devKey,
+                    dns: dns,
+                    username: user,
+                    password: pass
+                };
+            } else {
+                currentActivations.push({
+                    device_id: devId,
+                    device_key: devKey,
+                    dns: dns,
+                    username: user,
+                    password: pass
+                });
+            }
+
             await saveActivationsToBackend(currentActivations, dns);
             closeActivationModal();
             showToast("✔ Dispositivo ativado com sucesso!");
@@ -2295,12 +2384,14 @@
             renderDevices();
         } catch (err) {
             closeActivationModal();
-            showToast("✔ Ativação registada localmente!", false);
+            showToast("Erro ao guardar ativação no servidor.", true);
             renderActivations();
             renderDevices();
         } finally {
-            btn.disabled = false;
-            btn.textContent = "Guardar & Ativar Dispositivo";
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = "Guardar & Ativar Dispositivo";
+            }
         }
     });
 

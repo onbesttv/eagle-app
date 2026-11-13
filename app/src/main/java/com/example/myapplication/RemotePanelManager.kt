@@ -122,7 +122,18 @@ object RemotePanelManager {
                     if (creds.size >= 2) {
                         val user = creds[0].trim()
                         val pass = creds[1].trim()
-                        val dns = creds.getOrNull(2)?.trim()?.ifBlank { null }
+                        var dns = creds.getOrNull(2)?.trim()?.ifBlank { null }
+                        if (!dns.isNullOrBlank()) {
+                            dns = dns.trimEnd(':').trim()
+                            if (dns.contains("://")) {
+                                val schemeIdx = dns.indexOf("://")
+                                val afterScheme = dns.substring(schemeIdx + 3)
+                                val colonCount = afterScheme.count { it == ':' }
+                                if (colonCount > 1) {
+                                    dns = dns.substringBeforeLast(":").trim()
+                                }
+                            }
+                        }
                         if (user.isNotBlank() && pass.isNotBlank()) {
                             val prefs = context.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
                             val loggedOutUser = prefs.getString("LOGGED_OUT_USER", "")
