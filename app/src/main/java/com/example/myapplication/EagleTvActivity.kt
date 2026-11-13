@@ -604,8 +604,7 @@ class EagleTvActivity : BaseActivity() {
         uiHandler.removeCallbacks(clockTickRunnable)
         uiHandler.post(clockTickRunnable)
         atualizarEstadoServidorEVpn()
-        val isCatalog = (activeSection in listOf(WorkspaceSection.MOVIES, WorkspaceSection.SERIES, WorkspaceSection.CATCHUP, WorkspaceSection.SPORTS, WorkspaceSection.NEWSPAPERS))
-        if (player != null && currentStreamId != -1 && (activeSection == WorkspaceSection.LIVE_TV || isCatalog)) {
+        if (player != null && currentStreamId != -1 && activeSection == WorkspaceSection.LIVE_TV) {
             player?.playWhenReady = true
         }
         if (activeSection == WorkspaceSection.MOVIES || activeSection == WorkspaceSection.SERIES) {
@@ -988,15 +987,13 @@ class EagleTvActivity : BaseActivity() {
         layoutTopPreviewRow.visibility = if (showTopPreview) View.VISIBLE else View.GONE
         viewTopHorizontalDivider.visibility = if (showTopPreview) View.VISIBLE else View.GONE
 
-        if (!isLiveTv && !isCatalog) {
-            // Poupança de RAM e CPU na TV Box: parar a TV completamente quando se sai para VPN ou Definições
+        if (!isLiveTv) {
+            // Parar a TV completamente ao sair de Live TV (sem TV a dar em Filmes e Séries)
             player?.stop()
-        } else if (isLiveTv && previousSection != WorkspaceSection.LIVE_TV) {
-            // Retorno à secção de TV: retomar o último canal reproduzido se o player estiver parado
-            if (player == null || player?.playbackState == Player.STATE_IDLE) {
-                currentPlayingChannel?.let { canal ->
-                    sintonizarCanal(canal, currentPlayingNumber)
-                }
+        } else if (previousSection != WorkspaceSection.LIVE_TV) {
+            // Retorno à secção de TV: retomar o último canal reproduzido se existir
+            currentPlayingChannel?.let { canal ->
+                sintonizarCanal(canal, currentPlayingNumber)
             }
         }
 
@@ -1337,6 +1334,11 @@ class EagleTvActivity : BaseActivity() {
             playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
             framePlayerWrapper.layoutParams = playerLp
 
+            (layoutTopProgramDetails.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
+                marginStart = dp(14)
+                layoutTopProgramDetails.layoutParams = this
+            }
+
             framePlayerWrapper.visibility = View.VISIBLE
             layoutTopProgressRow.visibility = View.VISIBLE
             layoutMiniPlayerBadge.visibility = View.VISIBLE
@@ -1344,25 +1346,24 @@ class EagleTvActivity : BaseActivity() {
             tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
             tvTopHeaderTitle.textSize = 17f
         } else {
-            // MODO CATÁLOGO COMPACTO: metade da altura (~96dp) para os posters terem muito mais espaço
+            // MODO CATÁLOGO COMPACTO: metade da altura (~96dp) APENAS com informação do filme/série selecionado (SEM TV)
             val lp = layoutTopPreviewRow.layoutParams
             lp.height = dp(96)
             layoutTopPreviewRow.layoutParams = lp
-            val padH = dp(10)
+            val padH = dp(14)
             val padV = dp(6)
             layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
 
-            val hasChannel = (player != null && currentPlayingChannel != null)
-            val playerLp = framePlayerWrapper.layoutParams
-            playerLp.width = dp(154)
-            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
-            framePlayerWrapper.layoutParams = playerLp
+            (layoutTopProgramDetails.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
+                marginStart = dp(2)
+                layoutTopProgramDetails.layoutParams = this
+            }
 
-            framePlayerWrapper.visibility = if (hasChannel) View.VISIBLE else View.GONE
+            // Ocultar a TV completamente: apenas informação do filme/série
+            framePlayerWrapper.visibility = View.GONE
+            layoutMiniPlayerBadge.visibility = View.GONE
             layoutTopProgressRow.visibility = View.GONE
-            layoutMiniPlayerBadge.visibility = if (hasChannel) View.VISIBLE else View.GONE
             tvTopProgramDesc.maxLines = 2
-            tvMiniPlayerHint.text = "2º Plano"
             tvTopHeaderTitle.textSize = 15f
         }
         layoutTopPreviewRow.requestLayout()
