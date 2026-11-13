@@ -1176,7 +1176,7 @@
 
     async function saveVpnConfigSilent(toastMessage) {
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker" || currentResellerId === "suporte24") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         try {
@@ -1417,14 +1417,14 @@
             document.getElementById("roleBadge").textContent = isMasterRole ? "👑 SUPER ADMIN (MASTER)" : `🤝 REVENDA: ${currentResellerId.toUpperCase()}`;
             const isJoker = (currentResellerId === "joker" || currentResellerId === "tv_joker");
             const hasVpnInApp = currentResellerId !== "pereira_tv";
-            const hasBest2InApp = !isJoker && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream";
+            const hasBest2InApp = !isJoker && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream" && currentResellerId !== "suporte24";
             document.getElementById("masterTabs").style.display = "flex";
             document.getElementById("tabBtnVpn").style.display = hasVpnInApp ? "inline-block" : "none";
             document.getElementById("best1UrlLabel").textContent = isJoker
                 ? "Servidor / DNS da App"
                 : (hasBest2InApp
                     ? "DNS Serviço 1 (StreamPlay / Principal)"
-                    : (currentResellerId === "dream" ? "Servidor / DNS Xtream Codes" : "DNS do Servidor (StreamPlay)"));
+                    : (currentResellerId === "dream" ? "Servidor / DNS Xtream Codes" : (currentResellerId === "suporte24" ? "DNS do Servidor da App" : "DNS do Servidor (StreamPlay)")));
             document.getElementById("best2UrlGroup").style.display = hasBest2InApp ? "block" : "none";
             document.getElementById("filterBtnBest").style.display = hasBest2InApp ? "inline-block" : "none";
             document.getElementById("filterBtnBest2").style.display = hasBest2InApp ? "inline-block" : "none";
@@ -1505,7 +1505,7 @@
 
             const credCard = document.getElementById("vpnCredentialsCard");
             if (credCard) {
-                credCard.style.display = (currentResellerId === "godinho_tv" || isJoker) ? "none" : (isMasterRole ? "block" : "none");
+                credCard.style.display = (currentResellerId === "godinho_tv" || isJoker || currentResellerId === "suporte24") ? "none" : (isMasterRole ? "block" : "none");
             }
             const userInp = document.getElementById("cfgVpnUser");
             const passInp = document.getElementById("cfgVpnPass");
@@ -1744,9 +1744,9 @@
         document.getElementById("statOnline").textContent = online;
         document.getElementById("statToday").textContent = `${today} ativos nas últimas 24h`;
         const isJoker = (currentResellerId === "joker" || currentResellerId === "tv_joker");
-        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || isJoker) {
+        if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || isJoker || currentResellerId === "suporte24") {
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
-            document.getElementById("statServices").textContent = isJoker ? "Templarios" : (currentResellerId === "dream" ? "RedOn TV" : "StreamPlay");
+            document.getElementById("statServices").textContent = isJoker ? "Templarios" : (currentResellerId === "dream" ? "RedOn TV" : (currentResellerId === "suporte24" ? "Online" : "StreamPlay"));
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
         } else if (isMasterRole) {
             document.getElementById("statServicesLabel").textContent = "Apps Eagle Ativas";
@@ -1865,9 +1865,9 @@
             const isJokerDev = (devResLower === "tv_joker" || devResLower === "joker" || currentResellerId === "tv_joker" || currentResellerId === "joker");
             const srvBadge = isJokerDev
                 ? `<span class="badge badge-best2">Templarios</span>`
-                : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream")
+                : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream" && currentResellerId !== "suporte24")
                     ? `<span class="badge badge-best2">Templarios</span>`
-                    : `<span class="badge badge-best">StreamPlay</span>`);
+                    : (currentResellerId === "suporte24" ? `<span class="badge badge-online">Ativo</span>` : `<span class="badge badge-best">StreamPlay</span>`));
 
             const devIdText = d.device_id ? escapeHtml(d.device_id) : "";
             const devIdHtml = devIdText ? `<div style="font-size:11px; color:#38bdf8; font-family:monospace; margin-top:3px; font-weight:600; letter-spacing:0.5px;">${devIdText}</div>` : "";
@@ -2412,7 +2412,7 @@
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
         const bestUrl = document.getElementById("cfgBestUrl").value.trim();
-        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
+        const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker" || currentResellerId === "suporte24") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
         const newPass = document.getElementById("cfgNewPassword").value.trim();
