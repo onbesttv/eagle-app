@@ -1006,17 +1006,27 @@
         if (!container) return;
 
         const MASTER_OWN_USERS = new Set(["xsrupyh"]);
+        const PEREIRA_USERS = new Set();
+        allDevices.forEach(d => {
+            const devRes = (d.reseller_id || "master").toLowerCase();
+            if (devRes === "pereira_tv" || devRes === "pereira") {
+                const u = (d.username || "").trim().toLowerCase();
+                if (u) PEREIRA_USERS.add(u);
+            }
+        });
+
         const usersMap = new Map();
         Array.from(allowedVpnUsers).forEach(u => {
-            if (u && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
+            if (u && !PEREIRA_USERS.has(u) && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
                 usersMap.set(u, { active: true, app: "" });
             }
         });
         allDevices.forEach(d => {
             const devRes = (d.reseller_id || "master").toLowerCase();
+            if (devRes === "pereira_tv" || devRes === "pereira") return;
             const u = (d.username || "").trim().toLowerCase();
             const isTargetDev = isMasterRole || (devRes === currentResellerId);
-            if (isTargetDev && u && u !== "sem login" && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
+            if (isTargetDev && u && u !== "sem login" && !PEREIRA_USERS.has(u) && (isMasterRole || !MASTER_OWN_USERS.has(u))) {
                 const foundApp = getAppName(devRes);
                 if (!usersMap.has(u)) {
                     usersMap.set(u, { active: false, app: foundApp });
@@ -1192,7 +1202,7 @@
             if (isMasterRole && multiResellerEnabled && Array.isArray(allResellers)) {
                 const usersCsv = Array.from(allowedVpnUsers).join(",");
                 for (const r of allResellers) {
-                    if (r && r.reseller_id && r.reseller_id !== "master") {
+                    if (r && r.reseller_id && r.reseller_id !== "master" && r.reseller_id !== "pereira_tv" && r.reseller_id !== "pereira") {
                         await syncResellerVpnMetadata(r, { usersCsv });
                     }
                 }
@@ -1214,7 +1224,7 @@
             await saveVpnConfigSilent();
             if (isMasterRole && multiResellerEnabled) {
                 for (const r of allResellers) {
-                    if (r.reseller_id && r.reseller_id !== "master") {
+                    if (r.reseller_id && r.reseller_id !== "master" && r.reseller_id !== "pereira_tv" && r.reseller_id !== "pereira") {
                         await syncResellerVpnMetadata(r, { killTs: vpnKillTimestamp });
                     }
                 }
@@ -1559,9 +1569,11 @@
                 saveVpnConfigSilent();
             }
 
-            // Se for Master, carregar e unir todos os utilizadores com VPN autorizada em todas as apps
+            // Se for Master, carregar e unir todos os utilizadores com VPN autorizada em todas as apps (exceto Pereira TV)
             if (isMasterRole && Array.isArray(allResellers)) {
                 allResellers.forEach(r => {
+                    const rId = (r.reseller_id || "").toLowerCase();
+                    if (rId === "pereira_tv" || rId === "pereira") return;
                     if (r && r.announcement && r.announcement.includes("||VPN_USERS:")) {
                         const parts = r.announcement.split("||VPN_USERS:")[1].split("||")[0].split("|");
                         if (parts.length > 1) {
@@ -1570,6 +1582,15 @@
                     }
                 });
             }
+
+            // Limpar utilizadores do Pereira TV de allowedVpnUsers
+            allDevices.forEach(d => {
+                const devRes = (d.reseller_id || "master").toLowerCase();
+                if (devRes === "pereira_tv" || devRes === "pereira") {
+                    const u = (d.username || "").trim().toLowerCase();
+                    if (u) allowedVpnUsers.delete(u);
+                }
+            });
 
             renderVpnAllowedUsers();
             if (isMasterRole) {
@@ -1850,7 +1871,8 @@
             const devIdText = d.device_id ? escapeHtml(d.device_id) : "";
             const devIdHtml = devIdText ? `<div style="font-size:11px; color:#38bdf8; font-family:monospace; margin-top:3px; font-weight:600; letter-spacing:0.5px;">${devIdText}</div>` : "";
             const userLabel = `<div>${d.username ? `<strong>${escapeHtml(d.username)}</strong>` : `<span style="color:var(--text-muted)">Sem login</span>`}</div>${devIdHtml}`;
-            const isTargetVpnDev = !!d.username && hasPerUserVpnControl() && (
+            const isPereiraDev = (devResLower === "pereira_tv" || devResLower === "pereira");
+            const isTargetVpnDev = !isPereiraDev && !!d.username && hasPerUserVpnControl() && (
                 isMasterRole ||
                 devResLower === currentResellerId ||
                 ((currentResellerId === "tv_joker" || currentResellerId === "joker") && (devResLower === "tv_joker" || devResLower === "joker"))
