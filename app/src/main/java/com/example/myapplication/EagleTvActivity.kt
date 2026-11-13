@@ -38,6 +38,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.cardview.widget.CardView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.GridLayoutManager
@@ -63,6 +64,7 @@ import java.io.FileReader
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
@@ -98,7 +100,13 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
-    private val client = OkHttpClient()
+    private val client by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(2, TimeUnit.MINUTES)
+            .build()
+    }
     private val gson = Gson()
     private val uiHandler = Handler(Looper.getMainLooper())
 
@@ -297,6 +305,8 @@ class EagleTvActivity : BaseActivity() {
     private val vodResumeDurCache = HashMap<Int, Long>()
     private var currentPreviewVodStreamId = -1
     private var heroPreviewRunnable: Runnable? = null
+    private val movieFolderLastPos = HashMap<String, Int>()
+    private val seriesFolderLastPos = HashMap<String, Int>()
 
     private fun carregarCachesLocais() {
         movieFavIdsCache.clear()
@@ -326,7 +336,7 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
-    private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 8) {
+    private fun focarRecyclerViewPosicao(rv: RecyclerView, targetPos: Int, retries: Int = 12) {
         if (targetPos < 0) return
         val count = rv.adapter?.itemCount ?: 0
         if (count == 0) {
@@ -336,7 +346,12 @@ class EagleTvActivity : BaseActivity() {
             return
         }
         val safePos = targetPos.coerceIn(0, count - 1)
-        rv.scrollToPosition(safePos)
+        val lm = rv.layoutManager
+        if (lm is LinearLayoutManager) {
+            lm.scrollToPositionWithOffset(safePos, dp(40))
+        } else {
+            rv.scrollToPosition(safePos)
+        }
         rv.post {
             val vh = rv.findViewHolderForAdapterPosition(safePos)
             if (vh != null) {
@@ -370,7 +385,12 @@ class EagleTvActivity : BaseActivity() {
                 focarRecyclerViewPosicao(rvLiveGroups, lastLiveGroupPos)
             }
             LastFocusArea.CATALOG_GRID -> {
-                focarRecyclerViewPosicao(rvCatalogGrid, lastCatalogGridPos)
+                val targetPos = when (activeSection) {
+                    WorkspaceSection.MOVIES -> (movieFolderLastPos[currentVodCategoryId] ?: lastCatalogGridPos)
+                    WorkspaceSection.SERIES -> (seriesFolderLastPos[currentSeriesCategoryId] ?: lastCatalogGridPos)
+                    else -> lastCatalogGridPos
+                }
+                focarRecyclerViewPosicao(rvCatalogGrid, targetPos)
             }
             LastFocusArea.CATALOG_GROUPS -> {
                 focarRecyclerViewPosicao(rvCatalogGroups, lastCatalogGroupPos)
@@ -471,6 +491,12 @@ class EagleTvActivity : BaseActivity() {
         }, 1200)
 
         carregarTudoLiveTv()
+        rvLiveGroups.postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                carregarTodosFilmesEmCache()
+                carregarTodasSeriesEmCache()
+            }
+        }, 1500)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -578,7 +604,8 @@ class EagleTvActivity : BaseActivity() {
         uiHandler.removeCallbacks(clockTickRunnable)
         uiHandler.post(clockTickRunnable)
         atualizarEstadoServidorEVpn()
-        if (player != null && currentStreamId != -1 && activeSection == WorkspaceSection.LIVE_TV) {
+        val isCatalog = (activeSection in listOf(WorkspaceSection.MOVIES, WorkspaceSection.SERIES, WorkspaceSection.CATCHUP, WorkspaceSection.SPORTS, WorkspaceSection.NEWSPAPERS))
+        if (player != null && currentStreamId != -1 && (activeSection == WorkspaceSection.LIVE_TV || isCatalog)) {
             player?.playWhenReady = true
         }
         if (activeSection == WorkspaceSection.MOVIES || activeSection == WorkspaceSection.SERIES) {
@@ -599,9 +626,7 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (isFinishing) {
-            player?.pause()
-        }
+        player?.pause()
     }
 
     override fun onDestroy() {
@@ -879,6 +904,12 @@ class EagleTvActivity : BaseActivity() {
                 try { File(cacheDir, "vod_categories_cache.json").delete() } catch (_: Exception) {}
                 try { File(cacheDir, "series_categories_cache.json").delete() } catch (_: Exception) {}
                 carregarTudoLiveTv()
+        rvLiveGroups.postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                carregarTodosFilmesEmCache()
+                carregarTodasSeriesEmCache()
+            }
+        }, 1500)
                 SportsAgendaManager.loadOrRefresh(this, forceOnline = true) { matches ->
                     allMatches.clear()
                     allMatches.addAll(matches)
@@ -953,16 +984,19 @@ class EagleTvActivity : BaseActivity() {
         val isVpn = (sec == WorkspaceSection.VPN)
         val isSettings = (sec == WorkspaceSection.SETTINGS)
 
-        layoutTopPreviewRow.visibility = if (isLiveTv) View.VISIBLE else View.GONE
-        viewTopHorizontalDivider.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        val showTopPreview = isLiveTv || isCatalog
+        layoutTopPreviewRow.visibility = if (showTopPreview) View.VISIBLE else View.GONE
+        viewTopHorizontalDivider.visibility = if (showTopPreview) View.VISIBLE else View.GONE
 
-        if (!isLiveTv) {
-            // Poupança de RAM e CPU na TV Box: parar a TV completamente quando se sai da secção de TV
+        if (!isLiveTv && !isCatalog) {
+            // Poupança de RAM e CPU na TV Box: parar a TV completamente quando se sai para VPN ou Definições
             player?.stop()
-        } else if (previousSection != WorkspaceSection.LIVE_TV) {
-            // Retorno à secção de TV: retomar o último canal reproduzido se existir
-            currentPlayingChannel?.let { canal ->
-                sintonizarCanal(canal, currentPlayingNumber)
+        } else if (isLiveTv && previousSection != WorkspaceSection.LIVE_TV) {
+            // Retorno à secção de TV: retomar o último canal reproduzido se o player estiver parado
+            if (player == null || player?.playbackState == Player.STATE_IDLE) {
+                currentPlayingChannel?.let { canal ->
+                    sintonizarCanal(canal, currentPlayingNumber)
+                }
             }
         }
 
@@ -1252,17 +1286,19 @@ class EagleTvActivity : BaseActivity() {
             btnExpandRail.visibility = View.GONE
         }
         val isLiveTv = (activeSection == WorkspaceSection.LIVE_TV)
-        layoutTopPreviewRow.visibility = if (isLiveTv) View.VISIBLE else View.GONE
-        viewTopHorizontalDivider.visibility = if (isLiveTv) View.VISIBLE else View.GONE
-        layoutTopProgramDetails.visibility = if (isLiveTv) View.VISIBLE else View.GONE
-        layoutMiniPlayerBadge.visibility = if (isLiveTv) View.VISIBLE else View.GONE
+        val isCatalog = (activeSection in listOf(WorkspaceSection.MOVIES, WorkspaceSection.SERIES, WorkspaceSection.CATCHUP, WorkspaceSection.SPORTS, WorkspaceSection.NEWSPAPERS))
+        val showTop = isLiveTv || isCatalog
+        layoutTopPreviewRow.visibility = if (showTop) View.VISIBLE else View.GONE
+        viewTopHorizontalDivider.visibility = if (showTop) View.VISIBLE else View.GONE
+        layoutTopProgramDetails.visibility = if (showTop) View.VISIBLE else View.GONE
+        layoutMiniPlayerBadge.visibility = if (isLiveTv || (isCatalog && player?.isPlaying == true)) View.VISIBLE else View.GONE
 
         layoutLiveTvColumns.visibility = if (isLiveTv) View.VISIBLE else View.GONE
-        layoutCatalogSection.visibility = if (activeSection in listOf(WorkspaceSection.MOVIES, WorkspaceSection.SERIES, WorkspaceSection.CATCHUP, WorkspaceSection.SPORTS, WorkspaceSection.NEWSPAPERS)) View.VISIBLE else View.GONE
+        layoutCatalogSection.visibility = if (isCatalog) View.VISIBLE else View.GONE
         layoutVpnSection.visibility = if (activeSection == WorkspaceSection.VPN) View.VISIBLE else View.GONE
         layoutSettingsSection.visibility = if (activeSection == WorkspaceSection.SETTINGS) View.VISIBLE else View.GONE
 
-        if (isLiveTv) {
+        if (showTop) {
             aplicarDimensoesTopo()
         }
 
@@ -1272,29 +1308,63 @@ class EagleTvActivity : BaseActivity() {
     private fun aplicarDimensoesTopo() {
         if (isFullScreen) return
         val isLiveTv = (activeSection == WorkspaceSection.LIVE_TV)
-        if (!isLiveTv) {
+        val isCatalog = (activeSection in listOf(
+            WorkspaceSection.MOVIES,
+            WorkspaceSection.SERIES,
+            WorkspaceSection.CATCHUP,
+            WorkspaceSection.SPORTS,
+            WorkspaceSection.NEWSPAPERS
+        ))
+
+        if (!isLiveTv && !isCatalog) {
             layoutTopPreviewRow.visibility = View.GONE
             viewTopHorizontalDivider.visibility = View.GONE
             return
         }
         layoutTopPreviewRow.visibility = View.VISIBLE
         viewTopHorizontalDivider.visibility = View.VISIBLE
+        layoutTopProgramDetails.visibility = View.VISIBLE
 
-        val lp = layoutTopPreviewRow.layoutParams
-        lp.height = dp(196)
-        layoutTopPreviewRow.layoutParams = lp
-        val pad = dp(10)
-        layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
+        if (isLiveTv) {
+            val lp = layoutTopPreviewRow.layoutParams
+            lp.height = dp(196)
+            layoutTopPreviewRow.layoutParams = lp
+            val pad = dp(10)
+            layoutTopPreviewRow.setPadding(pad, pad, pad, pad)
 
-        val playerLp = framePlayerWrapper.layoutParams
-        playerLp.width = dp(310)
-        playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
-        framePlayerWrapper.layoutParams = playerLp
+            val playerLp = framePlayerWrapper.layoutParams
+            playerLp.width = dp(310)
+            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            framePlayerWrapper.layoutParams = playerLp
 
-        layoutTopProgressRow.visibility = View.VISIBLE
-        tvTopProgramDesc.maxLines = 3
-        tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
-        tvTopHeaderTitle.textSize = 17f
+            framePlayerWrapper.visibility = View.VISIBLE
+            layoutTopProgressRow.visibility = View.VISIBLE
+            layoutMiniPlayerBadge.visibility = View.VISIBLE
+            tvTopProgramDesc.maxLines = 3
+            tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
+            tvTopHeaderTitle.textSize = 17f
+        } else {
+            // MODO CATÁLOGO COMPACTO: metade da altura (~96dp) para os posters terem muito mais espaço
+            val lp = layoutTopPreviewRow.layoutParams
+            lp.height = dp(96)
+            layoutTopPreviewRow.layoutParams = lp
+            val padH = dp(10)
+            val padV = dp(6)
+            layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
+
+            val hasChannel = (player != null && currentPlayingChannel != null)
+            val playerLp = framePlayerWrapper.layoutParams
+            playerLp.width = dp(154)
+            playerLp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            framePlayerWrapper.layoutParams = playerLp
+
+            framePlayerWrapper.visibility = if (hasChannel) View.VISIBLE else View.GONE
+            layoutTopProgressRow.visibility = View.GONE
+            layoutMiniPlayerBadge.visibility = if (hasChannel) View.VISIBLE else View.GONE
+            tvTopProgramDesc.maxLines = 2
+            tvMiniPlayerHint.text = "2º Plano"
+            tvTopHeaderTitle.textSize = 15f
+        }
         layoutTopPreviewRow.requestLayout()
         framePlayerWrapper.requestLayout()
 
@@ -1304,7 +1374,6 @@ class EagleTvActivity : BaseActivity() {
             cornerRadius = dp(6).toFloat()
         }
         framePlayerWrapper.clipToOutline = true
-        layoutMiniPlayerBadge.visibility = View.VISIBLE
     }
 
     private fun mostrarOsdFullscreen(focusQuickActions: Boolean = false) {
@@ -1623,7 +1692,26 @@ class EagleTvActivity : BaseActivity() {
                     }
                 }
             } else if (isDown && activeSection != WorkspaceSection.LIVE_TV) {
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    if (rvCatalogGrid.hasFocus()) {
+                        val lm = rvCatalogGrid.layoutManager
+                        val spanCount = if (lm is GridLayoutManager) lm.spanCount else 1
+                        val totalItems = rvCatalogGrid.adapter?.itemCount ?: 0
+                        val focusedChild = rvCatalogGrid.findFocus()
+                        val pos = if (focusedChild != null) {
+                            rvCatalogGrid.getChildAdapterPosition(rvCatalogGrid.findContainingItemView(focusedChild) ?: focusedChild)
+                        } else RecyclerView.NO_POSITION
+
+                        if (pos != RecyclerView.NO_POSITION && totalItems > 0) {
+                            val nextRowPos = pos + spanCount
+                            if (nextRowPos < totalItems) {
+                                focarRecyclerViewPosicao(rvCatalogGrid, nextRowPos)
+                            }
+                            // BLOQUEIO TOTAL: consome a tecla DPAD_DOWN para o cursor NUNCA saltar da grelha de posters para as pastas ou menu!
+                            return true
+                        }
+                    }
+                } else if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
                     when {
                         rvCatalogGrid.hasFocus() -> {
                             val lm = rvCatalogGrid.layoutManager
@@ -1664,8 +1752,29 @@ class EagleTvActivity : BaseActivity() {
                             return true
                         }
                         rvCatalogGroups.hasFocus() && (rvCatalogGrid.adapter?.itemCount ?: 0) > 0 -> {
-                            focarRecyclerViewPosicao(rvCatalogGrid, 0)
+                            val targetPos = when (activeSection) {
+                                WorkspaceSection.MOVIES -> (movieFolderLastPos[currentVodCategoryId] ?: 0)
+                                WorkspaceSection.SERIES -> (seriesFolderLastPos[currentSeriesCategoryId] ?: 0)
+                                else -> 0
+                            }.coerceAtLeast(0)
+                            focarRecyclerViewPosicao(rvCatalogGrid, targetPos)
                             return true
+                        }
+                        rvCatalogGrid.hasFocus() -> {
+                            val lm = rvCatalogGrid.layoutManager
+                            val spanCount = if (lm is GridLayoutManager) lm.spanCount else 1
+                            val totalItems = rvCatalogGrid.adapter?.itemCount ?: 0
+                            val focusedChild = rvCatalogGrid.findFocus()
+                            val pos = if (focusedChild != null) {
+                                rvCatalogGrid.getChildAdapterPosition(rvCatalogGrid.findContainingItemView(focusedChild) ?: focusedChild)
+                            } else RecyclerView.NO_POSITION
+
+                            if (pos != RecyclerView.NO_POSITION && totalItems > 0) {
+                                val isRightmostCol = (spanCount > 1 && (pos + 1) % spanCount == 0) || (pos + 1 >= totalItems)
+                                if (isRightmostCol) {
+                                    return true
+                                }
+                            }
                         }
                     }
                 }
@@ -2310,8 +2419,9 @@ class EagleTvActivity : BaseActivity() {
         }
         if (allVodCategories.isNotEmpty()) {
             montarCategoriasFilmes(allVodCategories)
+            val lastGroup = lastCatalogGroupPos.coerceIn(0, (allVodCategories.size - 1).coerceAtLeast(0))
             rvCatalogGroups.post {
-                focarRecyclerViewPosicao(rvCatalogGroups, 0)
+                focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
             }
             return
         }
@@ -2324,8 +2434,9 @@ class EagleTvActivity : BaseActivity() {
             VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0)
         )
         montarCategoriasFilmes(baseCategorias)
+        val lastGroup = lastCatalogGroupPos.coerceIn(0, (baseCategorias.size - 1).coerceAtLeast(0))
         rvCatalogGroups.post {
-            focarRecyclerViewPosicao(rvCatalogGroups, 0)
+            focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
         }
 
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_categories"
@@ -2355,6 +2466,8 @@ class EagleTvActivity : BaseActivity() {
                             } else {
                                 montarCategoriasFilmes(completas)
                             }
+                            movieGroupAdapter?.notifyDataSetChanged()
+                            catalogGroupAdapter?.notifyDataSetChanged()
                         }
                     }
                 } catch (_: Exception) {}
@@ -2363,7 +2476,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun montarCategoriasFilmes(categorias: List<VodCategory>) {
-        val initialIdx = 0
+        val initialIdx = lastCatalogGroupPos.coerceIn(0, (categorias.size - 1).coerceAtLeast(0))
         movieGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
@@ -2376,7 +2489,10 @@ class EagleTvActivity : BaseActivity() {
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
                     "RECENT" -> minOf(40, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else CategoryCountHelper.getVodCount(this, "RECENT"))
-                    else -> CategoryCountHelper.getVodCount(this, id)
+                    else -> {
+                        val saved = CategoryCountHelper.getVodCount(this, id)
+                        if (saved > 0) saved else synchronized(allMoviesCache) { allMoviesCache.count { it.categoryId == id } }
+                    }
                 }
             },
             onSelect = { id, _ -> selecionarCategoriaFilmes(id) }
@@ -2568,6 +2684,15 @@ class EagleTvActivity : BaseActivity() {
                                 if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == catId) {
                                     currentVodCategoryMovies = filmes
                                     CategoryCountHelper.saveVodCounts(this@EagleTvActivity, mapOf(catId to filmes.size))
+                                    synchronized(allMoviesCache) {
+                                        filmes.forEach { f ->
+                                            if (allMoviesCache.none { it.streamId == f.streamId }) {
+                                                allMoviesCache.add(f)
+                                            }
+                                        }
+                                    }
+                                    movieGroupAdapter?.notifyDataSetChanged()
+                                    catalogGroupAdapter?.notifyDataSetChanged()
                                     atualizarGrelhaFilmes()
                                 }
                             }
@@ -2638,8 +2763,9 @@ class EagleTvActivity : BaseActivity() {
         }
         if (allSeriesCategories.isNotEmpty()) {
             montarCategoriasSeries(allSeriesCategories)
+            val lastGroup = lastCatalogGroupPos.coerceIn(0, (allSeriesCategories.size - 1).coerceAtLeast(0))
             rvCatalogGroups.post {
-                focarRecyclerViewPosicao(rvCatalogGroups, 0)
+                focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
             }
             return
         }
@@ -2651,8 +2777,9 @@ class EagleTvActivity : BaseActivity() {
             SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES")
         )
         montarCategoriasSeries(baseCategorias)
+        val lastGroup = lastCatalogGroupPos.coerceIn(0, (baseCategorias.size - 1).coerceAtLeast(0))
         rvCatalogGroups.post {
-            focarRecyclerViewPosicao(rvCatalogGroups, 0)
+            focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
         }
 
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series_categories"
@@ -2681,6 +2808,8 @@ class EagleTvActivity : BaseActivity() {
                             } else {
                                 montarCategoriasSeries(completas)
                             }
+                            seriesGroupAdapter?.notifyDataSetChanged()
+                            catalogGroupAdapter?.notifyDataSetChanged()
                         }
                     }
                 } catch (_: Exception) {}
@@ -2689,7 +2818,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun montarCategoriasSeries(categorias: List<SeriesCategory>) {
-        val initialIdx = 0
+        val initialIdx = lastCatalogGroupPos.coerceIn(0, (categorias.size - 1).coerceAtLeast(0))
         seriesGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
@@ -2701,7 +2830,10 @@ class EagleTvActivity : BaseActivity() {
                     }
                     "FAVORITES" -> seriesFavIdsCache.size
                     "RECENT" -> minOf(40, if (allSeriesCache.isNotEmpty()) allSeriesCache.size else CategoryCountHelper.getSeriesCount(this, "RECENT"))
-                    else -> CategoryCountHelper.getSeriesCount(this, id)
+                    else -> {
+                        val saved = CategoryCountHelper.getSeriesCount(this, id)
+                        if (saved > 0) saved else synchronized(allSeriesCache) { allSeriesCache.count { it.categoryId == id } }
+                    }
                 }
             },
             onSelect = { id, _ -> selecionarCategoriaSeries(id) }
@@ -2882,6 +3014,15 @@ class EagleTvActivity : BaseActivity() {
                                 if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == catId) {
                                     currentSeriesCategoryItems = series
                                     CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, mapOf(catId to series.size))
+                                    synchronized(allSeriesCache) {
+                                        series.forEach { s ->
+                                            if (allSeriesCache.none { it.seriesId == s.seriesId }) {
+                                                allSeriesCache.add(s)
+                                            }
+                                        }
+                                    }
+                                    seriesGroupAdapter?.notifyDataSetChanged()
+                                    catalogGroupAdapter?.notifyDataSetChanged()
                                     atualizarGrelhaSeries()
                                 }
                             }
@@ -2992,8 +3133,13 @@ class EagleTvActivity : BaseActivity() {
         if (focarConteudoAoCarregar) {
             focarConteudoAoCarregar = false
             if (items.isNotEmpty()) {
+                val targetPos = when (activeSection) {
+                    WorkspaceSection.MOVIES -> (movieFolderLastPos[currentVodCategoryId] ?: 0)
+                    WorkspaceSection.SERIES -> (seriesFolderLastPos[currentSeriesCategoryId] ?: 0)
+                    else -> 0
+                }.coerceIn(0, items.size - 1)
                 rvCatalogGrid.post {
-                    focarRecyclerViewPosicao(rvCatalogGrid, 0)
+                    focarRecyclerViewPosicao(rvCatalogGrid, targetPos)
                 }
             }
         }
@@ -3721,6 +3867,12 @@ class EagleTvActivity : BaseActivity() {
         atualizarEstadoServidorEVpn()
         selecionarSecao(WorkspaceSection.LIVE_TV)
         carregarTudoLiveTv()
+        rvLiveGroups.postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                carregarTodosFilmesEmCache()
+                carregarTodasSeriesEmCache()
+            }
+        }, 1500)
         Toast.makeText(this, "Servidor alterado para ${IptvServiceConfig.displayName(targetService)}", Toast.LENGTH_SHORT).show()
     }
 
@@ -5319,6 +5471,11 @@ class EagleTvActivity : BaseActivity() {
                     lastFocusArea = LastFocusArea.CATALOG_GRID
                     lastCatalogGridPos = holder.bindingAdapterPosition
                     hasSavedFocus = true
+                    if (activeSection == WorkspaceSection.MOVIES) {
+                        movieFolderLastPos[currentVodCategoryId] = holder.bindingAdapterPosition
+                    } else if (activeSection == WorkspaceSection.SERIES) {
+                        seriesFolderLastPos[currentSeriesCategoryId] = holder.bindingAdapterPosition
+                    }
                     onFocused(item)
                 }
             }
@@ -5326,6 +5483,11 @@ class EagleTvActivity : BaseActivity() {
                 lastFocusArea = LastFocusArea.CATALOG_GRID
                 lastCatalogGridPos = holder.bindingAdapterPosition
                 hasSavedFocus = true
+                if (activeSection == WorkspaceSection.MOVIES) {
+                    movieFolderLastPos[currentVodCategoryId] = holder.bindingAdapterPosition
+                } else if (activeSection == WorkspaceSection.SERIES) {
+                    seriesFolderLastPos[currentSeriesCategoryId] = holder.bindingAdapterPosition
+                }
                 onClick(item)
             }
             holder.itemView.setOnLongClickListener {
