@@ -276,6 +276,8 @@ class EagleTvActivity : BaseActivity() {
             else -> movieGroupAdapter ?: seriesGroupAdapter
         }
     private var catalogPosterAdapter: CatalogPosterAdapter? = null
+    private var activeVodCall: Call? = null
+    private var activeSeriesCall: Call? = null
 
     // Controlo de Retenção e Restauração de Foco (D-Pad / TV Box)
     enum class LastFocusArea {
@@ -491,12 +493,6 @@ class EagleTvActivity : BaseActivity() {
         }, 1200)
 
         carregarTudoLiveTv()
-        rvLiveGroups.postDelayed({
-            if (!isFinishing && !isDestroyed) {
-                carregarTodosFilmesEmCache()
-                carregarTodasSeriesEmCache()
-            }
-        }, 1500)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -629,6 +625,8 @@ class EagleTvActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
+        activeVodCall?.cancel()
+        activeSeriesCall?.cancel()
         uiHandler.removeCallbacksAndMessages(null)
         uiHandler.removeCallbacks(periodicUpdateCheckRunnable)
         PiaVpnManager.removeListener(vpnStateListener)
@@ -829,16 +827,16 @@ class EagleTvActivity : BaseActivity() {
             selecionarSecao(WorkspaceSection.MOVIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                catalogGroupAdapter?.selecionarPorId("RECENT")
-                focarRecyclerViewPosicao(rvCatalogGroups, 0)
+                val pos = (movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
             }, 80)
         }
         navSeries.setOnClickListener {
             selecionarSecao(WorkspaceSection.SERIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                catalogGroupAdapter?.selecionarPorId("RECENT")
-                focarRecyclerViewPosicao(rvCatalogGroups, 0)
+                val pos = (seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos).coerceAtLeast(0)
+                focarRecyclerViewPosicao(rvCatalogGroups, pos)
             }, 80)
         }
 
@@ -903,12 +901,6 @@ class EagleTvActivity : BaseActivity() {
                 try { File(cacheDir, "vod_categories_cache.json").delete() } catch (_: Exception) {}
                 try { File(cacheDir, "series_categories_cache.json").delete() } catch (_: Exception) {}
                 carregarTudoLiveTv()
-        rvLiveGroups.postDelayed({
-            if (!isFinishing && !isDestroyed) {
-                carregarTodosFilmesEmCache()
-                carregarTodasSeriesEmCache()
-            }
-        }, 1500)
                 SportsAgendaManager.loadOrRefresh(this, forceOnline = true) { matches ->
                     allMatches.clear()
                     allMatches.addAll(matches)
@@ -2414,7 +2406,6 @@ class EagleTvActivity : BaseActivity() {
 
     private fun iniciarSecaoFilmes() {
         etCatalogSearch.setText("")
-        carregarTodosFilmesEmCache()
         if (allVodCategories.isEmpty()) {
             carregarCategoriasFilmesCache()
         }
@@ -2467,8 +2458,6 @@ class EagleTvActivity : BaseActivity() {
                             } else {
                                 montarCategoriasFilmes(completas)
                             }
-                            movieGroupAdapter?.notifyDataSetChanged()
-                            catalogGroupAdapter?.notifyDataSetChanged()
                         }
                     }
                 } catch (_: Exception) {}
@@ -2490,10 +2479,7 @@ class EagleTvActivity : BaseActivity() {
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
                     "RECENT" -> minOf(40, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else CategoryCountHelper.getVodCount(this, "RECENT"))
-                    else -> {
-                        val saved = CategoryCountHelper.getVodCount(this, id)
-                        if (saved > 0) saved else synchronized(allMoviesCache) { allMoviesCache.count { it.categoryId == id } }
-                    }
+                    else -> CategoryCountHelper.getVodCount(this, id)
                 }
             },
             onSelect = { id, _ -> selecionarCategoriaFilmes(id) }
@@ -2535,8 +2521,14 @@ class EagleTvActivity : BaseActivity() {
                         counts["ALL_MOVIES"] = filmes.size
                         CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
+                            val selPos = movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
+                            val hadFocus = rvCatalogGroups.hasFocus()
                             movieGroupAdapter?.notifyDataSetChanged()
-                            catalogGroupAdapter?.notifyDataSetChanged()
+                            if (hadFocus && selPos >= 0) {
+                                rvCatalogGroups.post {
+                                    focarRecyclerViewPosicao(rvCatalogGroups, selPos)
+                                }
+                            }
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {
                                 val list = pendingMoviesCacheCallbacks.toList()
                                 pendingMoviesCacheCallbacks.clear()
@@ -2604,8 +2596,14 @@ class EagleTvActivity : BaseActivity() {
                                 list
                             }
                             withContext(Dispatchers.Main) {
+                                val selPos = movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
+                                val hadFocus = rvCatalogGroups.hasFocus()
                                 movieGroupAdapter?.notifyDataSetChanged()
-                                catalogGroupAdapter?.notifyDataSetChanged()
+                                if (hadFocus && selPos >= 0) {
+                                    rvCatalogGroups.post {
+                                        focarRecyclerViewPosicao(rvCatalogGroups, selPos)
+                                    }
+                                }
                                 callbacks.forEach { it.invoke() }
                             }
                         } catch (_: Exception) {
@@ -2630,53 +2628,112 @@ class EagleTvActivity : BaseActivity() {
         (etCatalogSearch.parent as? View)?.visibility = if (isAllMovies) View.VISIBLE else View.GONE
         btnCatalogSort.visibility = if (isAllMovies) View.VISIBLE else View.GONE
 
-        if ((isAllMovies || catId == "RECENT") && allMoviesCache.isEmpty()) {
-            tvCatalogEmpty.text = if (catId == "RECENT") "⏳ A carregar adicionados recentemente... Por favor aguarda." else "⏳ A carregar catálogo de filmes... Por favor aguarda."
-            tvCatalogEmpty.visibility = View.VISIBLE
-            catalogPosterAdapter = null
-            rvCatalogGrid.adapter = null
-        }
+        // Cancela chamada anterior pendente para carregar a pasta selecionada imediatamente
+        activeVodCall?.cancel()
+        activeVodCall = null
 
         when (catId) {
             "ALL_MOVIES" -> {
+                if (allMoviesCache.isEmpty()) {
+                    tvCatalogEmpty.text = "⏳ A carregar catálogo de filmes... Por favor aguarda."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                }
                 carregarTodosFilmesEmCache {
-                    currentVodCategoryMovies = allMoviesCache
-                    atualizarGrelhaFilmes()
+                    if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "ALL_MOVIES") {
+                        currentVodCategoryMovies = allMoviesCache
+                        atualizarGrelhaFilmes()
+                    }
                 }
             }
             "FAVORITES" -> {
-                carregarTodosFilmesEmCache {
-                    val favIds = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("fav_ids", emptySet()) ?: emptySet()
+                val favIds = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
+                    .getStringSet("fav_ids", emptySet()) ?: emptySet()
+                if (allMoviesCache.isNotEmpty()) {
                     currentVodCategoryMovies = allMoviesCache.filter { favIds.contains(it.streamId.toString()) }
                     atualizarGrelhaFilmes()
+                } else {
+                    tvCatalogEmpty.text = "⏳ A carregar favoritos..."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                    carregarTodosFilmesEmCache {
+                        if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "FAVORITES") {
+                            val curFav = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
+                                .getStringSet("fav_ids", emptySet()) ?: emptySet()
+                            currentVodCategoryMovies = allMoviesCache.filter { curFav.contains(it.streamId.toString()) }
+                            atualizarGrelhaFilmes()
+                        }
+                    }
                 }
             }
             "RESUME" -> {
-                carregarTodosFilmesEmCache {
-                    val resumePrefs = getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
-                    val ids = resumePrefs.all.keys
-                        .filter { it.startsWith("pos_") && (resumePrefs.all[it] as? Long ?: 0L) > 10000L }
-                        .map { it.removePrefix("pos_") }
-                        .toSet()
+                val resumePrefs = getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
+                val ids = resumePrefs.all.keys
+                    .filter { it.startsWith("pos_") && (resumePrefs.all[it] as? Long ?: 0L) > 10000L }
+                    .map { it.removePrefix("pos_") }
+                    .toSet()
+                if (allMoviesCache.isNotEmpty()) {
                     currentVodCategoryMovies = allMoviesCache.filter { ids.contains(it.streamId.toString()) }
                     atualizarGrelhaFilmes()
+                } else {
+                    tvCatalogEmpty.text = "⏳ A carregar continuar a ver..."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                    carregarTodosFilmesEmCache {
+                        if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RESUME") {
+                            val curResume = getSharedPreferences("vod_resume_prefs", Context.MODE_PRIVATE)
+                            val curIds = curResume.all.keys
+                                .filter { it.startsWith("pos_") && (curResume.all[it] as? Long ?: 0L) > 10000L }
+                                .map { it.removePrefix("pos_") }
+                                .toSet()
+                            currentVodCategoryMovies = allMoviesCache.filter { curIds.contains(it.streamId.toString()) }
+                            atualizarGrelhaFilmes()
+                        }
+                    }
                 }
             }
             "RECENT" -> {
-                carregarTodosFilmesEmCache {
+                if (allMoviesCache.isNotEmpty()) {
                     currentVodCategoryMovies = allMoviesCache.sortedByDescending { it.streamId }.take(40)
                     atualizarGrelhaFilmes()
+                } else {
+                    tvCatalogEmpty.text = "⏳ A carregar adicionados recentemente..."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                    carregarTodosFilmesEmCache {
+                        if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT") {
+                            currentVodCategoryMovies = allMoviesCache.sortedByDescending { it.streamId }.take(40)
+                            atualizarGrelhaFilmes()
+                        }
+                    }
                 }
             }
             else -> {
+                tvCatalogEmpty.text = "⏳ A carregar $catNome..."
+                tvCatalogEmpty.visibility = View.VISIBLE
+                catalogPosterAdapter = null
+                rvCatalogGrid.adapter = null
+
                 val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams&category_id=$catId"
                 val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-                client.newCall(req).enqueue(object : Callback {
+                val call = client.newCall(req)
+                activeVodCall = call
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-                        focarConteudoAoCarregar = false
+                        if (call.isCanceled()) return
+                        runOnUiThread {
+                            if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == catId) {
+                                tvCatalogEmpty.text = "Não foi possível carregar os filmes desta pasta."
+                                tvCatalogEmpty.visibility = View.VISIBLE
+                            }
+                        }
                     }
                     override fun onResponse(call: Call, response: Response) {
+                        if (call.isCanceled()) return
                         val json = response.body?.string() ?: return
                         try {
                             val type = object : TypeToken<List<VodStream>>() {}.type
@@ -2685,15 +2742,17 @@ class EagleTvActivity : BaseActivity() {
                                 if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == catId) {
                                     currentVodCategoryMovies = filmes
                                     CategoryCountHelper.saveVodCounts(this@EagleTvActivity, mapOf(catId to filmes.size))
-                                    synchronized(allMoviesCache) {
-                                        filmes.forEach { f ->
-                                            if (allMoviesCache.none { it.streamId == f.streamId }) {
-                                                allMoviesCache.add(f)
+
+                                    // Atualiza apenas a linha da categoria selecionada sem recriar o RecyclerView para nunca saltar foco
+                                    val selPos = movieGroupAdapter?.posicaoSelecionada() ?: -1
+                                    if (selPos >= 0) {
+                                        movieGroupAdapter?.notifyItemChanged(selPos)
+                                        if (rvCatalogGroups.hasFocus()) {
+                                            rvCatalogGroups.post {
+                                                focarRecyclerViewPosicao(rvCatalogGroups, selPos)
                                             }
                                         }
                                     }
-                                    movieGroupAdapter?.notifyDataSetChanged()
-                                    catalogGroupAdapter?.notifyDataSetChanged()
                                     atualizarGrelhaFilmes()
                                 }
                             }
@@ -2758,7 +2817,7 @@ class EagleTvActivity : BaseActivity() {
 
     private fun iniciarSecaoSeries() {
         etCatalogSearch.setText("")
-        carregarTodasSeriesEmCache()
+        // Não carregar todas as séries massivamente no arranque para não entupir a rede
         if (allSeriesCategories.isEmpty()) {
             carregarCategoriasSeriesCache()
         }
@@ -2809,8 +2868,6 @@ class EagleTvActivity : BaseActivity() {
                             } else {
                                 montarCategoriasSeries(completas)
                             }
-                            seriesGroupAdapter?.notifyDataSetChanged()
-                            catalogGroupAdapter?.notifyDataSetChanged()
                         }
                     }
                 } catch (_: Exception) {}
@@ -2831,10 +2888,7 @@ class EagleTvActivity : BaseActivity() {
                     }
                     "FAVORITES" -> seriesFavIdsCache.size
                     "RECENT" -> minOf(40, if (allSeriesCache.isNotEmpty()) allSeriesCache.size else CategoryCountHelper.getSeriesCount(this, "RECENT"))
-                    else -> {
-                        val saved = CategoryCountHelper.getSeriesCount(this, id)
-                        if (saved > 0) saved else synchronized(allSeriesCache) { allSeriesCache.count { it.categoryId == id } }
-                    }
+                    else -> CategoryCountHelper.getSeriesCount(this, id)
                 }
             },
             onSelect = { id, _ -> selecionarCategoriaSeries(id) }
@@ -2876,8 +2930,14 @@ class EagleTvActivity : BaseActivity() {
                         counts["ALL_SERIES"] = series.size
                         CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
+                            val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
+                            val hadFocus = rvCatalogGroups.hasFocus()
                             seriesGroupAdapter?.notifyDataSetChanged()
-                            catalogGroupAdapter?.notifyDataSetChanged()
+                            if (hadFocus && selPos >= 0) {
+                                rvCatalogGroups.post {
+                                    focarRecyclerViewPosicao(rvCatalogGroups, selPos)
+                                }
+                            }
                             val callbacks = synchronized(pendingSeriesCallbacks) {
                                 val list = pendingSeriesCallbacks.toList()
                                 pendingSeriesCallbacks.clear()
@@ -2945,8 +3005,14 @@ class EagleTvActivity : BaseActivity() {
                                 list
                             }
                             withContext(Dispatchers.Main) {
+                                val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
+                                val hadFocus = rvCatalogGroups.hasFocus()
                                 seriesGroupAdapter?.notifyDataSetChanged()
-                                catalogGroupAdapter?.notifyDataSetChanged()
+                                if (hadFocus && selPos >= 0) {
+                                    rvCatalogGroups.post {
+                                        focarRecyclerViewPosicao(rvCatalogGroups, selPos)
+                                    }
+                                }
                                 callbacks.forEach { it.invoke() }
                             }
                         } catch (_: Exception) {
@@ -2971,42 +3037,85 @@ class EagleTvActivity : BaseActivity() {
         (etCatalogSearch.parent as? View)?.visibility = if (isAllSeries) View.VISIBLE else View.GONE
         btnCatalogSort.visibility = View.GONE
 
-        if ((isAllSeries || catId == "RECENT") && allSeriesCache.isEmpty()) {
-            tvCatalogEmpty.text = if (catId == "RECENT") "⏳ A carregar adicionadas recentemente... Por favor aguarda." else "⏳ A carregar catálogo de séries... Por favor aguarda."
-            tvCatalogEmpty.visibility = View.VISIBLE
-            catalogPosterAdapter = null
-            rvCatalogGrid.adapter = null
-        }
+        // Cancela chamada anterior pendente para carregar a pasta selecionada imediatamente
+        activeSeriesCall?.cancel()
+        activeSeriesCall = null
 
         when (catId) {
             "ALL_SERIES" -> {
+                if (allSeriesCache.isEmpty()) {
+                    tvCatalogEmpty.text = "⏳ A carregar catálogo de séries... Por favor aguarda."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                }
                 carregarTodasSeriesEmCache {
-                    currentSeriesCategoryItems = allSeriesCache
-                    atualizarGrelhaSeries()
+                    if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == "ALL_SERIES") {
+                        currentSeriesCategoryItems = allSeriesCache
+                        atualizarGrelhaSeries()
+                    }
                 }
             }
             "FAVORITES" -> {
-                carregarTodasSeriesEmCache {
-                    val favIds = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("fav_ids", emptySet()) ?: emptySet()
+                val favIds = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
+                    .getStringSet("fav_ids", emptySet()) ?: emptySet()
+                if (allSeriesCache.isNotEmpty()) {
                     currentSeriesCategoryItems = allSeriesCache.filter { favIds.contains(it.seriesId.toString()) }
                     atualizarGrelhaSeries()
+                } else {
+                    tvCatalogEmpty.text = "⏳ A carregar favoritos..."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                    carregarTodasSeriesEmCache {
+                        if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == "FAVORITES") {
+                            val curFav = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
+                                .getStringSet("fav_ids", emptySet()) ?: emptySet()
+                            currentSeriesCategoryItems = allSeriesCache.filter { curFav.contains(it.seriesId.toString()) }
+                            atualizarGrelhaSeries()
+                        }
+                    }
                 }
             }
             "RECENT" -> {
-                carregarTodasSeriesEmCache {
+                if (allSeriesCache.isNotEmpty()) {
                     currentSeriesCategoryItems = allSeriesCache.sortedByDescending { it.seriesId }.take(40)
                     atualizarGrelhaSeries()
+                } else {
+                    tvCatalogEmpty.text = "⏳ A carregar adicionadas recentemente..."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                    carregarTodasSeriesEmCache {
+                        if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == "RECENT") {
+                            currentSeriesCategoryItems = allSeriesCache.sortedByDescending { it.seriesId }.take(40)
+                            atualizarGrelhaSeries()
+                        }
+                    }
                 }
             }
             else -> {
+                tvCatalogEmpty.text = "⏳ A carregar $catNome..."
+                tvCatalogEmpty.visibility = View.VISIBLE
+                catalogPosterAdapter = null
+                rvCatalogGrid.adapter = null
+
                 val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series&category_id=$catId"
                 val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-                client.newCall(req).enqueue(object : Callback {
+                val call = client.newCall(req)
+                activeSeriesCall = call
+                call.enqueue(object : Callback {
                     override fun onFailure(call: Call, e: IOException) {
-                        focarConteudoAoCarregar = false
+                        if (call.isCanceled()) return
+                        runOnUiThread {
+                            if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == catId) {
+                                tvCatalogEmpty.text = "Não foi possível carregar as séries desta pasta."
+                                tvCatalogEmpty.visibility = View.VISIBLE
+                            }
+                        }
                     }
                     override fun onResponse(call: Call, response: Response) {
+                        if (call.isCanceled()) return
                         val json = response.body?.string() ?: return
                         try {
                             val type = object : TypeToken<List<SeriesItem>>() {}.type
@@ -3015,15 +3124,17 @@ class EagleTvActivity : BaseActivity() {
                                 if (activeSection == WorkspaceSection.SERIES && currentSeriesCategoryId == catId) {
                                     currentSeriesCategoryItems = series
                                     CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, mapOf(catId to series.size))
-                                    synchronized(allSeriesCache) {
-                                        series.forEach { s ->
-                                            if (allSeriesCache.none { it.seriesId == s.seriesId }) {
-                                                allSeriesCache.add(s)
+
+                                    // Atualiza apenas a linha da categoria selecionada sem recriar o RecyclerView para nunca saltar foco
+                                    val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: -1
+                                    if (selPos >= 0) {
+                                        seriesGroupAdapter?.notifyItemChanged(selPos)
+                                        if (rvCatalogGroups.hasFocus()) {
+                                            rvCatalogGroups.post {
+                                                focarRecyclerViewPosicao(rvCatalogGroups, selPos)
                                             }
                                         }
                                     }
-                                    seriesGroupAdapter?.notifyDataSetChanged()
-                                    catalogGroupAdapter?.notifyDataSetChanged()
                                     atualizarGrelhaSeries()
                                 }
                             }
@@ -3109,7 +3220,8 @@ class EagleTvActivity : BaseActivity() {
                         if (added) movieFavIdsCache.add(key) else movieFavIdsCache.remove(key)
                         Toast.makeText(this, if (added) "★ ${item.vod.name} nos Favoritos" else "Removido dos Favoritos", Toast.LENGTH_SHORT).show()
                         catalogPosterAdapter?.notifyDataSetChanged()
-                        catalogGroupAdapter?.notifyDataSetChanged()
+                        val favPos = catalogGroupAdapter?.posicaoPorId("FAVORITES") ?: -1
+                        if (favPos >= 0) catalogGroupAdapter?.notifyItemChanged(favPos)
                     }
                     is CatalogPosterItem.Series -> {
                         val prefs = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
@@ -3120,7 +3232,8 @@ class EagleTvActivity : BaseActivity() {
                         if (added) seriesFavIdsCache.add(key) else seriesFavIdsCache.remove(key)
                         Toast.makeText(this, if (added) "★ ${item.series.name} nos Favoritos" else "Removida dos Favoritos", Toast.LENGTH_SHORT).show()
                         catalogPosterAdapter?.notifyDataSetChanged()
-                        catalogGroupAdapter?.notifyDataSetChanged()
+                        val favPos = catalogGroupAdapter?.posicaoPorId("FAVORITES") ?: -1
+                        if (favPos >= 0) catalogGroupAdapter?.notifyItemChanged(favPos)
                     }
                     is CatalogPosterItem.Channel -> {
                         alternarFavoritoCanal(item.channel)
@@ -3868,12 +3981,6 @@ class EagleTvActivity : BaseActivity() {
         atualizarEstadoServidorEVpn()
         selecionarSecao(WorkspaceSection.LIVE_TV)
         carregarTudoLiveTv()
-        rvLiveGroups.postDelayed({
-            if (!isFinishing && !isDestroyed) {
-                carregarTodosFilmesEmCache()
-                carregarTodasSeriesEmCache()
-            }
-        }, 1500)
         Toast.makeText(this, "Servidor alterado para ${IptvServiceConfig.displayName(targetService)}", Toast.LENGTH_SHORT).show()
     }
 
@@ -4848,6 +4955,8 @@ class EagleTvActivity : BaseActivity() {
             return if (pos in items.indices) items[pos].first else null
         }
 
+        fun posicaoPorId(id: String): Int = items.indexOfFirst { it.first == id }
+
         fun selecionarPorId(id: String) {
             val idx = items.indexOfFirst { it.first == id }
             if (idx >= 0 && idx != selectedPosition) {
@@ -4878,10 +4987,9 @@ class EagleTvActivity : BaseActivity() {
 
             notifyDataSetChanged()
 
-            if (focusedPos != RecyclerView.NO_POSITION && newIdx >= 0) {
-                rv?.post {
-                    val vh = rv.findViewHolderForAdapterPosition(newIdx)
-                    vh?.itemView?.requestFocus()
+            if (focusedPos != RecyclerView.NO_POSITION && newIdx >= 0 && rv != null) {
+                rv.post {
+                    focarRecyclerViewPosicao(rv, newIdx)
                 }
             }
         }
@@ -5006,6 +5114,13 @@ class EagleTvActivity : BaseActivity() {
                     selectedPosition = pos
                     atualizarEstiloItem(prev)
                     atualizarEstiloItem(selectedPosition)
+                    if (this@GroupListAdapter === liveGroupAdapter) {
+                        lastFocusArea = LastFocusArea.LIVE_GROUPS
+                        lastLiveGroupPos = pos
+                    } else {
+                        lastFocusArea = LastFocusArea.CATALOG_GROUPS
+                        lastCatalogGroupPos = pos
+                    }
                     holder.itemView.requestFocus()
                     onSelect(id, name)
                 }
