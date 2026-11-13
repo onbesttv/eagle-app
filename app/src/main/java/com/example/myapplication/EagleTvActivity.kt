@@ -1345,27 +1345,28 @@ class EagleTvActivity : BaseActivity() {
             ivTopHeaderLogo.layoutParams.height = dp(36)
             ivTopHeaderLogo.requestLayout()
         } else {
-            // MODO CATÁLOGO INFORMATIVO: altura ajustada (~130dp) para caber a sinopse completa sem cortes
+            // MODO CATÁLOGO INFORMATIVO: cabeçalho e logo compactos para dar o espaço máximo à DESCRIÇÃO completa (sem cortes)
             val lp = layoutTopPreviewRow.layoutParams
-            lp.height = dp(130)
+            lp.height = dp(145)
             layoutTopPreviewRow.layoutParams = lp
-            val padH = dp(16)
-            val padV = dp(8)
+            val padH = dp(14)
+            val padV = dp(6)
             layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
 
             (layoutTopProgramDetails.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
-                marginStart = dp(4)
+                marginStart = dp(2)
                 layoutTopProgramDetails.layoutParams = this
             }
 
-            // Ocultar a TV completamente: apenas informação e poster do filme/série
+            // Ocultar a TV completamente: foco total na sinopse/descrição do filme/série
             framePlayerWrapper.visibility = View.GONE
             layoutMiniPlayerBadge.visibility = View.GONE
             layoutTopProgressRow.visibility = View.GONE
-            tvTopProgramDesc.maxLines = 4
-            tvTopHeaderTitle.textSize = 16f
-            ivTopHeaderLogo.layoutParams.width = dp(58)
-            ivTopHeaderLogo.layoutParams.height = dp(82)
+            tvTopProgramDesc.maxLines = 5
+            tvTopProgramDesc.textSize = 11.5f
+            tvTopHeaderTitle.textSize = 15f
+            ivTopHeaderLogo.layoutParams.width = dp(38)
+            ivTopHeaderLogo.layoutParams.height = dp(38)
             ivTopHeaderLogo.requestLayout()
         }
         layoutTopPreviewRow.requestLayout()
@@ -3430,7 +3431,7 @@ class EagleTvActivity : BaseActivity() {
                 if (!f.streamIcon.isNullOrBlank()) {
                     Glide.with(this)
                         .load(f.streamIcon)
-                        .override(dp(80), dp(110))
+                        .override(dp(42), dp(42))
                         .centerCrop()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .dontAnimate()
@@ -3469,7 +3470,7 @@ class EagleTvActivity : BaseActivity() {
                 if (!s.cover.isNullOrBlank()) {
                     Glide.with(this)
                         .load(s.cover)
-                        .override(dp(80), dp(110))
+                        .override(dp(42), dp(42))
                         .centerCrop()
                         .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .dontAnimate()
