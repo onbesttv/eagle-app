@@ -1341,26 +1341,32 @@ class EagleTvActivity : BaseActivity() {
             tvTopProgramDesc.maxLines = 3
             tvMiniPlayerHint.text = "OK ➔ Ecrã Inteiro"
             tvTopHeaderTitle.textSize = 17f
+            ivTopHeaderLogo.layoutParams.width = dp(42)
+            ivTopHeaderLogo.layoutParams.height = dp(36)
+            ivTopHeaderLogo.requestLayout()
         } else {
-            // MODO CATÁLOGO COMPACTO: metade da altura (~96dp) APENAS com informação do filme/série selecionado (SEM TV)
+            // MODO CATÁLOGO INFORMATIVO: altura ajustada (~130dp) para caber a sinopse completa sem cortes
             val lp = layoutTopPreviewRow.layoutParams
-            lp.height = dp(96)
+            lp.height = dp(130)
             layoutTopPreviewRow.layoutParams = lp
-            val padH = dp(14)
-            val padV = dp(6)
+            val padH = dp(16)
+            val padV = dp(8)
             layoutTopPreviewRow.setPadding(padH, padV, padH, padV)
 
             (layoutTopProgramDetails.layoutParams as? ViewGroup.MarginLayoutParams)?.apply {
-                marginStart = dp(2)
+                marginStart = dp(4)
                 layoutTopProgramDetails.layoutParams = this
             }
 
-            // Ocultar a TV completamente: apenas informação do filme/série
+            // Ocultar a TV completamente: apenas informação e poster do filme/série
             framePlayerWrapper.visibility = View.GONE
             layoutMiniPlayerBadge.visibility = View.GONE
             layoutTopProgressRow.visibility = View.GONE
-            tvTopProgramDesc.maxLines = 2
-            tvTopHeaderTitle.textSize = 15f
+            tvTopProgramDesc.maxLines = 4
+            tvTopHeaderTitle.textSize = 16f
+            ivTopHeaderLogo.layoutParams.width = dp(58)
+            ivTopHeaderLogo.layoutParams.height = dp(82)
+            ivTopHeaderLogo.requestLayout()
         }
         layoutTopPreviewRow.requestLayout()
         framePlayerWrapper.requestLayout()
