@@ -547,7 +547,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Servidor / DNS Xtream Codes</label>
-                            <input type="url" id="quickActDns" value="https://topnextplay.online:443" placeholder="https://topnextplay.online:443" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
+                            <select id="quickActDns" style="font-weight: 600;" required></select>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Username</label>
@@ -557,6 +557,12 @@
                             <label>Password</label>
                             <input type="text" id="quickActPass" placeholder="Password" required>
                         </div>
+                    </div>
+                    <div style="margin-top: 14px; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">➕ Adicionar DNS:</span>
+                        <input type="text" id="newDreamDnsInput" placeholder="ex: http://thedreamtv.site:80" style="flex: 1; min-width: 240px; font-size: 13px; padding: 7px 12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewDreamDns();}">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="addNewDreamDns()">➕ Adicionar DNS</button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeSelectedDreamDns()" title="Remover o DNS selecionado">🗑️</button>
                     </div>
                     <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
                         <button type="submit" class="btn btn-primary" id="btnQuickSaveAct" style="padding: 10px 24px; font-weight:bold; background:#10b981; border-color:#10b981;">
@@ -781,7 +787,7 @@
             </div>
             <div class="form-group">
                 <label>Servidor / DNS Xtream Codes</label>
-                <input type="url" id="actDnsInput" value="https://topnextplay.online:443" placeholder="https://topnextplay.online:443" readonly style="background: rgba(255,255,255,0.05); color: var(--text-muted); cursor: not-allowed;" required>
+                <select id="actDnsInput" style="font-weight: 600;" required></select>
             </div>
             <div class="form-grid">
                 <div class="form-group">
@@ -913,36 +919,119 @@
         return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker" || currentResellerId === "dream" || currentResellerId === "suporte24";
     }
 
+    let dreamDnsList = [
+        "http://thedreamtv.site:80",
+        "https://topnextplay.online:443"
+    ];
+
+    function loadDreamDnsList(rawAnnouncement) {
+        const stored = localStorage.getItem("dream_custom_dns_list");
+        if (stored) {
+            try {
+                const arr = JSON.parse(stored);
+                if (Array.isArray(arr)) {
+                    arr.forEach(u => {
+                        const trimmed = String(u || "").trim().replace(/\/+$/, "");
+                        if (trimmed && !dreamDnsList.includes(trimmed)) dreamDnsList.push(trimmed);
+                    });
+                }
+            } catch (_e) {}
+        }
+        if (rawAnnouncement && rawAnnouncement.includes("||DNS_LIST:")) {
+            const rawList = rawAnnouncement.split("||DNS_LIST:")[1].split("||")[0].trim();
+            rawList.split(",").map(s => s.trim().replace(/\/+$/, "")).filter(Boolean).forEach(u => {
+                if (!dreamDnsList.includes(u)) dreamDnsList.push(u);
+            });
+        }
+        renderDreamDnsOptions();
+    }
+
+    function renderDreamDnsOptions(selectedVal = null) {
+        const sel1 = document.getElementById("quickActDns");
+        const sel2 = document.getElementById("actDnsInput");
+        const list = Array.from(new Set(dreamDnsList.filter(Boolean)));
+        const html = list.map(dns => `<option value="${escapeHtml(dns)}">${escapeHtml(dns)}</option>`).join("");
+        
+        if (sel1) {
+            const prev = selectedVal || sel1.value || list[0];
+            sel1.innerHTML = html;
+            if (list.includes(prev)) sel1.value = prev;
+        }
+        if (sel2) {
+            const prev = selectedVal || sel2.value || list[0];
+            sel2.innerHTML = html;
+            if (list.includes(prev)) sel2.value = prev;
+        }
+    }
+
+    async function addNewDreamDns() {
+        const inp = document.getElementById("newDreamDnsInput");
+        if (!inp) return;
+        let dns = inp.value.trim().replace(/\/+$/, "");
+        if (!dns) return;
+        if (!dns.startsWith("http://") && !dns.startsWith("https://")) {
+            dns = "http://" + dns;
+        }
+        if (!dreamDnsList.includes(dns)) {
+            dreamDnsList.push(dns);
+            localStorage.setItem("dream_custom_dns_list", JSON.stringify(dreamDnsList));
+            renderDreamDnsOptions(dns);
+            inp.value = "";
+            showToast("✔ DNS adicionado com sucesso!");
+            await saveDreamDnsListToBackend();
+        } else {
+            renderDreamDnsOptions(dns);
+            inp.value = "";
+            showToast("Esse DNS já existe na lista.");
+        }
+    }
+
+    async function removeSelectedDreamDns() {
+        const sel = document.getElementById("quickActDns");
+        if (!sel || !sel.value) return;
+        const toRemove = sel.value;
+        if (dreamDnsList.length <= 1) {
+            showToast("Tens de manter pelo menos um DNS na lista.", true);
+            return;
+        }
+        if (!confirm(`Tens a certeza que queres remover o DNS:\n${toRemove}?`)) return;
+        dreamDnsList = dreamDnsList.filter(d => d !== toRemove);
+        localStorage.setItem("dream_custom_dns_list", JSON.stringify(dreamDnsList));
+        renderDreamDnsOptions();
+        showToast("✔ DNS removido.");
+        await saveDreamDnsListToBackend();
+    }
+
+    async function saveDreamDnsListToBackend() {
+        if (currentResellerId !== "dream" && !isMasterRole) return;
+        try {
+            await saveActivationsToBackend(currentActivations);
+        } catch (_e) {}
+    }
+
     function syncLockedDns(explicitDns = null) {
         let dns = (explicitDns !== null) ? explicitDns : "";
         if (!dns) {
             if (currentResellerId === "dream") {
                 dns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
                     || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") 
-                    || "https://topnextplay.online:443";
+                    || "http://thedreamtv.site:80";
             } else if (isMasterRole) {
                 const dreamRes = (typeof allResellers !== "undefined" && Array.isArray(allResellers)) ? allResellers.find(r => r.reseller_id === "dream") : null;
                 dns = (dreamRes ? (dreamRes.best_url || "").trim() : "") 
                     || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
-                    || "https://topnextplay.online:443";
+                    || "http://thedreamtv.site:80";
             } else {
                 dns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
                     || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") 
-                    || "https://topnextplay.online:443";
+                    || "http://thedreamtv.site:80";
             }
         }
-        if (!dns) dns = "https://topnextplay.online:443";
-
-        const quickEl = document.getElementById("quickActDns");
-        if (quickEl) {
-            quickEl.value = dns;
-            quickEl.placeholder = dns;
+        if (!dns) dns = "http://thedreamtv.site:80";
+        if (!dreamDnsList.includes(dns)) {
+            dreamDnsList.push(dns);
         }
-        const actEl = document.getElementById("actDnsInput");
-        if (actEl) {
-            actEl.value = dns;
-            actEl.placeholder = dns;
-        }
+        renderDreamDnsOptions(dns);
     }
 
     function isUserVpnEnabled(username) {
@@ -1103,6 +1192,7 @@
         const annEl = document.getElementById("cfgAnnouncement");
         const cleanAnnouncement = (annEl ? annEl.value : "")
             .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
+            .replace(/\|\|DNS_LIST:[^|]+/g, "")
             .trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
@@ -1116,7 +1206,10 @@
         const actPart = (typeof currentActivations !== "undefined" && Array.isArray(currentActivations) && currentActivations.length > 0)
             ? buildActivationsString(currentActivations)
             : "";
-        return `${cleanAnnouncement} ${actPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+        const dnsListPart = (currentResellerId === "dream" || isMasterRole) && dreamDnsList.length > 0
+            ? `||DNS_LIST:${dreamDnsList.join(",")}`
+            : "";
+        return `${cleanAnnouncement} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
 
     function injectVpnMetadataIntoRawAnnouncement(rawAnn, options = {}) {
@@ -1455,8 +1548,12 @@
             document.getElementById("cfgBest2Url").value = data.best2_url || "";
             syncLockedDns(data.best_url);
             const rawAnn = String(data.announcement || "");
+            loadDreamDnsList(rawAnn);
             const vpnSplit = rawAnn.split("||VPN:");
-            const cleanNotice = (vpnSplit[0] || "").replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim();
+            const cleanNotice = (vpnSplit[0] || "")
+                .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
+                .replace(/\|\|DNS_LIST:[^|]+/g, "")
+                .trim();
             document.getElementById("cfgAnnouncement").value = cleanNotice;
 
             const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
@@ -2124,7 +2221,7 @@
         const actString = buildActivationsString(newList);
         if (currentResellerId === "dream") {
             const annEl = document.getElementById("cfgAnnouncement");
-            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim() : "";
+            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").replace(/\|\|DNS_LIST:[^|]+/g, "").trim() : "";
             const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
             const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
             const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -2134,8 +2231,9 @@
                 ? `||VPN_USERS:restricted|${Array.from(allowedVpnUsers).join(",")}`
                 : "";
             const vpnKillPart = vpnKillTimestamp > 0 ? `||VPN_KILL:${vpnKillTimestamp}` : "";
-            const newAnn = `${currentAnn} ${actString} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
-            const dns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || fallbackDns || "https://topnextplay.online:443";
+            const dnsListPart = dreamDnsList.length > 0 ? `||DNS_LIST:${dreamDnsList.join(",")}` : "";
+            const newAnn = `${currentAnn} ${actString} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+            const dns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || fallbackDns || "http://thedreamtv.site:80";
             const best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || dns;
             const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
 
@@ -2154,8 +2252,9 @@
         } else if (isMasterRole) {
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
-            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").trim();
-            const newAnn = `${cleanAnn} ${actString}`.trim();
+            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").replace(/\|\|DNS_LIST:[^|]+/g, "").trim();
+            const dnsListPart = dreamDnsList.length > 0 ? `||DNS_LIST:${dreamDnsList.join(",")}` : "";
+            const newAnn = `${cleanAnn} ${actString} ${dnsListPart}`.trim();
             const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://topnextplay.online:443") : "https://topnextplay.online:443");
             const dreamPass = dreamRes ? dreamRes.panel_password : "dream";
 
@@ -2239,18 +2338,22 @@
         const userInput = document.getElementById("actUserInput");
         const passInput = document.getElementById("actPassInput");
 
-        const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || "https://topnextplay.online:443";
+        const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || "http://thedreamtv.site:80";
         if (editIndex !== null && currentActivations[editIndex]) {
             const item = currentActivations[editIndex];
             devInput.value = item.device_id;
             keyInput.value = item.device_key || "";
-            dnsInput.value = item.dns || curDns;
+            const targetDns = item.dns || curDns;
+            if (targetDns && !dreamDnsList.includes(targetDns)) {
+                dreamDnsList.push(targetDns);
+            }
+            renderDreamDnsOptions(targetDns);
             userInput.value = item.username;
             passInput.value = item.password;
         } else {
             devInput.value = "";
             keyInput.value = "";
-            dnsInput.value = curDns;
+            renderDreamDnsOptions(curDns);
             userInput.value = "";
             passInput.value = "";
         }
@@ -2290,7 +2393,7 @@
 
             const devId = devIdEl ? devIdEl.value.trim().replace(/\s+/g, "") : "";
             const devKey = devKeyEl ? devKeyEl.value.trim().replace(/\s+/g, "") : "";
-            const dns = (dnsEl && dnsEl.value.trim()) || "https://topnextplay.online:443";
+            const dns = (dnsEl && dnsEl.value.trim()) || "http://thedreamtv.site:80";
             const user = userEl ? userEl.value.trim() : "";
             const pass = passEl ? passEl.value.trim() : "";
 

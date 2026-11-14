@@ -29,13 +29,15 @@ object IptvServiceConfig {
     private const val PEREIRA_TV_BEST_URL = "https://pereiratv.com:443"
     private const val GODINHO_TV_BEST_URL = "https://godinho.site:443"
     private const val SUPORTE24_BEST_URL = "http://bmgroup2026.com:8080"
+    private const val DREAM_BEST_URL = "http://thedreamtv.site:80"
     private const val BEST2_URL = "http://gd.tugabest.xyz:8080"
 
     private fun hasCustomDefaultBestUrl(context: Context): Boolean {
         val reseller = RemotePanelManager.getResellerId(context)
         return reseller.equals("pereira_tv", ignoreCase = true) ||
             reseller.equals("godinho_tv", ignoreCase = true) ||
-            reseller.equals("suporte24", ignoreCase = true)
+            reseller.equals("suporte24", ignoreCase = true) ||
+            reseller.equals("dream", ignoreCase = true)
     }
 
     private fun defaultBestUrl(context: Context): String {
@@ -44,6 +46,7 @@ object IptvServiceConfig {
             reseller.equals("pereira_tv", ignoreCase = true) -> PEREIRA_TV_BEST_URL
             reseller.equals("godinho_tv", ignoreCase = true) -> GODINHO_TV_BEST_URL
             reseller.equals("suporte24", ignoreCase = true) -> SUPORTE24_BEST_URL
+            reseller.equals("dream", ignoreCase = true) -> DREAM_BEST_URL
             else -> BEST_URL
         }
     }

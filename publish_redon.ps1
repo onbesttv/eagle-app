@@ -53,11 +53,12 @@ try {
 if (-not $release) {
     Write-Host "A criar nova release $tag..."
     $payload = @{
-        tag_name   = $tag
-        name       = "RedOn v$redonVersion"
-        body       = "RedOn (Dream / MyTvOnline) versao $redonVersion"
-        draft      = $false
-        prerelease = $false
+        tag_name    = $tag
+        name        = "RedOn v$redonVersion"
+        body        = "RedOn (Dream / MyTvOnline) versao $redonVersion"
+        draft       = $false
+        prerelease  = $false
+        make_latest = "false"
     } | ConvertTo-Json
 
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases" -Headers $headers -Method Post -Body $payload -ContentType "application/json"
@@ -101,6 +102,9 @@ try {
         curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: RedOn-Publisher" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@$apkFile" $uploadUrlLatest | Out-Null
         Write-Host "RedOn.apk adicionado a release v7.4 com sucesso!"
     }
+    $body74 = @{ make_latest = "true" } | ConvertTo-Json
+    Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/442181560" -Headers $headers -Method Patch -Body $body74 -ContentType "application/json" | Out-Null
+    Write-Host "Release v7.4 preservada como repo latest."
 } catch {
     Write-Host "Nota: Nao foi possivel anexar a v7.4: $_"
 }
