@@ -208,8 +208,8 @@ class MainActivity : BaseActivity() {
             if (btnVpn.hasFocus()) {
                 findViewById<CardView>(R.id.cardLiveTv)?.requestFocus()
             }
-            btnVpn.visibility = android.view.View.VISIBLE
-            btnVpn.alpha = 0.32f
+            btnVpn.visibility = android.view.View.GONE
+            btnVpn.alpha = 0.0f
             btnVpn.isEnabled = false
             btnVpn.isClickable = false
             btnVpn.isFocusable = false

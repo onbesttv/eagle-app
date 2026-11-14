@@ -259,6 +259,12 @@ object RemotePanelManager {
                                 val mode = modeAndUsers.getOrNull(0)?.trim()?.lowercase().orEmpty().ifBlank { "restricted" }
                                 val usersCsv = modeAndUsers.getOrNull(1)?.trim().orEmpty()
                                 PiaVpnConfig.setVpnUserAccessConfig(appContext, mode, usersCsv)
+                            } else {
+                                val resId = getResellerId(appContext).trim().lowercase()
+                                val hasPerUser = (resId == "master" || resId == "eagle_tv" || resId == "godinho_tv" || resId == "dream" || resId == "joker" || resId == "tv_joker" || resId == "suporte24")
+                                if (hasPerUser) {
+                                    PiaVpnConfig.setVpnUserAccessConfig(appContext, "restricted", "")
+                                }
                             }
 
                             val authParts = vpnBeforeUsers.split("||VPN_AUTH:", limit = 2)
