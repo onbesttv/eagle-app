@@ -622,7 +622,7 @@
                 <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
             </div>
             <form id="configForm">
-                <div class="form-grid">
+                <div class="form-grid" id="dnsInputsRow">
                     <div class="form-group">
                         <label id="best1UrlLabel">DNS Serviço 1 (StreamPlay / Principal)</label>
                         <input type="url" id="cfgBestUrl" placeholder="https://thebestplay.site" required>
@@ -1272,7 +1272,7 @@
     }
 
     async function saveVpnConfigSilent(toastMessage) {
-        const bestUrl = document.getElementById("cfgBestUrl").value.trim();
+        const bestUrl = document.getElementById("cfgBestUrl").value.trim() || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") || "https://topnextplay.online:443";
         const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker" || currentResellerId === "suporte24") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
@@ -1533,13 +1533,23 @@
             if (dreamSec) {
                 dreamSec.style.display = isDream ? "block" : "none";
             }
+            const dnsInputsRow = document.getElementById("dnsInputsRow");
+            if (dnsInputsRow) {
+                dnsInputsRow.style.display = isDream ? "none" : "grid";
+            }
+            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
+            if (cfgBestUrlEl) {
+                cfgBestUrlEl.required = !isDream;
+            }
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
             document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
             document.getElementById("maintenanceSwitchLabel").style.display = isMasterRole ? "flex" : "none";
-            document.getElementById("dnsCardTitle").textContent = isMasterRole
-                ? "⚙️ Configuração Remota dos Meus DNS (App Master)"
-                : `⚙️ Configuração Remota de DNS (${data.brand_name || currentResellerId})`;
+            document.getElementById("dnsCardTitle").textContent = isDream
+                ? "📢 Mensagem / Aviso Global no Ecrã da TV"
+                : (isMasterRole
+                    ? "⚙️ Configuração Remota dos Meus DNS (App Master)"
+                    : `⚙️ Configuração Remota de DNS (${data.brand_name || currentResellerId})`);
             document.getElementById("vpnCardTitle").textContent = isMasterRole
                 ? "🛡️ Gestão dos Países da VPN (App Master)"
                 : `🛡️ Gestão dos Países da VPN (${data.brand_name || currentResellerId})`;
@@ -2526,7 +2536,7 @@
     document.getElementById("configForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
-        const bestUrl = document.getElementById("cfgBestUrl").value.trim();
+        const bestUrl = document.getElementById("cfgBestUrl").value.trim() || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") || "https://topnextplay.online:443";
         const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker" || currentResellerId === "suporte24") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
