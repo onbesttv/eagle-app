@@ -157,14 +157,18 @@
         }
         .grid-2col {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: minmax(0, 1fr);
             gap: 24px;
+            width: 100%;
+            min-width: 0;
         }
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 14px;
             padding: 22px;
+            min-width: 0;
+            max-width: 100%;
         }
         .card-header {
             display: flex;
@@ -274,37 +278,34 @@
             color: #fff;
         }
         .table-wrap {
-            overflow-x: auto;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
-            scrollbar-color: #3b82f6 #0e1420;
+            scrollbar-color: var(--accent) var(--bg-input);
             border-radius: 10px;
             border: 1px solid var(--border);
-            position: relative;
-            cursor: grab;
-        }
-        .table-wrap.dragging {
-            cursor: grabbing;
+            display: block;
         }
         .table-wrap::-webkit-scrollbar {
-            height: 12px !important;
+            height: 8px;
             display: block !important;
         }
         .table-wrap::-webkit-scrollbar-track {
-            background: #0e1420;
-            border-radius: 6px;
-            border: 1px solid var(--border);
+            background: var(--bg-input);
+            border-radius: 4px;
         }
         .table-wrap::-webkit-scrollbar-thumb {
-            background: linear-gradient(90deg, #3b82f6, #2563eb);
-            border-radius: 6px;
-            border: 2px solid #0e1420;
+            background: var(--accent);
+            border-radius: 4px;
         }
         .table-wrap::-webkit-scrollbar-thumb:hover {
-            background: #60a5fa;
+            background: var(--accent-hover);
         }
         table {
             width: 100%;
+            min-width: 820px;
             border-collapse: collapse;
             font-size: 13px;
         }
@@ -622,15 +623,18 @@
 
             /* Tabelas responsivas com scroll horizontal nativo sem quebrar layout */
             .table-wrap {
-                overflow-x: auto;
+                width: 100%;
+                max-width: 100%;
+                overflow-x: auto !important;
                 -webkit-overflow-scrolling: touch;
                 border-radius: 8px;
                 border: 1px solid var(--border);
                 margin: 0;
-                width: 100%;
+                display: block;
             }
             table {
-                min-width: 760px;
+                width: 100%;
+                min-width: 820px;
             }
             th, td {
                 padding: 10px 10px;
@@ -933,11 +937,6 @@
         <div class="card">
             <div class="card-header">
                 <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:12px; color:var(--text-muted); font-weight:600;">↔️ Andar na tabela:</span>
-                    <button type="button" class="btn btn-outline btn-sm" onclick="scrollTable('devicesTableWrap', -320)" title="Andar para a esquerda">◀ Esquerda</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="scrollTable('devicesTableWrap', 320)" title="Andar para a direita">Direita ▶</button>
-                </div>
             </div>
 
             <div class="filters-bar">
@@ -956,25 +955,7 @@
                 </div>
             </div>
 
-            <!-- BARRA DE CONTROLO HORIZONTAL VISÍVEL -->
-            <div class="table-scroll-hint" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px 14px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; flex-wrap: wrap; gap: 10px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 16px;">↔️</span>
-                    <span style="font-size: 13px; color: #93c5fd; font-weight: 600;">
-                        Tabela Larga (9 colunas): Desliza com o dedo, arrasta com o rato ou clica nas setas:
-                    </span>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="scrollTable('devicesTableWrap', -350)" style="font-weight: bold; padding: 7px 14px; border-color: rgba(59, 130, 246, 0.5);">
-                        ◀ Andar para a Esquerda
-                    </button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="scrollTable('devicesTableWrap', 350)" style="font-weight: bold; padding: 7px 14px;">
-                        Andar para a Direita ▶
-                    </button>
-                </div>
-            </div>
-
-            <div class="table-wrap" id="devicesTableWrap">
+            <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
@@ -995,17 +976,6 @@
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <!-- BARRA DE CONTROLO NO FUNDO DA TABELA -->
-            <div class="table-scroll-hint" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding: 8px 12px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 8px; flex-wrap: wrap; gap: 8px;">
-                <span style="font-size: 12px; color: var(--text-muted);">
-                    💡 Dica: Podes clicar e arrastar a tabela com o rato ou usar a barra azul abaixo para andar para os lados.
-                </span>
-                <div style="display: flex; gap: 8px;">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="scrollTable('devicesTableWrap', -350)">◀ Esquerda</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="scrollTable('devicesTableWrap', 350)">Direita ▶</button>
-                </div>
             </div>
         </div>
 
@@ -1136,14 +1106,10 @@
                         Cria aqui um ID para cada revendedor a quem venderes a App. Cada revendedor pode entrar neste mesmo painel com o ID e Password dele para gerir apenas os DNS e clientes dele!
                     </div>
                 </div>
-                <div style="display:flex; gap:8px;">
-                    <button type="button" class="btn btn-outline btn-sm" onclick="scrollTable('resellersTableWrap', -300)">◀ Esquerda</button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="scrollTable('resellersTableWrap', 300)">Direita ▶</button>
-                    <button class="btn" onclick="openResellerModal()">➕ Novo Revendedor</button>
-                </div>
+                <button class="btn" onclick="openResellerModal()">➕ Novo Revendedor</button>
             </div>
 
-            <div class="table-wrap" id="resellersTableWrap">
+            <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
@@ -2115,7 +2081,6 @@
             renderActivations();
             updateStats(data);
             renderDevices();
-            setupDragScroll(document.getElementById("devicesTableWrap"));
             document.getElementById("lastSyncLabel").textContent = "Atualizado às " + new Date().toLocaleTimeString("pt-PT");
         } catch (err) {
             if (throwOnError) throw err;
@@ -2905,13 +2870,11 @@
             showToast("✔ Dispositivo ativado com sucesso!");
             renderActivations();
             renderDevices();
-            setupDragScroll(document.getElementById("devicesTableWrap"));
         } catch (err) {
             closeActivationModal();
             showToast("Erro ao guardar ativação no servidor.", true);
             renderActivations();
             renderDevices();
-            setupDragScroll(document.getElementById("devicesTableWrap"));
         } finally {
             if (btn) {
                 btn.disabled = false;
@@ -3064,47 +3027,6 @@
             loadDashboard();
         }
     }, 30000);
-    function scrollTable(wrapId, offset) {
-        const el = document.getElementById(wrapId);
-        if (!el) return;
-        el.scrollBy({ left: offset, behavior: "smooth" });
-    }
-
-    function setupDragScroll(el) {
-        if (!el || el._hasDragScroll) return;
-        el._hasDragScroll = true;
-        let isDown = false;
-        let startX = 0;
-        let scrollLeft = 0;
-
-        el.addEventListener("mousedown", (e) => {
-            if (e.target.closest("button") || e.target.closest("a") || e.target.closest("input") || e.target.closest("select")) return;
-            isDown = true;
-            el.classList.add("dragging");
-            startX = e.pageX - el.offsetLeft;
-            scrollLeft = el.scrollLeft;
-        });
-
-        window.addEventListener("mouseup", () => {
-            if (isDown) {
-                isDown = false;
-                el.classList.remove("dragging");
-            }
-        });
-
-        el.addEventListener("mousemove", (e) => {
-            if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - el.offsetLeft;
-            const walk = (x - startX) * 1.5;
-            el.scrollLeft = scrollLeft - walk;
-        });
-    }
-
-    setTimeout(() => {
-        setupDragScroll(document.getElementById("devicesTableWrap"));
-        setupDragScroll(document.getElementById("resellersTableWrap"));
-    }, 500);
 </script>
 </body>
 </html>
