@@ -26,19 +26,23 @@ class StartupSplashActivity : BaseActivity() {
 
         val isUserLoggedOut = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false)
 
-        if (!isUserLoggedOut && savedUser.isNotBlank() && savedPass.isNotBlank()) {
+        val rid = RemotePanelManager.getResellerId(this)
+        val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)
+
+        if (isDream) {
+            if (!isUserLoggedOut && savedUser.isNotBlank() && savedPass.isNotBlank()) {
+                startActivity(Intent(this, EagleTvActivity::class.java))
+            } else {
+                startActivity(Intent(this, DeviceActivationActivity::class.java))
+            }
+        } else if (!isUserLoggedOut && savedUser.isNotBlank() && savedPass.isNotBlank()) {
             startActivity(
                 Intent(this, StreamPlayLoginActivity::class.java)
                     .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
                     .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, activeService)
             )
         } else {
-            val rid = RemotePanelManager.getResellerId(this)
-            if (rid == "dream") {
-                startActivity(Intent(this, DeviceActivationActivity::class.java))
-            } else {
-                startActivity(Intent(this, ServiceSelectionActivity::class.java))
-            }
+            startActivity(Intent(this, ServiceSelectionActivity::class.java))
         }
         overridePendingTransition(0, 0)
         finish()

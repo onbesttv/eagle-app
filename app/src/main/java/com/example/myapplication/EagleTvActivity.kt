@@ -463,7 +463,10 @@ class EagleTvActivity : BaseActivity() {
         pass = prefs.getString("SAVED_PASS", "").orEmpty()
 
         if (user.isBlank() || pass.isBlank()) {
-            startActivity(Intent(this, ServiceSelectionActivity::class.java))
+            val rid = RemotePanelManager.getResellerId(this)
+            val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)
+            val target = if (isDream) DeviceActivationActivity::class.java else ServiceSelectionActivity::class.java
+            startActivity(Intent(this, target))
             finish()
             return
         }
@@ -4932,7 +4935,8 @@ class EagleTvActivity : BaseActivity() {
                 .apply()
 
             val rid = RemotePanelManager.getResellerId(this)
-            val targetClass = if (rid == "dream") {
+            val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)
+            val targetClass = if (isDream) {
                 DeviceActivationActivity::class.java
             } else {
                 ServiceSelectionActivity::class.java

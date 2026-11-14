@@ -17,6 +17,21 @@ class ServiceSelectionActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val rid = RemotePanelManager.getResellerId(this)
+        val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)
+        if (isDream) {
+            val user = IptvServiceConfig.username(this)
+            val pass = IptvServiceConfig.password(this)
+            val isUserLoggedOut = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false)
+            if (!isUserLoggedOut && user.isNotBlank() && pass.isNotBlank()) {
+                startActivity(Intent(this, EagleTvActivity::class.java))
+            } else {
+                startActivity(Intent(this, DeviceActivationActivity::class.java))
+            }
+            overridePendingTransition(0, 0)
+            finish()
+            return
+        }
         setContentView(R.layout.activity_service_selection)
         IptvServiceConfig.initialize(this)
         if (EagleTvConfig.isEagleTvEdition(this)) {

@@ -108,9 +108,11 @@ class DeviceActivationActivity : BaseActivity() {
             }
 
             if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
+                val activeDns = IptvServiceConfig.baseUrl(this, activeService)
                 loginPrefs.edit()
                     .putString("LAST_ACTIVATED_USER", savedUser)
                     .putString("LAST_ACTIVATED_PASS", savedPass)
+                    .putString("LAST_ACTIVATED_DNS", activeDns)
                     .apply()
 
                 tvActivationStatus.text = "✔ Dispositivo Ativado com Sucesso! A iniciar..."
