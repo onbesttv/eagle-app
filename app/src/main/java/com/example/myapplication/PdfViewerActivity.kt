@@ -205,6 +205,11 @@ class PdfViewerActivity : BaseActivity() {
         downloadCall?.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (call.isCanceled()) return
+                if (url.contains("/releases/latest/download/")) {
+                    val fallbackUrl = url.replace("/releases/latest/download/", "/releases/download/v7.4/")
+                    downloadPdf(fallbackUrl, destFile)
+                    return
+                }
                 runOnUiThread {
                     layoutPdfLoading.visibility = View.GONE
                     Toast.makeText(this@PdfViewerActivity, "Erro ao descarregar PDF: ${e.message}", Toast.LENGTH_LONG).show()
@@ -214,6 +219,12 @@ class PdfViewerActivity : BaseActivity() {
 
             override fun onResponse(call: Call, response: Response) {
                 if (!response.isSuccessful) {
+                    if (url.contains("/releases/latest/download/")) {
+                        response.close()
+                        val fallbackUrl = url.replace("/releases/latest/download/", "/releases/download/v7.4/")
+                        downloadPdf(fallbackUrl, destFile)
+                        return
+                    }
                     runOnUiThread {
                         layoutPdfLoading.visibility = View.GONE
                         Toast.makeText(this@PdfViewerActivity, "Servidor de jornais indisponível (HTTP ${response.code})", Toast.LENGTH_SHORT).show()

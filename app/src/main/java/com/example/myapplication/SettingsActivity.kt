@@ -87,7 +87,7 @@ class SettingsActivity : BaseActivity() {
                 0xFFFBBF24.toInt(), 0xFFF59E0B.toInt(), 0xFF34D399.toInt(), 0xFFFBBF24.toInt(),
                 0xFFFFC76B.toInt(), 0xFFD97706.toInt(), 0xFFFBBF24.toInt(), 0xFFFF7B83.toInt()
             )
-            AppThemeColors.isGodinhoTheme(this) -> intArrayOf(
+            AppThemeColors.isGodinhoTheme(this) || AppThemeColors.isPlayTvTheme(this) -> intArrayOf(
                 0xFFFF3B47.toInt(), 0xFFFBBF24.toInt(), 0xFFEF4444.toInt(), 0xFFF59E0B.toInt(),
                 0xFFFF5252.toInt(), 0xFFDC2626.toInt(), 0xFFFBBF24.toInt(), 0xFFFF6B7A.toInt()
             )
@@ -178,7 +178,10 @@ class SettingsActivity : BaseActivity() {
             .setPositiveButton(getString(R.string.btn_exit)) { _, _ ->
                 val activeSrv = IptvServiceConfig.activeServiceId(this)
                 val currentUser = IptvServiceConfig.username(this, activeSrv)
-                IptvServiceConfig.clearAllCredentials(this)
+                val isSuporte24 = RemotePanelManager.getResellerId(this).equals("suporte24", ignoreCase = true)
+                if (!isSuporte24) {
+                    IptvServiceConfig.clearAllCredentials(this)
+                }
                 getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
                     .edit()
                     .putBoolean("USER_LOGGED_OUT", true)

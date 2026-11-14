@@ -41,6 +41,12 @@ class MainActivity : BaseActivity() {
                 width = (156 * density).toInt()
                 height = (104 * density).toInt()
             }
+        } else if (AppThemeColors.isPlayTvTheme(this)) {
+            val density = resources.displayMetrics.density
+            ivLogo.layoutParams = ivLogo.layoutParams.apply {
+                width = (168 * density).toInt()
+                height = (52 * density).toInt()
+            }
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", MODE_PRIVATE)
@@ -70,7 +76,7 @@ class MainActivity : BaseActivity() {
         }
 
         val resId = RemotePanelManager.getResellerId(this)
-        val hasSportsAndNews = resId.equals("master", ignoreCase = true) || resId.equals("tv_joker", ignoreCase = true) || resId.equals("joker", ignoreCase = true)
+        val hasSportsAndNews = resId.equals("master", ignoreCase = true) || resId.equals("tv_joker", ignoreCase = true) || resId.equals("joker", ignoreCase = true) || resId.equals("suporte24", ignoreCase = true)
         if (hasSportsAndNews) {
             cardSportsAgenda?.visibility = android.view.View.VISIBLE
             cardNewspapers?.visibility = android.view.View.VISIBLE
@@ -126,10 +132,8 @@ class MainActivity : BaseActivity() {
                 view.setOnFocusChangeListener { v, hasFocus ->
                     if (hasFocus) {
                         v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
-                        v.elevation = 14f
                     } else {
                         v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                        v.elevation = 0f
                     }
                 }
             }

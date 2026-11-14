@@ -30,6 +30,8 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="@drawable/bg_arrow_borderless"
+            android:defaultFocusHighlightEnabled="false"
+            android:stateListAnimator="@null"
             android:src="@drawable/ic_arrow_back"
             android:contentDescription="Voltar"
             android:focusable="true"

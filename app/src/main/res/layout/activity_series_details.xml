@@ -131,6 +131,8 @@
         android:layout_gravity="top|start"
         android:layout_margin="16dp"
         android:background="@drawable/bg_icon_button"
+        android:defaultFocusHighlightEnabled="false"
+        android:stateListAnimator="@null"
         android:contentDescription="Voltar"
         android:src="@android:drawable/ic_menu_revert"
         app:tint="#FFFFFF" />

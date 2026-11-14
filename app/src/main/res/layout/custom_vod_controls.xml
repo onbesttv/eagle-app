@@ -20,7 +20,9 @@
             android:id="@+id/btnBackVod"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_icon_button"
+            android:defaultFocusHighlightEnabled="false"
+            android:stateListAnimator="@null"
             android:contentDescription="Sair"
             android:src="@android:drawable/ic_menu_revert"
             app:tint="#FFFFFF" />

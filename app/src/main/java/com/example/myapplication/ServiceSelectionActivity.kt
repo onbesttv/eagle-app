@@ -33,7 +33,7 @@ class ServiceSelectionActivity : BaseActivity() {
             findViewById<LinearLayout>(R.id.serviceChoices).visibility = View.GONE
             findViewById<LinearLayout>(R.id.autoLoginPanel).visibility = View.VISIBLE
             findViewById<ProgressBar>(R.id.pbServiceSelection).visibility = View.VISIBLE
-            findViewById<TextView>(R.id.tvStartupServiceBrand).text = IptvServiceConfig.displayName(selectedService).uppercase()
+            findViewById<TextView>(R.id.tvStartupServiceBrand).text = if (RemotePanelManager.getResellerId(this).equals("suporte24", ignoreCase = true)) "PLAYTV" else IptvServiceConfig.displayName(selectedService).uppercase()
             startActivity(Intent(this, StreamPlayLoginActivity::class.java)
                 .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
                 .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, selectedService))

@@ -191,6 +191,7 @@ object AppUpdateManager {
                 "master" -> "eagle.apk"
                 "dream" -> "RedOn.apk"
                 "joker" -> "tv_joker.apk"
+                "suporte24" -> "PlayTV.apk"
                 else -> "${resellerId}.apk"
             }
             val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream")
@@ -285,6 +286,7 @@ object AppUpdateManager {
                 "master" -> "eagle.apk"
                 "dream" -> "RedOn.apk"
                 "joker" -> "tv_joker.apk"
+                "suporte24" -> "PlayTV.apk"
                 else -> "${resellerId}.apk"
             }
 

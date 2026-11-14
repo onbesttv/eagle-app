@@ -27,6 +27,10 @@ object AppThemeColors {
         return RemotePanelManager.getResellerId(context).equals("godinho_tv", ignoreCase = true)
     }
 
+    fun isPlayTvTheme(context: Context): Boolean {
+        return RemotePanelManager.getResellerId(context).equals("suporte24", ignoreCase = true)
+    }
+
     fun isJokerTheme(context: Context): Boolean {
         val id = RemotePanelManager.getResellerId(context)
         return id.equals("tv_joker", ignoreCase = true) || id.equals("joker", ignoreCase = true)
@@ -35,13 +39,13 @@ object AppThemeColors {
     /**
      * Converte qualquer cor azul/ciano original da Eagle para a paleta do revendedor
      * (Preto Carbono & Dourado na tv_fabio; Ardósia Obsidiana & Azul Royal na pereira_tv;
-     * Preto Obsidiana & Vermelho Carmesim na godinho_tv; Preto Obsidiana, Púrpura & Dourado na tv_joker),
+     * Preto Obsidiana & Vermelho Carmesim na godinho_tv e playtv; Preto Obsidiana, Púrpura & Dourado na tv_joker),
      * mantendo 100% o azul original na app Master.
      */
     fun mapColor(context: Context, originalColor: Int): Int {
         if (isDarkGoldTheme(context)) return mapColorInternal(originalColor)
         if (isPereiraTheme(context)) return mapPereiraColorInternal(originalColor)
-        if (isGodinhoTheme(context)) return mapGodinhoColorInternal(originalColor)
+        if (isGodinhoTheme(context) || isPlayTvTheme(context)) return mapGodinhoColorInternal(originalColor)
         if (isJokerTheme(context)) return mapJokerColorInternal(originalColor)
         return originalColor
     }
@@ -154,7 +158,7 @@ object AppThemeColors {
         return when {
             isDarkGoldTheme(context) -> ::mapColorInternal
             isPereiraTheme(context) -> ::mapPereiraColorInternal
-            isGodinhoTheme(context) -> ::mapGodinhoColorInternal
+            isGodinhoTheme(context) || isPlayTvTheme(context) -> ::mapGodinhoColorInternal
             isJokerTheme(context) -> ::mapJokerColorInternal
             else -> null
         }

@@ -74,7 +74,7 @@ class StreamPlayLoginActivity : BaseActivity() {
         loginButton = findViewById(R.id.btnServiceLogin)
         autoProgressPanel = findViewById(R.id.autoLoginProgressPanel)
         autoStatusText = findViewById(R.id.tvAutoLoginStatus)
-        val serviceBrandLabel = IptvServiceConfig.displayName(selectedService).uppercase()
+        val serviceBrandLabel = if (RemotePanelManager.getResellerId(this).equals("suporte24", ignoreCase = true)) "PLAYTV" else IptvServiceConfig.displayName(selectedService).uppercase()
         findViewById<TextView>(R.id.tvLoginServiceBrand).text = serviceBrandLabel
         findViewById<TextView>(R.id.tvAutoLoginServiceBrand).text = serviceBrandLabel
 

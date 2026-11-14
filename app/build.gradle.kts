@@ -80,8 +80,8 @@ android {
         create("play_tv") {
             dimension = "reseller"
             applicationId = "com.eagle.playtv"
-            versionCode = 74
-            versionName = "7.4"
+            versionCode = 76
+            versionName = "7.6"
             resValue("string", "app_name", "PlayTV")
             resValue("string", "reseller_id", "suporte24")
         }

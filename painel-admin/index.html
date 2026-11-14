@@ -905,11 +905,12 @@
         tv_joker: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (TV do Joker)" },
         joker: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (TV do Joker)" },
         tv_fabio: { user: "p6255571", pass: "EqwvpMqb6e", label: "Conta Fpinto (tv_fabio)" },
-        dream: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (RedOn / Dream)" }
+        dream: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (RedOn / Dream)" },
+        suporte24: { user: "p7426501", pass: "on4q5FT9vx", label: "Conta Própria (PlayTV)" }
     };
 
     function hasPerUserVpnControl() {
-        return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker" || currentResellerId === "dream";
+        return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker" || currentResellerId === "dream" || currentResellerId === "suporte24";
     }
 
     function syncLockedDns(explicitDns = null) {
@@ -957,6 +958,7 @@
         if (r === "tv_joker" || r === "joker") return "TV do Joker";
         if (r === "tv_fabio") return "Fpinto TV";
         if (r === "pereira_tv") return "Pereira TV";
+        if (r === "suporte24" || r === "play_tv" || r === "playtv") return "PlayTV";
         if (typeof allResellers !== "undefined" && Array.isArray(allResellers)) {
             const found = allResellers.find(item => (item.reseller_id || "").toLowerCase() === r);
             if (found && found.brand_name) return found.brand_name;
@@ -981,7 +983,9 @@
                         ? "👤 Controlo de Acesso à VPN por Utilizador (TV do Joker)"
                         : (currentResellerId === "dream"
                             ? "👤 Controlo de Acesso à VPN por Utilizador (RedOn)"
-                            : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)")));
+                            : (currentResellerId === "suporte24"
+                                ? "👤 Controlo de Acesso à VPN por Utilizador (PlayTV)"
+                                : "👤 Controlo de Acesso à VPN por Utilizador (Godinho TV)"))));
         }
 
         const subtitleEl = document.getElementById("vpnUserAccessSubtitle");
@@ -1526,7 +1530,9 @@
                         ? "Conta PIA VPN associada à aplicação Godinho TV (Acesso Próprio)."
                         : (currentResellerId === "tv_joker" || currentResellerId === "joker")
                             ? "Conta PIA VPN associada à aplicação TV do Joker (Acesso Próprio)."
-                            : "Conta PIA VPN própria / principal associada à aplicação Eagle e Godinho TV.";
+                            : (currentResellerId === "suporte24")
+                                ? "Conta PIA VPN associada à aplicação PlayTV (Acesso Próprio)."
+                                : "Conta PIA VPN própria / principal associada à aplicação Eagle e Godinho TV.";
             }
             renderVpnCountriesGrid();
             document.getElementById("cfgMaintenance").checked = !!data.maintenance_mode;
@@ -1670,6 +1676,9 @@
         if (devRes === "tv_joker" || devRes === "joker") {
             return `<span class="badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-weight:600;">🃏 TV do Joker</span>`;
         }
+        if (devRes === "suporte24" || devRes === "play_tv" || devRes === "playtv") {
+            return `<span class="badge" style="background: rgba(239, 68, 68, 0.18); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight:600;">📺 PlayTV</span>`;
+        }
         const found = allResellers.find(r => (r.reseller_id || '').toLowerCase() === devRes);
         const label = found ? (found.brand_name || found.reseller_id) : (d.reseller_id || devRes);
         return `<span class="badge badge-reseller">🤝 ${escapeHtml(label)}</span>`;
@@ -1679,6 +1688,9 @@
         const r = (d.reseller_id || "").toLowerCase();
         if (r === "tv_joker" || r === "joker") {
             return `<span class="badge" style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); font-weight:600;">🃏 TV do Joker</span>`;
+        }
+        if (r === "suporte24" || r === "play_tv" || r === "playtv") {
+            return `<span class="badge" style="background: rgba(239, 68, 68, 0.18); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight:600;">📺 PlayTV</span>`;
         }
         if (r === "dream" || r === "redon") {
             return `<span class="badge" style="background: rgba(225,29,72,0.18); color: #f43f5e; border: 1px solid rgba(225,29,72,0.35); font-weight:600;">🦅 RedOn (MyTv)</span>`;
@@ -1746,7 +1758,7 @@
         const isJoker = (currentResellerId === "joker" || currentResellerId === "tv_joker");
         if (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || isJoker || currentResellerId === "suporte24") {
             document.getElementById("statServicesLabel").textContent = "Serviço Ativo";
-            document.getElementById("statServices").textContent = isJoker ? "Templarios" : (currentResellerId === "dream" ? "RedOn TV" : (currentResellerId === "suporte24" ? "Online" : "StreamPlay"));
+            document.getElementById("statServices").textContent = isJoker ? "Templarios" : (currentResellerId === "dream" ? "RedOn TV" : (currentResellerId === "suporte24" ? "PlayTV" : "StreamPlay"));
             document.getElementById("statServicesSub").textContent = `${total} clientes no servidor`;
         } else if (isMasterRole) {
             document.getElementById("statServicesLabel").textContent = "Apps Eagle Ativas";
@@ -1867,7 +1879,7 @@
                 ? `<span class="badge badge-best2">Templarios</span>`
                 : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream" && currentResellerId !== "suporte24")
                     ? `<span class="badge badge-best2">Templarios</span>`
-                    : (currentResellerId === "suporte24" ? `<span class="badge badge-online">Ativo</span>` : `<span class="badge badge-best">StreamPlay</span>`));
+                    : (currentResellerId === "suporte24" ? `<span class="badge badge-online">PlayTV</span>` : `<span class="badge badge-best">StreamPlay</span>`));
 
             const devIdText = d.device_id ? escapeHtml(d.device_id) : "";
             const devIdHtml = devIdText ? `<div style="font-size:11px; color:#38bdf8; font-family:monospace; margin-top:3px; font-weight:600; letter-spacing:0.5px;">${devIdText}</div>` : "";
