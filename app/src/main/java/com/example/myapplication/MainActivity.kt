@@ -208,16 +208,18 @@ class MainActivity : BaseActivity() {
             if (btnVpn.hasFocus()) {
                 findViewById<CardView>(R.id.cardLiveTv)?.requestFocus()
             }
-            btnVpn.visibility = android.view.View.GONE
-            btnVpn.alpha = 0.0f
+            btnVpn.visibility = android.view.View.VISIBLE
+            btnVpn.alpha = 0.35f
             btnVpn.isEnabled = false
-            btnVpn.isClickable = false
+            btnVpn.isClickable = true
             btnVpn.isFocusable = false
             btnVpn.isFocusableInTouchMode = false
             btnVpn.imageTintList = null
             btnVpn.colorFilter = null
             btnVpn.backgroundTintList = null
-            btnVpn.setOnClickListener(null)
+            btnVpn.setOnClickListener {
+                android.widget.Toast.makeText(this, "Acesso à VPN indisponível para esta conta.", android.widget.Toast.LENGTH_SHORT).show()
+            }
         } else {
             val isVpnConnected = PiaVpnManager.getStatus() == PiaVpnManager.VpnStatus.CONNECTED
             btnVpn.visibility = android.view.View.VISIBLE
