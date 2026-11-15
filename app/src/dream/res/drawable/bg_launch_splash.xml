@@ -3,7 +3,7 @@
     <item>
         <color android:color="#0A0E17" />
     </item>
-    <item android:width="224dp" android:height="224dp" android:gravity="center">
-        <bitmap android:src="@drawable/eagle_badge" android:gravity="center" />
+    <item android:width="360dp" android:height="136dp" android:gravity="center">
+        <bitmap android:src="@drawable/redon_splash_logo" android:gravity="center" />
     </item>
 </layer-list>

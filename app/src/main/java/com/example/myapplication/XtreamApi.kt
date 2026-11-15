@@ -42,21 +42,24 @@ data class VodCategory(
 
 // Modelo para cada Filme
 data class VodStream(
-    val num: Int? = null,
-    val name: String,
-    val stream_type: String? = null,
-    @com.google.gson.annotations.SerializedName("stream_id")
-    val streamId: Int,
-    @com.google.gson.annotations.SerializedName("stream_icon")
-    val streamIcon: String? = null,
-    val rating: String? = null,
-    val rating_5based: Double? = null,
-    val added: String? = null,
-    @com.google.gson.annotations.SerializedName("category_id")
-    val categoryId: String? = null,
-    @com.google.gson.annotations.SerializedName("container_extension")
-    val containerExtension: String? = null
-)
+    @com.google.gson.annotations.SerializedName("num") val num: Any? = null,
+    @com.google.gson.annotations.SerializedName("name") val name: String = "",
+    @com.google.gson.annotations.SerializedName("stream_type") val stream_type: String? = null,
+    @com.google.gson.annotations.SerializedName("stream_id") val streamId: Int = 0,
+    @com.google.gson.annotations.SerializedName("stream_icon") val streamIcon: String? = null,
+    @com.google.gson.annotations.SerializedName("rating") val rating: String? = null,
+    @com.google.gson.annotations.SerializedName("rating_5based") private val rawRating5: Any? = null,
+    @com.google.gson.annotations.SerializedName("added") val added: String? = null,
+    @com.google.gson.annotations.SerializedName("category_id") val categoryId: String? = null,
+    @com.google.gson.annotations.SerializedName("container_extension") val containerExtension: String? = null
+) {
+    val rating_5based: Double?
+        get() = when (val r = rawRating5) {
+            is Number -> r.toDouble()
+            is String -> r.toDoubleOrNull()
+            else -> null
+        }
+}
 
 // Categoria de Séries
 data class SeriesCategory(
