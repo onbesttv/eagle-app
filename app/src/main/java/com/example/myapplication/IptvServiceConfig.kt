@@ -31,7 +31,7 @@ object IptvServiceConfig {
     private const val PEREIRA_TV_BEST_URL = "https://pereiratv.com:443"
     private const val GODINHO_TV_BEST_URL = "https://godinho.site:443"
     private const val SUPORTE24_BEST_URL = "http://bmgroup2026.com:8080"
-    private const val DREAM_BEST_URL = "https://topnextplay.online:443"
+    private const val DREAM_BEST_URL = "http://thedreamtv.site:80"
     private const val BEST2_URL = "http://gd.tugabest.xyz:8080"
 
     private fun hasCustomDefaultBestUrl(context: Context): Boolean {

@@ -110,8 +110,9 @@ object RemotePanelManager {
 
         if (rawAnn.contains("||DNS_LIST:")) {
             val part = rawAnn.substringAfter("||DNS_LIST:").substringBefore("||").trim()
-            part.split(",").map { it.trim().trimEnd('/') }.filter { it.isNotBlank() }.forEach {
-                val clean = if (!it.startsWith("http://") && !it.startsWith("https://")) "http://$it" else it
+            part.split(",").map { it.trim().trimEnd('/') }.filter { it.isNotBlank() }.forEach { rawItem ->
+                val cleanUrl = if (rawItem.contains("|")) rawItem.substringAfter("|").trim() else rawItem.trim()
+                val clean = if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) "http://$cleanUrl" else cleanUrl
                 if (!list.contains(clean)) list.add(clean)
             }
         }
@@ -183,6 +184,7 @@ object RemotePanelManager {
                             IptvServiceConfig.saveCredentials(appContext, activeSrv, user, pass)
                             if (!dns.isNullOrBlank()) {
                                 IptvServiceConfig.updateRemoteUrls(appContext, dns, "")
+                                prefs.edit().putString("ACTIVATED_CUSTOM_DNS", dns).apply()
                             }
                             prefs.edit()
                                 .putString("SAVED_USER", user)
@@ -332,7 +334,15 @@ object RemotePanelManager {
                         val blocked = json.optBoolean("is_blocked", false)
                         val blockReason = json.optString("block_reason", "Acesso suspenso pelo administrador.").trim()
 
-                        IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
+                        val loginPrefs = appContext.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+                        val activatedCustomDns = loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty()
+                        val isActivated = isDeviceActivatedInPanel(appContext) && activatedCustomDns.isNotBlank()
+
+                        if (!isActivated) {
+                            IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
+                        } else {
+                            IptvServiceConfig.updateRemoteUrls(appContext, activatedCustomDns, best2Url)
+                        }
 
                         appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                             .putBoolean(KEY_IS_BLOCKED, blocked)

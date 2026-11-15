@@ -96,7 +96,9 @@ class DeviceActivationActivity : BaseActivity() {
             if (savedUser.isBlank() && RemotePanelManager.isDeviceActivatedInPanel(this)) {
                 val lastUser = loginPrefs.getString("LAST_ACTIVATED_USER", "").orEmpty()
                 val lastPass = loginPrefs.getString("LAST_ACTIVATED_PASS", "").orEmpty()
-                val lastDns = loginPrefs.getString("LAST_ACTIVATED_DNS", "").orEmpty()
+                val lastDns = loginPrefs.getString("LAST_ACTIVATED_DNS", "").orEmpty().ifBlank {
+                    loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty()
+                }
                 if (lastUser.isNotBlank() && lastPass.isNotBlank()) {
                     IptvServiceConfig.saveCredentials(this, activeService, lastUser, lastPass)
                     if (lastDns.isNotBlank()) {

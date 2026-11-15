@@ -10,7 +10,7 @@ android {
         applicationId = "com.example.myapplication"
         minSdk = 21
         targetSdk = 35
-        versionCode = 70
+        versionCode = 71
         versionName = "7.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -28,8 +28,8 @@ android {
         create("eagle_tv") {
             dimension = "reseller"
             applicationId = "com.eagle.tv"
-            versionCode = 95
-            versionName = "3.25"
+            versionCode = 96
+            versionName = "3.26"
             resValue("string", "app_name", "Eagle TV")
             resValue("string", "reseller_id", "eagle_tv")
         }
@@ -37,8 +37,8 @@ android {
         create("dream") {
             dimension = "reseller"
             applicationId = "com.redon.tv"
-            versionCode = 103
-            versionName = "3.33"
+            versionCode = 104
+            versionName = "3.34"
             resValue("string", "app_name", "RedOn")
             resValue("string", "reseller_id", "dream")
         }

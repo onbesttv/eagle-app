@@ -919,10 +919,11 @@
                     </div>
                     <div class="dream-add-dns-bar" style="margin-top: 14px; padding: 12px 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">➕ Adicionar DNS:</span>
-                        <input type="text" id="newDreamDnsInput" placeholder="ex: http://thedreamtv.site:80" style="flex: 1; min-width: 240px; font-size: 13px; padding: 7px 12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewDreamDns();}">
+                        <input type="text" id="newDreamDnsNameInput" placeholder="Nome do DNS (ex: Servidor Dream)" style="flex: 1; min-width: 170px; font-size: 13px; padding: 7px 12px;">
+                        <input type="text" id="newDreamDnsInput" placeholder="URL do DNS (ex: http://thedreamtv.site:80)" style="flex: 1.5; min-width: 230px; font-size: 13px; padding: 7px 12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewDreamDns();}">
                         <div class="dream-add-dns-actions" style="display:flex; gap:8px;">
                             <button type="button" class="btn btn-outline btn-sm" onclick="addNewDreamDns()">➕ Adicionar DNS</button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="removeSelectedDreamDns()" title="Remover o DNS selecionado">🗑️</button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeSelectedDreamDns()" title="Remover o DNS selecionado na lista">🗑️</button>
                         </div>
                     </div>
                     <div style="display:flex; justify-content:flex-end; margin-top: 16px;">
@@ -1345,27 +1346,62 @@
     }
 
     let dreamDnsList = [
-        "http://thedreamtv.site:80",
-        "https://topnextplay.online:443"
+        { name: "Dream TV (Principal)", url: "http://thedreamtv.site:80" }
     ];
 
+    function normalizeDreamDnsItem(item) {
+        if (!item) return null;
+        if (typeof item === "object") {
+            const url = (item.url || "").trim().replace(/\/+$/, "");
+            if (!url) return null;
+            const name = (item.name || url).trim();
+            return { name, url };
+        }
+        if (typeof item === "string") {
+            let str = item.trim().replace(/\/+$/, "");
+            if (!str) return null;
+            let name = "";
+            let url = str;
+            if (str.includes("|")) {
+                const idx = str.indexOf("|");
+                name = str.substring(0, idx).trim();
+                url = str.substring(idx + 1).trim().replace(/\/+$/, "");
+            }
+            if (!name) name = url;
+            return { name, url };
+        }
+        return null;
+    }
+
     function loadDreamDnsList(rawAnnouncement) {
+        dreamDnsList = [
+            { name: "Dream TV (Principal)", url: "http://thedreamtv.site:80" }
+        ];
+
         const stored = localStorage.getItem("dream_custom_dns_list");
         if (stored) {
             try {
                 const arr = JSON.parse(stored);
                 if (Array.isArray(arr)) {
                     arr.forEach(u => {
-                        const trimmed = String(u || "").trim().replace(/\/+$/, "");
-                        if (trimmed && !dreamDnsList.includes(trimmed)) dreamDnsList.push(trimmed);
+                        const norm = normalizeDreamDnsItem(u);
+                        if (norm && !norm.url.toLowerCase().includes("topnextplay.online")) {
+                            if (!dreamDnsList.some(d => d.url.toLowerCase() === norm.url.toLowerCase())) {
+                                dreamDnsList.push(norm);
+                            }
+                        }
                     });
                 }
             } catch (_e) {}
         }
+
         if (rawAnnouncement && rawAnnouncement.includes("||DNS_LIST:")) {
             const rawList = rawAnnouncement.split("||DNS_LIST:")[1].split("||")[0].trim();
-            rawList.split(",").map(s => s.trim().replace(/\/+$/, "")).filter(Boolean).forEach(u => {
-                if (!dreamDnsList.includes(u)) dreamDnsList.push(u);
+            rawList.split(",").map(s => s.trim()).filter(Boolean).forEach(entry => {
+                const norm = normalizeDreamDnsItem(entry);
+                if (norm && !dreamDnsList.some(d => d.url.toLowerCase() === norm.url.toLowerCase())) {
+                    dreamDnsList.push(norm);
+                }
             });
         }
         renderDreamDnsOptions();
@@ -1374,53 +1410,77 @@
     function renderDreamDnsOptions(selectedVal = null) {
         const sel1 = document.getElementById("quickActDns");
         const sel2 = document.getElementById("actDnsInput");
-        const list = Array.from(new Set(dreamDnsList.filter(Boolean)));
-        const html = list.map(dns => `<option value="${escapeHtml(dns)}">${escapeHtml(dns)}</option>`).join("");
-        
+        const items = dreamDnsList.map(normalizeDreamDnsItem).filter(Boolean);
+        const html = items.map(d => {
+            const label = (d.name && d.name !== d.url) ? `${d.name} (${d.url})` : d.url;
+            return `<option value="${escapeHtml(d.url)}">${escapeHtml(label)}</option>`;
+        }).join("");
+
+        const urls = items.map(d => d.url);
         if (sel1) {
-            const prev = selectedVal || sel1.value || list[0];
+            const prev = selectedVal || sel1.value || urls[0] || "";
             sel1.innerHTML = html;
-            if (list.includes(prev)) sel1.value = prev;
+            if (urls.includes(prev)) sel1.value = prev;
         }
         if (sel2) {
-            const prev = selectedVal || sel2.value || list[0];
+            const prev = selectedVal || sel2.value || urls[0] || "";
             sel2.innerHTML = html;
-            if (list.includes(prev)) sel2.value = prev;
+            if (urls.includes(prev)) sel2.value = prev;
         }
     }
 
     async function addNewDreamDns() {
-        const inp = document.getElementById("newDreamDnsInput");
-        if (!inp) return;
-        let dns = inp.value.trim().replace(/\/+$/, "");
-        if (!dns) return;
+        const nameInp = document.getElementById("newDreamDnsNameInput");
+        const urlInp = document.getElementById("newDreamDnsInput");
+        if (!urlInp) return;
+        let dns = urlInp.value.trim().replace(/\/+$/, "");
+        let name = nameInp ? nameInp.value.trim() : "";
+        if (!dns) {
+            showToast("Por favor insere o URL do DNS.", true);
+            return;
+        }
         if (!dns.startsWith("http://") && !dns.startsWith("https://")) {
             dns = "http://" + dns;
         }
-        if (!dreamDnsList.includes(dns)) {
-            dreamDnsList.push(dns);
-            localStorage.setItem("dream_custom_dns_list", JSON.stringify(dreamDnsList));
-            renderDreamDnsOptions(dns);
-            inp.value = "";
-            showToast("✔ DNS adicionado com sucesso!");
-            await saveDreamDnsListToBackend();
-        } else {
-            renderDreamDnsOptions(dns);
-            inp.value = "";
-            showToast("Esse DNS já existe na lista.");
+        if (!name) {
+            name = dns;
         }
+        const existingIdx = dreamDnsList.findIndex(d => {
+            const norm = normalizeDreamDnsItem(d);
+            return norm && norm.url.toLowerCase() === dns.toLowerCase();
+        });
+        if (existingIdx >= 0) {
+            dreamDnsList[existingIdx] = { name, url: dns };
+            showToast("✔ DNS atualizado com sucesso!");
+        } else {
+            dreamDnsList.push({ name, url: dns });
+            showToast("✔ DNS adicionado com sucesso!");
+        }
+        localStorage.setItem("dream_custom_dns_list", JSON.stringify(dreamDnsList));
+        renderDreamDnsOptions(dns);
+        urlInp.value = "";
+        if (nameInp) nameInp.value = "";
+        await saveDreamDnsListToBackend();
     }
 
     async function removeSelectedDreamDns() {
         const sel = document.getElementById("quickActDns");
         if (!sel || !sel.value) return;
-        const toRemove = sel.value;
+        const toRemove = sel.value.toLowerCase();
         if (dreamDnsList.length <= 1) {
             showToast("Tens de manter pelo menos um DNS na lista.", true);
             return;
         }
-        if (!confirm(`Tens a certeza que queres remover o DNS:\n${toRemove}?`)) return;
-        dreamDnsList = dreamDnsList.filter(d => d !== toRemove);
+        const dnsObj = dreamDnsList.find(d => {
+            const norm = normalizeDreamDnsItem(d);
+            return norm && norm.url.toLowerCase() === toRemove;
+        });
+        const label = dnsObj ? (dnsObj.name ? `${dnsObj.name} (${dnsObj.url})` : dnsObj.url) : toRemove;
+        if (!confirm(`Tens a certeza que queres remover o DNS:\n${label}?`)) return;
+        dreamDnsList = dreamDnsList.filter(d => {
+            const norm = normalizeDreamDnsItem(d);
+            return norm && norm.url.toLowerCase() !== toRemove;
+        });
         localStorage.setItem("dream_custom_dns_list", JSON.stringify(dreamDnsList));
         renderDreamDnsOptions();
         showToast("✔ DNS removido.");
@@ -1453,8 +1513,12 @@
             }
         }
         if (!dns) dns = "http://thedreamtv.site:80";
-        if (!dreamDnsList.includes(dns)) {
-            dreamDnsList.push(dns);
+        const exists = dreamDnsList.some(d => {
+            const norm = normalizeDreamDnsItem(d);
+            return norm && norm.url.toLowerCase() === dns.toLowerCase();
+        });
+        if (!exists) {
+            dreamDnsList.push({ name: dns, url: dns });
         }
         renderDreamDnsOptions(dns);
     }
@@ -1830,7 +1894,7 @@
         const dnsListPart = (currentResellerId === "suporte24" && suporte24DnsList.length > 0)
             ? `||DNS_LIST:${suporte24DnsList.join(",")}`
             : (((currentResellerId === "dream" || isMasterRole) && dreamDnsList.length > 0)
-                ? `||DNS_LIST:${dreamDnsList.join(",")}`
+                ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}`
                 : "");
         return `${cleanAnnouncement} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
@@ -1895,7 +1959,8 @@
     }
 
     async function saveVpnConfigSilent(toastMessage) {
-        const bestUrl = document.getElementById("cfgBestUrl").value.trim() || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") || "https://topnextplay.online:443";
+        const defaultBestUrl = (currentResellerId === "dream") ? "http://thedreamtv.site:80" : "https://thebestplay.site";
+        const bestUrl = document.getElementById("cfgBestUrl").value.trim() || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") || defaultBestUrl;
         const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker" || currentResellerId === "suporte24") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
@@ -2877,9 +2942,11 @@
                 ? `||VPN_USERS:restricted|${Array.from(allowedVpnUsers).join(",")}`
                 : "";
             const vpnKillPart = vpnKillTimestamp > 0 ? `||VPN_KILL:${vpnKillTimestamp}` : "";
-            const dnsListPart = dreamDnsList.length > 0 ? `||DNS_LIST:${dreamDnsList.join(",")}` : "";
+            const dnsListPart = dreamDnsList.length > 0 
+                ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
+                : "";
             const newAnn = `${currentAnn} ${actString} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
-            const dns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || fallbackDns || "http://thedreamtv.site:80";
+            const dns = fallbackDns || (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || "http://thedreamtv.site:80";
             const best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || dns;
             const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
 
@@ -2894,15 +2961,20 @@
             });
             if (lastDashboardData) {
                 lastDashboardData.announcement = newAnn;
+                lastDashboardData.best_url = dns;
             }
+            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
+            if (cfgBestUrlEl) cfgBestUrlEl.value = dns;
         } else if (isMasterRole) {
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
             const vpnPart = prevAnn.includes("||VPN:") ? ("||VPN:" + prevAnn.split("||VPN:")[1].trim()) : "";
             const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim();
-            const dnsListPart = dreamDnsList.length > 0 ? `||DNS_LIST:${dreamDnsList.join(",")}` : "";
+            const dnsListPart = dreamDnsList.length > 0 
+                ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
+                : "";
             const newAnn = `${cleanAnn} ${actString} ${dnsListPart} ${vpnPart}`.trim();
-            const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://topnextplay.online:443") : "https://topnextplay.online:443");
+            const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "http://thedreamtv.site:80") : "http://thedreamtv.site:80");
             const dreamPass = (dreamRes && dreamRes.panel_password) ? dreamRes.panel_password : "dream12345";
 
             try {
@@ -2920,10 +2992,14 @@
             }
             if (dreamRes) {
                 dreamRes.announcement = newAnn;
+                dreamRes.best_url = dns;
             }
             if (lastDashboardData) {
                 lastDashboardData.announcement = newAnn;
+                lastDashboardData.best_url = dns;
             }
+            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
+            if (cfgBestUrlEl) cfgBestUrlEl.value = dns;
         }
     }
 
@@ -2949,12 +3025,16 @@
                     ? `<button class="btn btn-outline btn-sm" style="margin-right:6px; border-color: var(--success); color: #34d399; background: rgba(16, 185, 129, 0.14);" onclick="toggleUserVpn('${escapeHtml(a.username)}')" title="Clica para desativar a VPN neste utilizador">🛡️ VPN: ON</button>`
                     : `<button class="btn btn-outline btn-sm" style="margin-right:6px; color: var(--text-muted);" onclick="toggleUserVpn('${escapeHtml(a.username)}')" title="Clica para ativar a VPN neste utilizador">🔒 VPN: OFF</button>`)
                 : "";
+            const matchedDns = dreamDnsList.map(normalizeDreamDnsItem).find(d => d && a.dns && d.url.toLowerCase() === a.dns.toLowerCase());
+            const dnsDisplay = matchedDns && matchedDns.name && matchedDns.name !== matchedDns.url
+                ? `<span style="font-weight:600; color:var(--accent);">${escapeHtml(matchedDns.name)}</span><br><span style="font-size:11px; color:var(--text-muted);">${escapeHtml(a.dns)}</span>`
+                : `<span style="font-size:12px;">${escapeHtml(a.dns || "Padrão da Revenda")}</span>`;
             return `
             <tr>
                 <td><span class="badge badge-online">● Ativo</span></td>
                 <td><code class="id-chip" style="font-weight:bold; color:#38bdf8;">${escapeHtml(a.device_id)}</code></td>
                 <td><code class="id-chip" style="color:#f43f5e; font-weight:bold;">${escapeHtml(a.device_key || "------")}</code></td>
-                <td><div style="font-size:12px;">${escapeHtml(a.dns || "Padrão da Revenda")}</div></td>
+                <td><div>${dnsDisplay}</div></td>
                 <td><strong>${escapeHtml(a.username)}</strong></td>
                 <td><code>••••••••</code></td>
                 <td style="text-align:right; white-space:nowrap;">
@@ -2983,8 +3063,11 @@
             devInput.value = item.device_id;
             keyInput.value = item.device_key || "";
             const targetDns = item.dns || curDns;
-            if (targetDns && !dreamDnsList.includes(targetDns)) {
-                dreamDnsList.push(targetDns);
+            if (targetDns && !dreamDnsList.some(d => {
+                const norm = normalizeDreamDnsItem(d);
+                return norm && norm.url.toLowerCase() === targetDns.toLowerCase();
+            })) {
+                dreamDnsList.push({ name: targetDns, url: targetDns });
             }
             renderDreamDnsOptions(targetDns);
             userInput.value = item.username;
@@ -3064,8 +3147,12 @@
                 });
             }
 
+            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
+            if (cfgBestUrlEl) cfgBestUrlEl.value = dns;
+            if (lastDashboardData) lastDashboardData.best_url = dns;
+
             await saveActivationsToBackend(currentActivations, dns);
-            showToast("✔ Dispositivo ativado com sucesso!");
+            showToast("✔ Dispositivo ativado com sucesso com o DNS selecionado!");
             if (devIdEl) devIdEl.value = "";
             if (devKeyEl) devKeyEl.value = "";
             if (userEl) userEl.value = "";
@@ -3131,9 +3218,13 @@
                 });
             }
 
+            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
+            if (cfgBestUrlEl && dns) cfgBestUrlEl.value = dns;
+            if (lastDashboardData && dns) lastDashboardData.best_url = dns;
+
             await saveActivationsToBackend(currentActivations, dns);
             closeActivationModal();
-            showToast("✔ Dispositivo ativado com sucesso!");
+            showToast("✔ Dispositivo guardado com o DNS selecionado!");
             renderActivations();
             renderDevices();
         } catch (err) {
@@ -3194,7 +3285,8 @@
     document.getElementById("configForm").addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btnSaveConfig");
-        const bestUrl = document.getElementById("cfgBestUrl").value.trim() || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") || "https://topnextplay.online:443";
+        const defaultBestUrl = (currentResellerId === "dream") ? "http://thedreamtv.site:80" : "https://thebestplay.site";
+        const bestUrl = document.getElementById("cfgBestUrl").value.trim() || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "") || defaultBestUrl;
         const best2Url = (currentResellerId === "pereira_tv" || currentResellerId === "godinho_tv" || currentResellerId === "dream" || currentResellerId === "joker" || currentResellerId === "tv_joker" || currentResellerId === "suporte24") ? bestUrl : document.getElementById("cfgBest2Url").value.trim();
         const announcement = buildEncodedAnnouncement();
         const maintenance = document.getElementById("cfgMaintenance").checked;
