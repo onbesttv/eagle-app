@@ -27,8 +27,13 @@ object CategoryCountHelper {
         val prefs = context.getSharedPreferences(PREFS_VOD, Context.MODE_PRIVATE)
         val cleanId = categoryId.trim().let { if (it.endsWith(".0") && it.toDoubleOrNull() != null) it.substringBefore(".0") else it }
         val direct = prefs.getInt(cleanId, 0)
-        if (direct > 0) return direct
-        return prefs.getInt("$cleanId.0", 0)
+        val result = if (direct > 0) direct else prefs.getInt("$cleanId.0", 0)
+        // Descarta valores anómalos ou somatórios acidentais em ALL_MOVIES
+        if (cleanId == "ALL_MOVIES" && result > 6000) {
+            prefs.edit().remove("ALL_MOVIES").apply()
+            return 0
+        }
+        return result
     }
 
     fun saveVodCounts(context: Context, counts: Map<String, Int>, clearOld: Boolean = false) {
@@ -38,7 +43,11 @@ object CategoryCountHelper {
         if (clearOld) editor.clear()
         counts.forEach { (catId, count) ->
             val cleanId = catId.trim().let { if (it.endsWith(".0") && it.toDoubleOrNull() != null) it.substringBefore(".0") else it }
-            editor.putInt(cleanId, count)
+            if (cleanId == "ALL_MOVIES" && count > 6000) {
+                // Descarta soma inflacionada acidental
+            } else {
+                editor.putInt(cleanId, count)
+            }
         }
         editor.apply()
     }

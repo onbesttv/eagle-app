@@ -584,6 +584,17 @@ class EagleTvActivity : BaseActivity() {
 
         carregarTudoLiveTv()
 
+        // Limpeza preventiva de contagens anómalas e pré-carregamento de filmes e séries em segundo plano
+        lifecycleScope.launch(Dispatchers.IO) {
+            val vodPrefs = getSharedPreferences("cat_counts_vod", Context.MODE_PRIVATE)
+            if (vodPrefs.getInt("ALL_MOVIES", 0) > 6000) {
+                vodPrefs.edit().clear().apply()
+                try { File(cacheDir, "vod_movies_cache.json").delete() } catch (_: Exception) {}
+            }
+            carregarCacheFilmesDiscoSeExistir()
+            carregarCacheSeriesDiscoSeExistir()
+        }
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
@@ -1010,7 +1021,15 @@ class EagleTvActivity : BaseActivity() {
                 try { File(cacheDir, "vod_series_cache.json").delete() } catch (_: Exception) {}
                 try { File(cacheDir, "vod_categories_cache.json").delete() } catch (_: Exception) {}
                 try { File(cacheDir, "series_categories_cache.json").delete() } catch (_: Exception) {}
+                getSharedPreferences("cat_counts_vod", Context.MODE_PRIVATE).edit().clear().apply()
+                getSharedPreferences("cat_counts_series", Context.MODE_PRIVATE).edit().clear().apply()
                 carregarTudoLiveTv()
+
+                // Limpeza preventiva de contagens anómalas e pré-carregamento de filmes e séries em segundo plano
+                lifecycleScope.launch(Dispatchers.IO) {
+                    carregarCacheFilmesDiscoSeExistir()
+                    carregarCacheSeriesDiscoSeExistir()
+                }
                 SportsAgendaManager.loadOrRefresh(this, forceOnline = true) { matches ->
                     allMatches.clear()
                     allMatches.addAll(matches)
@@ -2566,18 +2585,18 @@ class EagleTvActivity : BaseActivity() {
                                 allMoviesCache.addAll(sortedFilmes)
                             }
                         }
-                        val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                        val counts = filmes.mapNotNull { it.categoryId?.trim() }.groupingBy { it }.eachCount().toMutableMap()
                         counts["ALL_MOVIES"] = filmes.size
-                        counts["RECENT"] = minOf(40, filmes.size)
-                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                        counts["RECENT"] = minOf(50, filmes.size)
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
                         withContext(Dispatchers.Main) {
                             if (activeSection == WorkspaceSection.MOVIES) {
-                                movieGroupAdapter?.atualizarContadoresVisiveis()
+                                movieGroupAdapter?.notifyDataSetChanged()
                                 if (currentVodCategoryId == "RECENT") {
                                     currentVodCategoryMovies = allMoviesCache.sortedWith(
                                         compareByDescending<VodStream> { parseTimestamp(it.added) }
                                             .thenByDescending { it.streamId }
-                                    ).take(40)
+                                    ).take(50)
                                     atualizarGrelhaFilmes()
                                 }
                             }
@@ -2620,6 +2639,7 @@ class EagleTvActivity : BaseActivity() {
                         }
                     }
                 } catch (_: Exception) {}
+                carregarTodosFilmesEmCache()
             }
         })
     }
@@ -2705,12 +2725,12 @@ class EagleTvActivity : BaseActivity() {
                                 allMoviesCache.addAll(sortedFilmes)
                             }
                         }
-                        val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                        val counts = filmes.mapNotNull { it.categoryId?.trim() }.groupingBy { it }.eachCount().toMutableMap()
                         counts["ALL_MOVIES"] = filmes.size
-                        counts["RECENT"] = minOf(40, filmes.size)
-                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                        counts["RECENT"] = minOf(50, filmes.size)
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
                         withContext(Dispatchers.Main) {
-                            movieGroupAdapter?.atualizarContadoresVisiveis()
+                            movieGroupAdapter?.notifyDataSetChanged()
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {
                                 val list = pendingMoviesCacheCallbacks.toList()
                                 pendingMoviesCacheCallbacks.clear()
@@ -2746,8 +2766,8 @@ class EagleTvActivity : BaseActivity() {
                     }
                 }
                 override fun onResponse(call: Call, response: Response) {
-                    val body = response.body
-                    if (body == null) {
+                    val rawJson = response.body?.string()
+                    if (rawJson.isNullOrBlank()) {
                         val callbacks = synchronized(pendingMoviesCacheCallbacks) {
                             isLoadingMoviesCache = false
                             val list = pendingMoviesCacheCallbacks.toList()
@@ -2759,20 +2779,13 @@ class EagleTvActivity : BaseActivity() {
                     }
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
-                            val tempFile = File(cacheDir, "vod_movies_cache.tmp")
-                            body.byteStream().use { input ->
-                                tempFile.outputStream().use { output ->
-                                    input.copyTo(output)
-                                }
-                            }
-                            val finalFile = File(cacheDir, "vod_movies_cache.json")
-                            if (finalFile.exists()) finalFile.delete()
-                            tempFile.renameTo(finalFile)
+                            try {
+                                val finalFile = File(cacheDir, "vod_movies_cache.json")
+                                finalFile.writeText(rawJson)
+                            } catch (_: Exception) {}
 
                             val type = object : TypeToken<List<VodStream>>() {}.type
-                            val filmes: List<VodStream> = FileReader(finalFile).use { reader ->
-                                gson.fromJson(reader, type)
-                            } ?: emptyList()
+                            val filmes: List<VodStream> = gson.fromJson(rawJson, type) ?: emptyList()
 
                             if (filmes.isNotEmpty()) {
                                 val sortedFilmes = filmes.sortedBy { it.name.lowercase() }
@@ -2781,10 +2794,10 @@ class EagleTvActivity : BaseActivity() {
                                     allMoviesCache.addAll(sortedFilmes)
                                 }
                                 lastMoviesFetchTs = System.currentTimeMillis()
-                                val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
+                                val counts = filmes.mapNotNull { it.categoryId?.trim() }.groupingBy { it }.eachCount().toMutableMap()
                                 counts["ALL_MOVIES"] = filmes.size
-                                counts["RECENT"] = minOf(40, filmes.size)
-                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                                counts["RECENT"] = minOf(50, filmes.size)
+                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
                             }
 
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {
@@ -2794,13 +2807,13 @@ class EagleTvActivity : BaseActivity() {
                                 list
                             }
                             withContext(Dispatchers.Main) {
-                                movieGroupAdapter?.atualizarContadoresVisiveis()
+                                movieGroupAdapter?.notifyDataSetChanged()
                                 if (activeSection == WorkspaceSection.MOVIES) {
                                     if (currentVodCategoryId == "RECENT") {
                                         currentVodCategoryMovies = allMoviesCache.sortedWith(
                                             compareByDescending<VodStream> { parseTimestamp(it.added) }
                                                 .thenByDescending { it.streamId }
-                                        ).take(40)
+                                        ).take(50)
                                         atualizarGrelhaFilmes()
                                     } else if (currentVodCategoryId == "ALL_MOVIES") {
                                         currentVodCategoryMovies = allMoviesCache
@@ -2932,7 +2945,8 @@ class EagleTvActivity : BaseActivity() {
             }
             else -> {
                 if (allMoviesCache.size > 200) {
-                    val matching = allMoviesCache.filter { it.categoryId == catId }
+                    val cleanCatId = catId.trim()
+                    val matching = allMoviesCache.filter { it.categoryId?.trim() == cleanCatId }
                     if (matching.isNotEmpty()) {
                         currentVodCategoryMovies = matching
                         atualizarGrelhaFilmes()
@@ -2977,11 +2991,6 @@ class EagleTvActivity : BaseActivity() {
                                             vh.tvCount.text = filmes.size.toString()
                                             vh.tvCount.visibility = View.VISIBLE
                                         }
-                                    }
-                                    synchronized(allMoviesCache) {
-                                        val existingIds = allMoviesCache.map { it.streamId }.toHashSet()
-                                        val novos = filmes.filter { !existingIds.contains(it.streamId) }
-                                        allMoviesCache.addAll(novos)
                                     }
                                     atualizarGrelhaFilmes()
                                 }
@@ -4290,9 +4299,17 @@ class EagleTvActivity : BaseActivity() {
         try { File(cacheDir, "vod_series_cache.json").delete() } catch (_: Exception) {}
         try { File(cacheDir, "vod_categories_cache.json").delete() } catch (_: Exception) {}
         try { File(cacheDir, "series_categories_cache.json").delete() } catch (_: Exception) {}
+        getSharedPreferences("cat_counts_vod", Context.MODE_PRIVATE).edit().clear().apply()
+        getSharedPreferences("cat_counts_series", Context.MODE_PRIVATE).edit().clear().apply()
         atualizarEstadoServidorEVpn()
         selecionarSecao(WorkspaceSection.LIVE_TV)
         carregarTudoLiveTv()
+
+        // Pré-carregamento em segundo plano do novo servidor
+        lifecycleScope.launch(Dispatchers.IO) {
+            carregarCacheFilmesDiscoSeExistir()
+            carregarCacheSeriesDiscoSeExistir()
+        }
         Toast.makeText(this, "Servidor alterado para ${IptvServiceConfig.displayName(targetService)}", Toast.LENGTH_SHORT).show()
     }
 
