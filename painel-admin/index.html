@@ -1002,9 +1002,10 @@
                         <div>
                             <span style="font-weight: 700; font-size: 14px; color: var(--accent);">🌐 Gestão de Múltiplos Servidores DNS (PlayTV)</span>
                             <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">
-                                Cada servidor DNS tem o seu campo visível. Ao adicionar um novo DNS, surge um novo campo dedicado ao lado ou por baixo.
+                                Cada servidor DNS tem o seu campo dedicado (máximo de 5 servidores permitidos).
                             </div>
                         </div>
+                        <span id="suporte24DnsCountBadge" class="badge badge-online" style="font-size: 11px; padding: 4px 10px;">1 / 5 DNS</span>
                     </div>
 
                     <!-- Campos de DNS gerados dinamicamente em grelha lado a lado / por baixo -->
@@ -1014,7 +1015,7 @@
                     <!-- Barra para adicionar novo campo de DNS -->
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.06);">
                         <input type="text" id="newSuporte24DnsInput" placeholder="Adicionar outro DNS (ex: http://bmgroup2026.com:8080 ou http://playtv.site)" style="flex: 1; min-width: 250px; font-size: 13px; padding: 8px 12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewSuporte24Dns();}">
-                        <button type="button" class="btn btn-outline btn-sm" onclick="addNewSuporte24Dns()">➕ Adicionar outro DNS</button>
+                        <button type="button" class="btn btn-outline btn-sm" id="btnAddNewSuporte24Dns" onclick="addNewSuporte24Dns()">➕ Adicionar outro DNS</button>
                     </div>
                 </div>
                 <div class="form-grid">
@@ -1500,6 +1501,12 @@
             suporte24DnsList = list;
         }
 
+        const badgeEl = document.getElementById("suporte24DnsCountBadge");
+        if (badgeEl) {
+            badgeEl.textContent = `${list.length} / 5 DNS (Máx. 5)`;
+            badgeEl.className = (list.length >= 5) ? "badge badge-blocked" : "badge badge-online";
+        }
+
         grid.innerHTML = list.map((dns, idx) => {
             const isActive = (dns.toLowerCase() === curActive.toLowerCase()) || (idx === 0 && !list.some(d => d.toLowerCase() === curActive.toLowerCase()));
             return `
@@ -1557,6 +1564,14 @@
         if (!dns.startsWith("http://") && !dns.startsWith("https://")) {
             dns = "http://" + dns;
         }
+
+        const list = Array.from(new Set(suporte24DnsList.filter(Boolean)));
+        if (list.length >= 5 && !list.includes(dns)) {
+            showToast("⚠️ Limite atingido: só podes adicionar até 5 servidores DNS!", true);
+            alert("Aviso: Limite de 5 servidores DNS atingido. Não é permitido adicionar mais DNS neste painel.");
+            return;
+        }
+
         if (!suporte24DnsList.includes(dns)) {
             suporte24DnsList.push(dns);
             localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
