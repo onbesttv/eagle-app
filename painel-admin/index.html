@@ -1464,27 +1464,34 @@
     ];
 
     function loadSuporte24DnsList(rawAnnouncement) {
-        const stored = localStorage.getItem("suporte24_custom_dns_list");
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    suporte24DnsList = parsed;
-                }
-            } catch (_e) {}
-        }
+        suporte24DnsList = [];
         if (rawAnnouncement && rawAnnouncement.includes("||DNS_LIST:")) {
             const rawList = rawAnnouncement.split("||DNS_LIST:")[1].split("||")[0].trim();
             rawList.split(",").map(s => s.trim().replace(/\/+$/, "")).filter(Boolean).forEach(u => {
                 if (!suporte24DnsList.includes(u)) suporte24DnsList.push(u);
             });
         }
-        const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
-            || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "")
+        if (suporte24DnsList.length === 0) {
+            const stored = localStorage.getItem("suporte24_custom_dns_list");
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        suporte24DnsList = parsed;
+                    }
+                } catch (_e) {}
+            }
+        }
+        const curDns = (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "")
+            || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
             || "http://bmgroup2026.com:8080";
         if (curDns && !suporte24DnsList.includes(curDns)) {
-            suporte24DnsList.push(curDns);
+            suporte24DnsList.unshift(curDns);
         }
+        if (suporte24DnsList.length === 0) {
+            suporte24DnsList.push("http://bmgroup2026.com:8080");
+        }
+        localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
         renderSuporte24DnsGrid();
     }
 
@@ -1518,7 +1525,7 @@
                         <div style="display: flex; gap: 6px; align-items: center;">
                             ${isActive
                                 ? `<span class="badge badge-online" style="font-size: 11px; padding: 3px 8px;">● Ativo</span>`
-                                : `<button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 3px 8px; border-color: #38bdf8; color: #38bdf8;" onclick="setSuporte24ActiveDns(${idx})">⭐ Definir como Principal</button>`}
+                                : `<button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 3px 8px; border-color: #38bdf8; color: #38bdf8;" onclick="setSuporte24ActiveDns(${idx})">⭐ Ativar na App</button>`}
                             ${list.length > 1
                                 ? `<button type="button" class="btn btn-danger btn-sm" style="font-size: 11px; padding: 3px 8px;" onclick="removeSuporte24Dns(${idx})" title="Remover este campo de DNS">🗑️</button>`
                                 : ''}
@@ -1530,16 +1537,19 @@
         }).join("");
     }
 
-    function setSuporte24ActiveDns(idx) {
+    async function setSuporte24ActiveDns(idx) {
         if (!suporte24DnsList[idx]) return;
         const newDns = suporte24DnsList[idx];
         const cfgBestUrlEl = document.getElementById("cfgBestUrl");
         if (cfgBestUrlEl) cfgBestUrlEl.value = newDns;
+        if (lastDashboardData) lastDashboardData.best_url = newDns;
         renderSuporte24DnsGrid();
-        showToast(`✔ DNS "${newDns}" definido como Principal na App! Clica em "Guardar Alterações" para aplicar.`);
+        showToast(`⏳ A ativar "${newDns}" na app em tempo real...`);
+        await saveSuporte24ConfigToBackend(newDns);
+        showToast(`✅ DNS "${newDns}" ATIVADO NA APP EM TEMPO REAL!`);
     }
 
-    function updateSuporte24DnsValue(idx, newVal) {
+    async function updateSuporte24DnsValue(idx, newVal) {
         let val = (newVal || "").trim().replace(/\/+$/, "");
         if (!val) return;
         if (!val.startsWith("http://") && !val.startsWith("https://")) {
@@ -1549,11 +1559,13 @@
         suporte24DnsList[idx] = val;
         localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
         const cfgBestUrlEl = document.getElementById("cfgBestUrl");
-        if (cfgBestUrlEl && cfgBestUrlEl.value === oldVal) {
-            cfgBestUrlEl.value = val;
+        let activeDns = cfgBestUrlEl ? cfgBestUrlEl.value.trim() : "";
+        if (activeDns && oldVal && activeDns.toLowerCase() === oldVal.toLowerCase()) {
+            activeDns = val;
+            if (cfgBestUrlEl) cfgBestUrlEl.value = val;
         }
         renderSuporte24DnsGrid();
-        saveSuporte24DnsListToBackend();
+        await saveSuporte24ConfigToBackend(activeDns);
     }
 
     async function addNewSuporte24Dns() {
@@ -1578,7 +1590,7 @@
             inp.value = "";
             renderSuporte24DnsGrid();
             showToast("✔ Novo campo de DNS adicionado com sucesso!");
-            await saveSuporte24DnsListToBackend();
+            await saveSuporte24ConfigToBackend();
         } else {
             inp.value = "";
             renderSuporte24DnsGrid();
@@ -1597,19 +1609,50 @@
         suporte24DnsList.splice(idx, 1);
         localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
         const cfgBestUrlEl = document.getElementById("cfgBestUrl");
-        if (cfgBestUrlEl && cfgBestUrlEl.value === toRemove) {
-            cfgBestUrlEl.value = suporte24DnsList[0] || "";
+        let activeDns = cfgBestUrlEl ? cfgBestUrlEl.value.trim() : "";
+        if (!activeDns || activeDns.toLowerCase() === toRemove.toLowerCase() || !suporte24DnsList.includes(activeDns)) {
+            activeDns = suporte24DnsList[0] || "http://bmgroup2026.com:8080";
+            if (cfgBestUrlEl) cfgBestUrlEl.value = activeDns;
         }
         renderSuporte24DnsGrid();
         showToast("✔ Campo de DNS removido com sucesso.");
-        await saveSuporte24DnsListToBackend();
+        await saveSuporte24ConfigToBackend(activeDns);
     }
 
-    async function saveSuporte24DnsListToBackend() {
+    async function saveSuporte24ConfigToBackend(overrideBestUrl = null) {
         if (currentResellerId !== "suporte24") return;
+        const activeDns = overrideBestUrl 
+            || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "")
+            || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "")
+            || suporte24DnsList[0] || "http://bmgroup2026.com:8080";
+
+        if (document.getElementById("cfgBestUrl")) {
+            document.getElementById("cfgBestUrl").value = activeDns;
+        }
+        if (lastDashboardData) {
+            lastDashboardData.best_url = activeDns;
+        }
+
+        const announcement = buildEncodedAnnouncement();
+        const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
+
         try {
-            await saveVpnConfigSilent("Lista de DNS sincronizada com sucesso!");
-        } catch (_e) {}
+            await rpcCall("panel_save_own_config", {
+                p_reseller_id: "suporte24",
+                p_password: adminPassword,
+                p_best_url: activeDns,
+                p_best2_url: activeDns,
+                p_announcement: announcement,
+                p_maintenance_mode: maintenance,
+                p_new_password: ""
+            });
+            if (lastDashboardData) {
+                lastDashboardData.announcement = announcement;
+            }
+        } catch (err) {
+            console.error("Erro ao guardar DNS do suporte24 em tempo real:", err);
+            showToast("Erro ao sincronizar DNS com o servidor.", true);
+        }
     }
 
     function isUserVpnEnabled(username) {
