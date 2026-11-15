@@ -389,7 +389,8 @@ class EagleTvActivity : BaseActivity() {
     private fun navegarListaVertical(rv: RecyclerView, direcao: Int, totalItems: Int): Boolean {
         if (totalItems <= 0) return true
         val focusedChild = rv.findFocus() ?: return true
-        val pos = rv.getChildAdapterPosition(rv.findContainingItemView(focusedChild) ?: focusedChild)
+        val containingView = rv.findContainingItemView(focusedChild) ?: focusedChild
+        val pos = rv.getChildAdapterPosition(containingView)
         if (pos == RecyclerView.NO_POSITION) return true
 
         val targetPos = pos + direcao
@@ -402,24 +403,40 @@ class EagleTvActivity : BaseActivity() {
             return true
         }
 
-        val lm = rv.layoutManager as? LinearLayoutManager
-        val targetVh = rv.findViewHolderForAdapterPosition(targetPos)
-        if (targetVh != null && targetVh.itemView.isAttachedToWindow) {
-            targetVh.itemView.requestFocus()
-            lm?.let {
-                val first = it.findFirstCompletelyVisibleItemPosition()
-                val last = it.findLastCompletelyVisibleItemPosition()
-                if (targetPos <= first + 1 || targetPos >= last - 1) {
-                    it.scrollToPositionWithOffset(targetPos, dp(48))
-                }
-            }
-        } else {
-            lm?.scrollToPositionWithOffset(targetPos, dp(48))
-            rv.post {
-                rv.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
+        // Tenta mover o foco para a próxima vista dentro da RecyclerView (fluido, nativo, sem saltos)
+        val nextFocus = android.view.FocusFinder.getInstance().findNextFocus(
+            rv,
+            containingView,
+            if (direcao > 0) View.FOCUS_DOWN else View.FOCUS_UP
+        )
+
+        if (nextFocus != null && isViewDescendantOf(nextFocus, rv)) {
+            nextFocus.requestFocus()
+            return true
+        }
+
+        // Se o próximo item ainda não estiver carregado na janela, faz scroll suave nativo e foca
+        rv.smoothScrollToPosition(targetPos)
+        rv.post {
+            val vh = rv.findViewHolderForAdapterPosition(targetPos)
+            if (vh != null) {
+                vh.itemView.requestFocus()
+            } else {
+                rv.postDelayed({
+                    rv.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
+                }, 40)
             }
         }
         return true
+    }
+
+    private fun isViewDescendantOf(child: View, parent: ViewGroup): Boolean {
+        var p = child.parent
+        while (p != null) {
+            if (p === parent) return true
+            p = p.parent
+        }
+        return false
     }
 
     private fun restaurarFocoSalvo() {
@@ -2495,10 +2512,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun carregarCacheFilmesDiscoSeExistir() {
-        if (allMoviesCache.isNotEmpty()) {
-            carregarTodosFilmesEmCache(forceOnline = true)
-            return
-        }
+        if (allMoviesCache.isNotEmpty()) return
         lifecycleScope.launch(Dispatchers.IO) {
             val cacheFile = File(cacheDir, "vod_movies_cache.json")
             if (cacheFile.exists() && cacheFile.length() > 0) {
@@ -2537,10 +2551,11 @@ class EagleTvActivity : BaseActivity() {
                                 }
                             }
                         }
+                        return@launch
                     }
                 } catch (_: Exception) {}
             }
-            carregarTodosFilmesEmCache(forceOnline = true)
+            carregarTodosFilmesEmCache()
         }
     }
 
@@ -2631,13 +2646,8 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
-    private fun carregarTodosFilmesEmCache(forceOnline: Boolean = false, onDone: (() -> Unit)? = null) {
-        val now = System.currentTimeMillis()
-        if (!forceOnline && allMoviesCache.isNotEmpty()) {
-            onDone?.invoke()
-            return
-        }
-        if (allMoviesCache.isNotEmpty() && (now - lastMoviesFetchTs) < 60_000L) {
+    private fun carregarTodosFilmesEmCache(onDone: (() -> Unit)? = null) {
+        if (allMoviesCache.isNotEmpty()) {
             onDone?.invoke()
             return
         }
@@ -2690,22 +2700,20 @@ class EagleTvActivity : BaseActivity() {
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {
                                 val list = pendingMoviesCacheCallbacks.toList()
                                 pendingMoviesCacheCallbacks.clear()
+                                isLoadingMoviesCache = false
                                 list
                             }
                             callbacks.forEach { it.invoke() }
                         }
+                        return@launch
                     }
                 } catch (_: Exception) {}
             }
 
             // 2. Fazer pedido à rede para atualizar a cache do servidor
-            val vodClient = client.newBuilder()
-                .connectTimeout(45, java.util.concurrent.TimeUnit.SECONDS)
-                .readTimeout(90, java.util.concurrent.TimeUnit.SECONDS)
-                .build()
             val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams"
             val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-            val call = vodClient.newCall(req)
+            val call = client.newCall(req)
             cacheMoviesCall = call
             call.enqueue(object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
@@ -2825,6 +2833,11 @@ class EagleTvActivity : BaseActivity() {
         // Cancela chamada anterior pendente para carregar a pasta selecionada imediatamente
         activeVodCall?.cancel()
         activeVodCall = null
+
+        if (catId != "ALL_MOVIES" && catId != "RECENT") {
+            cacheMoviesCall?.cancel()
+            cacheMoviesCall = null
+        }
 
         when (catId) {
             "ALL_MOVIES" -> {
@@ -3019,10 +3032,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun carregarCacheSeriesDiscoSeExistir() {
-        if (allSeriesCache.isNotEmpty()) {
-            carregarTodasSeriesEmCache(forceOnline = true)
-            return
-        }
+        if (allSeriesCache.isNotEmpty()) return
         lifecycleScope.launch(Dispatchers.IO) {
             val cacheFile = File(cacheDir, "vod_series_cache.json")
             if (cacheFile.exists() && cacheFile.length() > 0) {
@@ -3061,10 +3071,11 @@ class EagleTvActivity : BaseActivity() {
                                 }
                             }
                         }
+                        return@launch
                     }
                 } catch (_: Exception) {}
             }
-            carregarTodasSeriesEmCache(forceOnline = true)
+            carregarTodasSeriesEmCache()
         }
     }
 
@@ -3152,13 +3163,8 @@ class EagleTvActivity : BaseActivity() {
         }
     }
 
-    private fun carregarTodasSeriesEmCache(forceOnline: Boolean = false, onDone: (() -> Unit)? = null) {
-        val now = System.currentTimeMillis()
-        if (!forceOnline && allSeriesCache.isNotEmpty()) {
-            onDone?.invoke()
-            return
-        }
-        if (allSeriesCache.isNotEmpty() && (now - lastSeriesFetchTs) < 60_000L) {
+    private fun carregarTodasSeriesEmCache(onDone: (() -> Unit)? = null) {
+        if (allSeriesCache.isNotEmpty()) {
             onDone?.invoke()
             return
         }
@@ -3199,10 +3205,12 @@ class EagleTvActivity : BaseActivity() {
                             val callbacks = synchronized(pendingSeriesCallbacks) {
                                 val list = pendingSeriesCallbacks.toList()
                                 pendingSeriesCallbacks.clear()
+                                isLoadingSeriesCache = false
                                 list
                             }
                             callbacks.forEach { it.invoke() }
                         }
+                        return@launch
                     }
                 } catch (_: Exception) {}
             }
@@ -3330,6 +3338,11 @@ class EagleTvActivity : BaseActivity() {
         // Cancela chamada anterior pendente para carregar a pasta selecionada imediatamente
         activeSeriesCall?.cancel()
         activeSeriesCall = null
+
+        if (catId != "ALL_SERIES" && catId != "RECENT") {
+            cacheSeriesCall?.cancel()
+            cacheSeriesCall = null
+        }
 
         when (catId) {
             "ALL_SERIES" -> {

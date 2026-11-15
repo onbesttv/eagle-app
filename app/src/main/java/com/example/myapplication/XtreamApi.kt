@@ -45,18 +45,39 @@ data class VodStream(
     @com.google.gson.annotations.SerializedName("num") val num: Any? = null,
     @com.google.gson.annotations.SerializedName("name") val name: String = "",
     @com.google.gson.annotations.SerializedName("stream_type") val stream_type: String? = null,
-    @com.google.gson.annotations.SerializedName("stream_id") val streamId: Int = 0,
+    @com.google.gson.annotations.SerializedName("stream_id") private val rawStreamId: Any? = null,
     @com.google.gson.annotations.SerializedName("stream_icon") val streamIcon: String? = null,
-    @com.google.gson.annotations.SerializedName("rating") val rating: String? = null,
+    @com.google.gson.annotations.SerializedName("rating") private val rawRating: Any? = null,
     @com.google.gson.annotations.SerializedName("rating_5based") private val rawRating5: Any? = null,
     @com.google.gson.annotations.SerializedName("added") val added: String? = null,
-    @com.google.gson.annotations.SerializedName("category_id") val categoryId: String? = null,
+    @com.google.gson.annotations.SerializedName("category_id") private val rawCatId: Any? = null,
     @com.google.gson.annotations.SerializedName("container_extension") val containerExtension: String? = null
 ) {
+    val streamId: Int
+        get() = when (val s = rawStreamId) {
+            is Number -> s.toInt()
+            is String -> s.toIntOrNull() ?: 0
+            else -> 0
+        }
+
+    val rating: String?
+        get() = when (val r = rawRating) {
+            is String -> r
+            is Number -> r.toString()
+            else -> null
+        }
+
     val rating_5based: Double?
         get() = when (val r = rawRating5) {
             is Number -> r.toDouble()
             is String -> r.toDoubleOrNull()
+            else -> null
+        }
+
+    val categoryId: String?
+        get() = when (val c = rawCatId) {
+            is String -> c
+            is Number -> c.toString()
             else -> null
         }
 }
