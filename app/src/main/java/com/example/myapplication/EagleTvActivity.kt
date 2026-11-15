@@ -909,19 +909,23 @@ class EagleTvActivity : BaseActivity() {
             }, 80)
         }
         navMovies.setOnClickListener {
+            lastCatalogGroupPos = 0
+            lastCatalogGridPos = 0
+            currentVodCategoryId = "RECENT"
             selecionarSecao(WorkspaceSection.MOVIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                val pos = (movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos).coerceAtLeast(0)
-                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }, 80)
         }
         navSeries.setOnClickListener {
+            lastCatalogGroupPos = 0
+            lastCatalogGridPos = 0
+            currentSeriesCategoryId = "RECENT"
             selecionarSecao(WorkspaceSection.SERIES)
             ocultarMenuLateral()
             rvCatalogGroups.postDelayed({
-                val pos = (seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos).coerceAtLeast(0)
-                focarRecyclerViewPosicao(rvCatalogGroups, pos)
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }, 80)
         }
 
@@ -1082,6 +1086,15 @@ class EagleTvActivity : BaseActivity() {
         if (isCatalog) {
             rvCatalogGroups.adapter = null
             rvCatalogGrid.adapter = null
+            if (sec == WorkspaceSection.MOVIES) {
+                lastCatalogGroupPos = 0
+                lastCatalogGridPos = 0
+                currentVodCategoryId = "RECENT"
+            } else if (sec == WorkspaceSection.SERIES) {
+                lastCatalogGroupPos = 0
+                lastCatalogGridPos = 0
+                currentSeriesCategoryId = "RECENT"
+            }
         }
 
         when (sec) {
@@ -2595,15 +2608,17 @@ class EagleTvActivity : BaseActivity() {
 
     private fun iniciarSecaoFilmes() {
         etCatalogSearch.setText("")
+        lastCatalogGroupPos = 0
+        lastCatalogGridPos = 0
+        currentVodCategoryId = "RECENT"
         carregarCacheFilmesDiscoSeExistir()
         if (allVodCategories.isEmpty()) {
             carregarCategoriasFilmesCache()
         }
         if (allVodCategories.isNotEmpty()) {
             montarCategoriasFilmes(allVodCategories)
-            val lastGroup = lastCatalogGroupPos.coerceIn(0, (allVodCategories.size - 1).coerceAtLeast(0))
             rvCatalogGroups.post {
-                focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }
         } else {
             val baseCategorias = listOf(
@@ -2613,28 +2628,34 @@ class EagleTvActivity : BaseActivity() {
                 VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0)
             )
             montarCategoriasFilmes(baseCategorias)
-            val lastGroup = lastCatalogGroupPos.coerceIn(0, (baseCategorias.size - 1).coerceAtLeast(0))
             rvCatalogGroups.post {
-                focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }
         }
         carregarCategoriasFilmesOnline()
     }
 
     private fun montarCategoriasFilmes(categorias: List<VodCategory>) {
-        val initialIdx = lastCatalogGroupPos.coerceIn(0, (categorias.size - 1).coerceAtLeast(0))
+        val initialIdx = 0
         movieGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
             countProvider = { id ->
                 when (id) {
                     "ALL_MOVIES" -> {
-                        val count = allMoviesCache.size
-                        if (count > 0) count else CategoryCountHelper.getVodCount(this, "ALL_MOVIES")
+                        val saved = CategoryCountHelper.getVodCount(this, "ALL_MOVIES")
+                        val prefs = getSharedPreferences("cat_counts_vod", Context.MODE_PRIVATE)
+                        val sumCats = prefs.all
+                            .filter { it.key != "ALL_MOVIES" && it.key != "RECENT" && it.key != "FAVORITES" && it.key != "RESUME" }
+                            .values
+                            .mapNotNull { (it as? Number)?.toInt() }
+                            .sum()
+                        val fullCache = if (allMoviesCache.size > 200) allMoviesCache.size else 0
+                        maxOf(saved, sumCats, fullCache)
                     }
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
-                    "RECENT" -> minOf(40, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else CategoryCountHelper.getVodCount(this, "RECENT"))
+                    "RECENT" -> minOf(50, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else (currentVodCategoryMovies.size.takeIf { it > 0 } ?: CategoryCountHelper.getVodCount(this, "RECENT")))
                     else -> CategoryCountHelper.getVodCount(this, id)
                 }
             },
@@ -3192,15 +3213,17 @@ class EagleTvActivity : BaseActivity() {
 
     private fun iniciarSecaoSeries() {
         etCatalogSearch.setText("")
+        lastCatalogGroupPos = 0
+        lastCatalogGridPos = 0
+        currentSeriesCategoryId = "RECENT"
         carregarCacheSeriesDiscoSeExistir()
         if (allSeriesCategories.isEmpty()) {
             carregarCategoriasSeriesCache()
         }
         if (allSeriesCategories.isNotEmpty()) {
             montarCategoriasSeries(allSeriesCategories)
-            val lastGroup = lastCatalogGroupPos.coerceIn(0, (allSeriesCategories.size - 1).coerceAtLeast(0))
             rvCatalogGroups.post {
-                focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }
         } else {
             val baseCategorias = listOf(
@@ -3209,16 +3232,15 @@ class EagleTvActivity : BaseActivity() {
                 SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES")
             )
             montarCategoriasSeries(baseCategorias)
-            val lastGroup = lastCatalogGroupPos.coerceIn(0, (baseCategorias.size - 1).coerceAtLeast(0))
             rvCatalogGroups.post {
-                focarRecyclerViewPosicao(rvCatalogGroups, lastGroup)
+                focarRecyclerViewPosicao(rvCatalogGroups, 0)
             }
         }
         carregarCategoriasSeriesOnline()
     }
 
     private fun montarCategoriasSeries(categorias: List<SeriesCategory>) {
-        val initialIdx = lastCatalogGroupPos.coerceIn(0, (categorias.size - 1).coerceAtLeast(0))
+        val initialIdx = 0
         seriesGroupAdapter = GroupListAdapter(
             items = categorias.map { it.categoryId to it.categoryName },
             initialSelected = initialIdx,
@@ -3229,7 +3251,7 @@ class EagleTvActivity : BaseActivity() {
                         if (count > 0) count else CategoryCountHelper.getSeriesCount(this, "ALL_SERIES")
                     }
                     "FAVORITES" -> seriesFavIdsCache.size
-                    "RECENT" -> minOf(40, if (allSeriesCache.isNotEmpty()) allSeriesCache.size else CategoryCountHelper.getSeriesCount(this, "RECENT"))
+                    "RECENT" -> minOf(50, if (allSeriesCache.isNotEmpty()) allSeriesCache.size else CategoryCountHelper.getSeriesCount(this, "RECENT"))
                     else -> CategoryCountHelper.getSeriesCount(this, id)
                 }
             },
