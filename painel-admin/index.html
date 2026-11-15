@@ -2966,14 +2966,14 @@
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
                 : "";
             const newAnn = `${currentAnn} ${actString} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
-            const dns = fallbackDns || (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || "http://thedreamtv.site:80";
-            const best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || dns;
+            const resellerMainDns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || (lastDashboardData && lastDashboardData.best_url ? lastDashboardData.best_url.trim() : "") || "http://thedreamtv.site:80";
+            const best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || resellerMainDns;
             const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
 
             await rpcCall("panel_save_own_config", {
                 p_reseller_id: "dream",
                 p_password: adminPassword,
-                p_best_url: dns,
+                p_best_url: resellerMainDns,
                 p_best2_url: best2,
                 p_announcement: newAnn,
                 p_maintenance_mode: maintenance,
@@ -2981,10 +2981,7 @@
             });
             if (lastDashboardData) {
                 lastDashboardData.announcement = newAnn;
-                lastDashboardData.best_url = dns;
             }
-            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
-            if (cfgBestUrlEl) cfgBestUrlEl.value = dns;
         } else if (isMasterRole) {
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
@@ -2994,15 +2991,15 @@
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
                 : "";
             const newAnn = `${cleanAnn} ${actString} ${dnsListPart} ${vpnPart}`.trim();
-            const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "http://thedreamtv.site:80") : "http://thedreamtv.site:80");
+            const resellerMainDns = (dreamRes ? (dreamRes.best_url || "http://thedreamtv.site:80") : "http://thedreamtv.site:80");
             const dreamPass = (dreamRes && dreamRes.panel_password) ? dreamRes.panel_password : "dream12345";
 
             try {
                 await rpcCall("panel_save_own_config", {
                     p_reseller_id: "dream",
                     p_password: dreamPass,
-                    p_best_url: dns,
-                    p_best2_url: dreamRes ? (dreamRes.best2_url || dns) : dns,
+                    p_best_url: resellerMainDns,
+                    p_best2_url: dreamRes ? (dreamRes.best2_url || resellerMainDns) : resellerMainDns,
                     p_announcement: newAnn,
                     p_maintenance_mode: false,
                     p_new_password: ""
@@ -3012,14 +3009,10 @@
             }
             if (dreamRes) {
                 dreamRes.announcement = newAnn;
-                dreamRes.best_url = dns;
             }
             if (lastDashboardData) {
                 lastDashboardData.announcement = newAnn;
-                lastDashboardData.best_url = dns;
             }
-            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
-            if (cfgBestUrlEl) cfgBestUrlEl.value = dns;
         }
     }
 
@@ -3167,10 +3160,6 @@
                 });
             }
 
-            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
-            if (cfgBestUrlEl) cfgBestUrlEl.value = dns;
-            if (lastDashboardData) lastDashboardData.best_url = dns;
-
             await saveActivationsToBackend(currentActivations, dns);
             showToast("✔ Dispositivo ativado com sucesso com o DNS selecionado!");
             if (devIdEl) devIdEl.value = "";
@@ -3237,10 +3226,6 @@
                     password: pass
                 });
             }
-
-            const cfgBestUrlEl = document.getElementById("cfgBestUrl");
-            if (cfgBestUrlEl && dns) cfgBestUrlEl.value = dns;
-            if (lastDashboardData && dns) lastDashboardData.best_url = dns;
 
             await saveActivationsToBackend(currentActivations, dns);
             closeActivationModal();

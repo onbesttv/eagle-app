@@ -10,6 +10,17 @@ Write-Host "RedOn (Dream / MyTvOnline) Versao: $redonVersion (Tag: $tag)"
 
 $builtApk = "app/build/outputs/apk/dream/debug/app-dream-debug.apk"
 $destApk = "revendas/RedOn.apk"
+
+if (Test-Path $builtApk) {
+    Remove-Item $builtApk -Force
+}
+Write-Host "A compilar RedOn versao $redonVersion..." -ForegroundColor Cyan
+& .\gradlew.bat assembleDreamDebug
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Falha na compilacao do Gradle!"
+    exit 1
+}
+
 if (Test-Path $builtApk) {
     Write-Host "A copiar $builtApk para $destApk..."
     Copy-Item $builtApk -Destination $destApk -Force
