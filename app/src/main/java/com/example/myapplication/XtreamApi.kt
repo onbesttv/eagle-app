@@ -76,8 +76,14 @@ data class VodStream(
 
     val categoryId: String?
         get() = when (val c = rawCatId) {
-            is String -> c
-            is Number -> c.toString()
+            is String -> {
+                val s = c.trim()
+                if (s.endsWith(".0") && s.toDoubleOrNull() != null) s.substringBefore(".0") else s
+            }
+            is Number -> {
+                val d = c.toDouble()
+                if (d % 1.0 == 0.0) d.toLong().toString() else c.toString()
+            }
             else -> null
         }
 }

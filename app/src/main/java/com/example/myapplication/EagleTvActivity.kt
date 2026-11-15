@@ -2550,7 +2550,7 @@ class EagleTvActivity : BaseActivity() {
                         val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                         counts["ALL_MOVIES"] = filmes.size
                         counts["RECENT"] = minOf(50, filmes.size)
-                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
                         withContext(Dispatchers.Main) {
                             if (activeSection == WorkspaceSection.MOVIES) {
                                 movieGroupAdapter?.atualizarContadoresVisiveis()
@@ -2645,15 +2645,8 @@ class EagleTvActivity : BaseActivity() {
             countProvider = { id ->
                 when (id) {
                     "ALL_MOVIES" -> {
-                        val saved = CategoryCountHelper.getVodCount(this, "ALL_MOVIES")
-                        val prefs = getSharedPreferences("cat_counts_vod", Context.MODE_PRIVATE)
-                        val sumCats = prefs.all
-                            .filter { it.key != "ALL_MOVIES" && it.key != "RECENT" && it.key != "FAVORITES" && it.key != "RESUME" }
-                            .values
-                            .mapNotNull { (it as? Number)?.toInt() }
-                            .sum()
-                        val fullCache = if (allMoviesCache.size > 200) allMoviesCache.size else 0
-                        maxOf(saved, sumCats, fullCache)
+                        val count = if (isFullMoviesCacheLoaded && allMoviesCache.size > 200) allMoviesCache.size else 0
+                        if (count > 0) count else CategoryCountHelper.getVodCount(this, "ALL_MOVIES")
                     }
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
@@ -2699,7 +2692,7 @@ class EagleTvActivity : BaseActivity() {
                         val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                         counts["ALL_MOVIES"] = filmes.size
                         counts["RECENT"] = minOf(50, filmes.size)
-                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
                         withContext(Dispatchers.Main) {
                             movieGroupAdapter?.atualizarContadoresVisiveis()
                             if (activeSection == WorkspaceSection.MOVIES) {
@@ -2788,7 +2781,7 @@ class EagleTvActivity : BaseActivity() {
                                 val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                                 counts["ALL_MOVIES"] = filmes.size
                                 counts["RECENT"] = minOf(50, filmes.size)
-                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
+                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
                             }
 
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {

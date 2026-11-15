@@ -24,13 +24,22 @@ object CategoryCountHelper {
     }
 
     fun getVodCount(context: Context, categoryId: String): Int {
-        return context.getSharedPreferences(PREFS_VOD, Context.MODE_PRIVATE).getInt(categoryId, 0)
+        val prefs = context.getSharedPreferences(PREFS_VOD, Context.MODE_PRIVATE)
+        val cleanId = categoryId.trim().let { if (it.endsWith(".0") && it.toDoubleOrNull() != null) it.substringBefore(".0") else it }
+        val direct = prefs.getInt(cleanId, 0)
+        if (direct > 0) return direct
+        return prefs.getInt("$cleanId.0", 0)
     }
 
-    fun saveVodCounts(context: Context, counts: Map<String, Int>) {
+    fun saveVodCounts(context: Context, counts: Map<String, Int>, clearOld: Boolean = false) {
         if (counts.isEmpty()) return
-        val editor = context.getSharedPreferences(PREFS_VOD, Context.MODE_PRIVATE).edit()
-        counts.forEach { (catId, count) -> editor.putInt(catId, count) }
+        val prefs = context.getSharedPreferences(PREFS_VOD, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        if (clearOld) editor.clear()
+        counts.forEach { (catId, count) ->
+            val cleanId = catId.trim().let { if (it.endsWith(".0") && it.toDoubleOrNull() != null) it.substringBefore(".0") else it }
+            editor.putInt(cleanId, count)
+        }
         editor.apply()
     }
 
