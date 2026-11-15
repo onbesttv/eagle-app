@@ -33,7 +33,18 @@ class StreamPlayLoginActivity : BaseActivity() {
     private val selectedService by lazy {
         intent.getStringExtra(EXTRA_SERVICE_ID) ?: IptvServiceConfig.activeServiceId(this)
     }
-    private val baseUrl: String get() = IptvServiceConfig.baseUrl(this, selectedService)
+    private var currentTargetDns: String? = null
+    private var availableDnsList: List<String> = emptyList()
+    private lateinit var layoutDnsSelector: View
+    private lateinit var tvSelectedDnsLabel: TextView
+
+    private val baseUrl: String
+        get() {
+            val custom = currentTargetDns?.trim()?.trimEnd('/')
+            if (!custom.isNullOrBlank()) return custom
+            return IptvServiceConfig.baseUrl(this, selectedService)
+        }
+
     private val client by lazy {
         OkHttpClient.Builder()
             .callTimeout(25, TimeUnit.SECONDS)
@@ -91,6 +102,16 @@ class StreamPlayLoginActivity : BaseActivity() {
         setContentView(R.layout.activity_streamplay_login)
         usernameInput = findViewById(R.id.etServiceUsername)
         passwordInput = findViewById(R.id.etServicePassword)
+        layoutDnsSelector = findViewById(R.id.layoutDnsSelector)
+        tvSelectedDnsLabel = findViewById(R.id.tvSelectedDnsLabel)
+        setupDnsSelector()
+
+        // Sincroniza em tempo real com o painel para carregar novos DNS adicionados
+        RemotePanelManager.sync(this) { success ->
+            if (success && !isFinishing && !isDestroyed) {
+                setupDnsSelector()
+            }
+        }
         val togglePassword = findViewById<ImageButton>(R.id.btnTogglePassword)
         togglePassword.setOnClickListener {
             val cursor = passwordInput.selectionStart
@@ -160,6 +181,70 @@ class StreamPlayLoginActivity : BaseActivity() {
         }
     }
 
+    private fun formatDnsDisplay(url: String, index: Int): String {
+        val clean = url.removePrefix("http://").removePrefix("https://").trimEnd('/')
+        return "Servidor ${index + 1}: $clean"
+    }
+
+    private fun setupDnsSelector() {
+        val list = RemotePanelManager.getAvailableDnsList(this)
+        availableDnsList = list
+        if (list.isEmpty()) {
+            layoutDnsSelector.visibility = View.GONE
+            return
+        }
+
+        val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+        val savedDns = prefs.getString("KEY_SELECTED_DNS", null)?.trim()?.trimEnd('/')
+
+        if (currentTargetDns == null) {
+            currentTargetDns = when {
+                !savedDns.isNullOrBlank() && list.any { it.equals(savedDns, ignoreCase = true) } -> {
+                    list.first { it.equals(savedDns, ignoreCase = true) }
+                }
+                else -> list[0]
+            }
+        } else if (!list.any { it.equals(currentTargetDns, ignoreCase = true) }) {
+            currentTargetDns = list[0]
+        }
+
+        val activeIdx = list.indexOfFirst { it.equals(currentTargetDns, ignoreCase = true) }.coerceAtLeast(0)
+        tvSelectedDnsLabel.text = formatDnsDisplay(list[activeIdx], activeIdx)
+
+        layoutDnsSelector.visibility = View.VISIBLE
+        layoutDnsSelector.setOnClickListener {
+            showDnsSelectionDialog()
+        }
+    }
+
+    private fun showDnsSelectionDialog() {
+        if (availableDnsList.isEmpty()) return
+        val current = currentTargetDns ?: availableDnsList[0]
+        val displayItems = availableDnsList.mapIndexed { idx, url ->
+            val isCurrent = url.equals(current, ignoreCase = true)
+            val base = formatDnsDisplay(url, idx)
+            if (isCurrent) "$base  ✓ (Ativo)" else base
+        }.toTypedArray()
+
+        val selectedIndex = availableDnsList.indexOfFirst { it.equals(current, ignoreCase = true) }.coerceAtLeast(0)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Escolher Servidor (DNS)")
+            .setSingleChoiceItems(displayItems, selectedIndex) { dialog, which ->
+                if (which in availableDnsList.indices) {
+                    val chosen = availableDnsList[which]
+                    currentTargetDns = chosen
+                    tvSelectedDnsLabel.text = formatDnsDisplay(chosen, which)
+                    getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("KEY_SELECTED_DNS", chosen)
+                        .apply()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
     private fun login() {
         if (RemotePanelManager.enforceOnUi(this)) {
             return
@@ -172,7 +257,8 @@ class StreamPlayLoginActivity : BaseActivity() {
         }
 
         showBusy("A verificar a conta…")
-        val url = "$baseUrl/player_api.php?username=${android.net.Uri.encode(username)}&password=${android.net.Uri.encode(password)}"
+        val targetServer = baseUrl
+        val url = "$targetServer/player_api.php?username=${android.net.Uri.encode(username)}&password=${android.net.Uri.encode(password)}"
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", "IPTVSmartersPro/3.1.5")
@@ -180,7 +266,7 @@ class StreamPlayLoginActivity : BaseActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread { showStatus("Não foi possível contactar o serviço. Verifica a Internet e tenta novamente.") }
+                runOnUiThread { showStatus("Não foi possível ligar ao servidor selecionado. Tenta outro servidor ou verifica a ligação.") }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -198,6 +284,12 @@ class StreamPlayLoginActivity : BaseActivity() {
                 }
 
                 IptvServiceConfig.saveCredentials(this@StreamPlayLoginActivity, selectedService, username, password)
+                if (!currentTargetDns.isNullOrBlank()) {
+                    IptvServiceConfig.updateRemoteUrls(this@StreamPlayLoginActivity, currentTargetDns!!, "")
+                    getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("KEY_SELECTED_DNS", currentTargetDns)
+                        .apply()
+                }
                 RemotePanelManager.sync(this@StreamPlayLoginActivity)
 
                 runOnUiThread {

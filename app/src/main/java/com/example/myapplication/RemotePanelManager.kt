@@ -99,6 +99,42 @@ object RemotePanelManager {
         return prefs.getString("RAW_ANNOUNCEMENT", "").orEmpty()
     }
 
+    /**
+     * Retorna a lista de servidores DNS disponíveis para este dispositivo/painel.
+     * Lê a tag ||DNS_LIST: do anúncio do Supabase e inclui a URL atualmente ativa.
+     */
+    fun getAvailableDnsList(context: Context): List<String> {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val rawAnn = prefs.getString("RAW_ANNOUNCEMENT", "").orEmpty()
+        val list = mutableListOf<String>()
+
+        if (rawAnn.contains("||DNS_LIST:")) {
+            val part = rawAnn.substringAfter("||DNS_LIST:").substringBefore("||").trim()
+            part.split(",").map { it.trim().trimEnd('/') }.filter { it.isNotBlank() }.forEach {
+                val clean = if (!it.startsWith("http://") && !it.startsWith("https://")) "http://$it" else it
+                if (!list.contains(clean)) list.add(clean)
+            }
+        }
+
+        val appContext = context.applicationContext
+        IptvServiceConfig.initialize(appContext)
+        val activeSrv = IptvServiceConfig.activeServiceId(appContext)
+        val curUrl = IptvServiceConfig.baseUrl(appContext, activeSrv).trim().trimEnd('/')
+        if (curUrl.isNotBlank()) {
+            val cleanCur = if (!curUrl.startsWith("http://") && !curUrl.startsWith("https://")) "http://$curUrl" else curUrl
+            if (!list.contains(cleanCur)) {
+                list.add(0, cleanCur)
+            }
+        }
+
+        val rid = getResellerId(context)
+        if (rid.equals("suporte24", ignoreCase = true) && list.isEmpty()) {
+            list.add("http://bmgroup2026.com:8080")
+        }
+
+        return list
+    }
+
     fun isDeviceActivatedInPanel(context: Context): Boolean {
         val raw = getRawAnnouncement(context).lowercase()
         val myMac = getDeviceMac(context).replace(":", "").replace("-", "").lowercase()
@@ -345,21 +381,8 @@ object RemotePanelManager {
             activeBlockDialog = null
         }
 
-        val announcement = prefs.getString(KEY_ANNOUNCEMENT, "").orEmpty()
-            .replace(Regex("\\|\\|ACTIVATIONS:[^|]+(\\|[^|]+)*"), "")
-            .trim()
-        val lastShown = prefs.getString(KEY_LAST_SHOWN_ANNOUNCEMENT, "").orEmpty().trim()
-        if (announcement.isNotBlank() && announcement != lastShown) {
-            prefs.edit().putString(KEY_LAST_SHOWN_ANNOUNCEMENT, announcement).apply()
-            AlertDialog.Builder(activity)
-                .setTitle("Aviso Importante")
-                .setMessage(announcement)
-                .setPositiveButton("OK", null)
-                .show()
-        } else if (announcement.isBlank() && lastShown.isNotBlank()) {
-            prefs.edit().remove(KEY_LAST_SHOWN_ANNOUNCEMENT).apply()
-        }
-
+        // Popups de aviso desativados permanentemente a pedido do utilizador.
+        // Apenas o sistema de atualizações do app (AppUpdateManager) tem autorização para exibir popups.
         return false
     }
 
