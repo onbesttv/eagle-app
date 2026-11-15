@@ -44,6 +44,7 @@ object PiaVpnManager {
     }
 
     private var backend: Backend? = null
+    private var appContext: Context? = null
     private val tunnel = PiaTunnel("pia_wireguard")
     private val mainHandler = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArrayList<(VpnStatus, String?) -> Unit>()
@@ -98,12 +99,40 @@ object PiaVpnManager {
     }
 
     fun init(context: Context) {
+        appContext = context.applicationContext
         if (backend == null) {
             try {
                 backend = GoBackend(context.applicationContext)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    fun cleanZombieVpnIfNeeded(context: Context) {
+        try {
+            val appCtx = context.applicationContext
+            init(appCtx)
+            val wasConnected = PiaVpnConfig.wasVpnConnected(appCtx)
+            val cm = appCtx.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            val hasVpnTransport = try {
+                cm?.allNetworks.orEmpty().any { net ->
+                    cm?.getNetworkCapabilities(net)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true
+                }
+            } catch (_: Exception) { false }
+
+            if (wasConnected || (hasVpnTransport && status == VpnStatus.DISCONNECTED)) {
+                PiaVpnConfig.setVpnWasConnected(appCtx, false)
+                try {
+                    appCtx.stopService(Intent(appCtx, com.wireguard.android.backend.GoBackend.VpnService::class.java))
+                } catch (_: Exception) {}
+                try {
+                    appCtx.stopService(Intent(appCtx, AppCleanupService::class.java))
+                } catch (_: Exception) {}
+                forceDisconnect(appCtx)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -129,10 +158,22 @@ object PiaVpnManager {
             if (connectionStartTime == 0L) {
                 connectionStartTime = System.currentTimeMillis()
             }
+            appContext?.let { ctx ->
+                PiaVpnConfig.setVpnWasConnected(ctx, true)
+                try {
+                    ctx.startService(Intent(ctx, AppCleanupService::class.java))
+                } catch (_: Exception) {}
+            }
         } else if (newStatus == VpnStatus.DISCONNECTED || newStatus == VpnStatus.ERROR) {
             connectionStartTime = 0L
             if (newStatus == VpnStatus.DISCONNECTED) {
                 protectedIp = null
+            }
+            appContext?.let { ctx ->
+                PiaVpnConfig.setVpnWasConnected(ctx, false)
+                try {
+                    ctx.stopService(Intent(ctx, AppCleanupService::class.java))
+                } catch (_: Exception) {}
             }
         }
         mainHandler.post {
@@ -251,7 +292,9 @@ object PiaVpnManager {
     }
 
     fun forceDisconnect(context: Context, onComplete: (() -> Unit)? = null) {
+        init(context)
         PiaVpnConfig.setAutoConnect(context, false)
+        PiaVpnConfig.setVpnWasConnected(context, false)
         val wasActive = status != VpnStatus.DISCONNECTED
         if (wasActive) {
             updateState(VpnStatus.DISCONNECTING, "A desligar VPN…")
@@ -263,6 +306,12 @@ object PiaVpnManager {
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
+                try {
+                    context.stopService(Intent(context, com.wireguard.android.backend.GoBackend.VpnService::class.java))
+                } catch (_: Exception) {}
+                try {
+                    context.stopService(Intent(context, AppCleanupService::class.java))
+                } catch (_: Exception) {}
                 updateState(VpnStatus.DISCONNECTED, null)
                 if (onComplete != null) {
                     mainHandler.post { onComplete() }

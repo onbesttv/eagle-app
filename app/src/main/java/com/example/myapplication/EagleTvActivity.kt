@@ -454,6 +454,7 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PiaVpnManager.cleanZombieVpnIfNeeded(this)
         window.setFormat(android.graphics.PixelFormat.RGBA_8888)
         setContentView(R.layout.activity_eagle_tv)
 

@@ -24,9 +24,10 @@ data class ServiceRefreshResult(
 object ServiceCatalogUpdater {
     private val client by lazy {
         OkHttpClient.Builder()
-            .callTimeout(2, TimeUnit.MINUTES)
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(6, TimeUnit.SECONDS)
+            .readTimeout(8, TimeUnit.SECONDS)
+            .callTimeout(10, TimeUnit.SECONDS)
             .build()
     }
     private val endpoints = listOf(
@@ -48,6 +49,9 @@ object ServiceCatalogUpdater {
         onItemComplete: (String, Int?) -> Unit = { _, _ -> }
     ) {
         thread(name = "service-catalog-refresh") {
+            try {
+                client.connectionPool.evictAll()
+            } catch (_: Exception) {}
             val counts = linkedMapOf<String, Int>()
             val errors = mutableListOf<String>()
             endpoints.forEachIndexed { index, (action, label) ->

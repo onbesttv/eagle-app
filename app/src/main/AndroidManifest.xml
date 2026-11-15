@@ -171,6 +171,10 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".AppCleanupService"
+            android:stopWithTask="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -10,6 +10,7 @@ object PiaVpnConfig {
     private const val KEY_PASSWORD = "pia_password"
     private const val KEY_REGION_ID = "pia_region_id"
     private const val KEY_AUTO_CONNECT = "pia_auto_connect"
+    private const val KEY_VPN_WAS_CONNECTED = "pia_vpn_was_connected"
     private const val KEY_ALLOWED_REGIONS = "pia_allowed_regions_csv"
     private const val KEY_VPN_ACCESS_MODE = "pia_vpn_access_mode"
     private const val KEY_VPN_ALLOWED_USERS = "pia_vpn_allowed_users_csv"
@@ -90,6 +91,14 @@ object PiaVpnConfig {
 
     fun setAutoConnect(context: Context, autoConnect: Boolean) {
         getPrefs(context).edit().putBoolean(KEY_AUTO_CONNECT, autoConnect).apply()
+    }
+
+    fun wasVpnConnected(context: Context): Boolean {
+        return getPrefs(context).getBoolean(KEY_VPN_WAS_CONNECTED, false)
+    }
+
+    fun setVpnWasConnected(context: Context, wasConnected: Boolean) {
+        getPrefs(context).edit().putBoolean(KEY_VPN_WAS_CONNECTED, wasConnected).apply()
     }
 
     fun getAllowedRegionIds(context: Context): List<String> {

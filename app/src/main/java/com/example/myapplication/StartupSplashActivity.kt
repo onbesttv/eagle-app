@@ -60,6 +60,7 @@ class StartupSplashActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PiaVpnManager.cleanZombieVpnIfNeeded(this)
         setContentView(R.layout.activity_startup_splash)
         handler.postDelayed(minSplashRunnable, 350L)
         handler.postDelayed(maxTimeoutRunnable, 1500L)

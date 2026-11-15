@@ -25,7 +25,7 @@ object CatalogRefreshDialog {
         val dialog = Dialog(activity)
         dialog.setContentView(R.layout.dialog_catalog_refresh)
         AppThemeColors.applyToDialog(dialog)
-        dialog.setCancelable(false)
+        dialog.setCancelable(true)
         dialog.show()
         dialog.window?.apply {
             setBackgroundDrawableResource(android.R.color.transparent)
@@ -65,14 +65,41 @@ object CatalogRefreshDialog {
             interpolator = LinearInterpolator()
             start()
         }
-        dialog.setOnDismissListener { spin.cancel() }
+
+        var finished = false
+        val mainHandler = Handler(Looper.getMainLooper())
+        val watchdog = Runnable {
+            if (!finished && !activity.isFinishing) {
+                finished = true
+                spin.cancel()
+                try {
+                    if (dialog.isShowing) dialog.dismiss()
+                } catch (_: Exception) {}
+                onFinished(ServiceRefreshResult(emptyMap(), listOf("Tempo limite excedido")))
+            }
+        }
+        mainHandler.postDelayed(watchdog, 12000L)
+
+        dialog.setOnCancelListener {
+            if (!finished) {
+                finished = true
+                spin.cancel()
+                mainHandler.removeCallbacks(watchdog)
+                onFinished(ServiceRefreshResult(emptyMap(), emptyList()))
+            }
+        }
+
+        dialog.setOnDismissListener {
+            spin.cancel()
+            mainHandler.removeCallbacks(watchdog)
+        }
 
         ServiceCatalogUpdater.refresh(
             IptvServiceConfig.baseUrl(activity),
             username,
             password,
             onProgress = { message -> activity.runOnUiThread {
-                if (dialog.isShowing) {
+                if (dialog.isShowing && !finished) {
                     progressText.text = message
                     Regex("(\\d+)/(\\d+)").find(message)?.let { match ->
                         progressBar.max = match.groupValues[2].toIntOrNull() ?: 6
@@ -81,6 +108,10 @@ object CatalogRefreshDialog {
                 }
             } },
             onComplete = { result -> activity.runOnUiThread {
+                if (finished) return@runOnUiThread
+                finished = true
+                mainHandler.removeCallbacks(watchdog)
+
                 activity.getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit()
                     .putLong("last_service_update", System.currentTimeMillis())
                     .apply()
@@ -96,8 +127,10 @@ object CatalogRefreshDialog {
                         summaryText.text = "Sem resposta: ${result.errors.joinToString(", ")}"
                         summaryText.visibility = View.VISIBLE
                     }
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        if (dialog.isShowing) dialog.dismiss()
+                    mainHandler.postDelayed({
+                        if (dialog.isShowing) {
+                            try { dialog.dismiss() } catch (_: Exception) {}
+                        }
                         onFinished(result)
                     }, 200L)
                 } else {
@@ -105,13 +138,13 @@ object CatalogRefreshDialog {
                 }
             } },
             onItemStart = { key -> activity.runOnUiThread {
-                if (dialog.isShowing) counterViews[key]?.apply {
+                if (dialog.isShowing && !finished) counterViews[key]?.apply {
                     text = "A atualizar…"
                     setTextColor(AppThemeColors.mapColor(activity, 0xFF42D6E8.toInt()))
                 }
             } },
             onItemComplete = { key, count -> activity.runOnUiThread {
-                if (dialog.isShowing) counterViews[key]?.apply {
+                if (dialog.isShowing && !finished) counterViews[key]?.apply {
                     text = if (count == null) "Sem resposta" else "Concluído com sucesso"
                     setTextColor(if (count == null) 0xFFF5C56B.toInt() else 0xFF36D399.toInt())
                 }

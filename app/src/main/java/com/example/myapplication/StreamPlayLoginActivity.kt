@@ -52,6 +52,7 @@ class StreamPlayLoginActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PiaVpnManager.cleanZombieVpnIfNeeded(this)
         val rid = RemotePanelManager.getResellerId(this)
         val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)
         if (isDream) {
