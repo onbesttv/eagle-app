@@ -894,7 +894,7 @@
                     <div>
                         <div class="card-title">➕ Adicionar / Ativar Dispositivo do Cliente</div>
                         <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-                            Insere o <strong>Device ID / MAC</strong> da TV Box do cliente e a linha atribuída (DNS bloqueado automaticamente). A app ativa-se sozinha em segundos!
+                            Escolhe o <strong>Servidor / DNS</strong> na dropdown, insere o <strong>Device ID / MAC</strong> da TV Box do cliente e as credenciais. A app ativa-se com o DNS escolhido!
                         </div>
                     </div>
                 </div>
@@ -1418,14 +1418,26 @@
 
         const urls = items.map(d => d.url);
         if (sel1) {
-            const prev = selectedVal || sel1.value || urls[0] || "";
+            const currentVal = sel1.value;
             sel1.innerHTML = html;
-            if (urls.includes(prev)) sel1.value = prev;
+            if (selectedVal && urls.includes(selectedVal)) {
+                sel1.value = selectedVal;
+            } else if (currentVal && urls.includes(currentVal)) {
+                sel1.value = currentVal;
+            } else if (urls.length > 0) {
+                sel1.value = urls[0];
+            }
         }
         if (sel2) {
-            const prev = selectedVal || sel2.value || urls[0] || "";
+            const currentVal = sel2.value;
             sel2.innerHTML = html;
-            if (urls.includes(prev)) sel2.value = prev;
+            if (selectedVal && urls.includes(selectedVal)) {
+                sel2.value = selectedVal;
+            } else if (currentVal && urls.includes(currentVal)) {
+                sel2.value = currentVal;
+            } else if (urls.length > 0) {
+                sel2.value = urls[0];
+            }
         }
     }
 
@@ -1520,7 +1532,7 @@
         if (!exists) {
             dreamDnsList.push({ name: dns, url: dns });
         }
-        renderDreamDnsOptions(dns);
+        renderDreamDnsOptions();
     }
 
     let suporte24DnsList = [
@@ -1547,13 +1559,9 @@
             }
         }
         const curDns = (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "")
-            || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
-            || "http://bmgroup2026.com:8080";
-        if (curDns && !suporte24DnsList.includes(curDns)) {
+            || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "");
+        if (curDns && !suporte24DnsList.includes(curDns) && suporte24DnsList.length === 0) {
             suporte24DnsList.unshift(curDns);
-        }
-        if (suporte24DnsList.length === 0) {
-            suporte24DnsList.push("http://bmgroup2026.com:8080");
         }
         localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
         renderSuporte24DnsGrid();
@@ -1675,7 +1683,7 @@
         const cfgBestUrlEl = document.getElementById("cfgBestUrl");
         let activeDns = cfgBestUrlEl ? cfgBestUrlEl.value.trim() : "";
         if (!activeDns || activeDns.toLowerCase() === toRemove.toLowerCase() || !suporte24DnsList.includes(activeDns)) {
-            activeDns = suporte24DnsList[0] || "http://bmgroup2026.com:8080";
+            activeDns = suporte24DnsList[0];
             if (cfgBestUrlEl) cfgBestUrlEl.value = activeDns;
         }
         renderSuporte24DnsGrid();
@@ -1684,11 +1692,18 @@
     }
 
     async function saveSuporte24ConfigToBackend(overrideBestUrl = null) {
-        if (currentResellerId !== "suporte24") return;
+        const isSuporte24Target = (currentResellerId === "suporte24") || isMasterRole;
+        if (!isSuporte24Target) return;
+
+        let supRes = (typeof allResellers !== "undefined" && Array.isArray(allResellers))
+            ? allResellers.find(r => r.reseller_id === "suporte24")
+            : null;
+        const targetPass = (supRes && supRes.panel_password) ? supRes.panel_password : (currentResellerId === "suporte24" ? adminPassword : "suporte24");
+
         const activeDns = overrideBestUrl 
             || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "")
             || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "")
-            || suporte24DnsList[0] || "http://bmgroup2026.com:8080";
+            || suporte24DnsList[0];
 
         if (document.getElementById("cfgBestUrl")) {
             document.getElementById("cfgBestUrl").value = activeDns;
@@ -1703,7 +1718,7 @@
         try {
             await rpcCall("panel_save_own_config", {
                 p_reseller_id: "suporte24",
-                p_password: adminPassword,
+                p_password: targetPass,
                 p_best_url: activeDns,
                 p_best2_url: activeDns,
                 p_announcement: announcement,
@@ -1712,6 +1727,11 @@
             });
             if (lastDashboardData) {
                 lastDashboardData.announcement = announcement;
+                lastDashboardData.best_url = activeDns;
+            }
+            if (supRes) {
+                supRes.announcement = announcement;
+                supRes.best_url = activeDns;
             }
         } catch (err) {
             console.error("Erro ao guardar DNS do suporte24 em tempo real:", err);

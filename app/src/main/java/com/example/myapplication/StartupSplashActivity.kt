@@ -24,7 +24,15 @@ class StartupSplashActivity : BaseActivity() {
         val savedUser = IptvServiceConfig.username(this, activeService)
         val savedPass = IptvServiceConfig.password(this, activeService)
 
-        val isUserLoggedOut = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false)
+        val isDnsAllowed = RemotePanelManager.isCurrentDnsAllowed(this)
+        if (!isDnsAllowed) {
+            IptvServiceConfig.clearAllCredentials(this)
+            getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                .putBoolean("USER_LOGGED_OUT", true)
+                .apply()
+        }
+
+        val isUserLoggedOut = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).getBoolean("USER_LOGGED_OUT", false) || !isDnsAllowed
 
         val rid = RemotePanelManager.getResellerId(this)
         val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)

@@ -102,6 +102,7 @@ object RemotePanelManager {
     /**
      * Retorna a lista de servidores DNS disponíveis para este dispositivo/painel.
      * Lê a tag ||DNS_LIST: do anúncio do Supabase e inclui a URL atualmente ativa.
+     * Se o painel fornecer uma lista explícita, apenas os DNS autorizados são retornados.
      */
     fun getAvailableDnsList(context: Context): List<String> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -121,19 +122,30 @@ object RemotePanelManager {
         IptvServiceConfig.initialize(appContext)
         val activeSrv = IptvServiceConfig.activeServiceId(appContext)
         val curUrl = IptvServiceConfig.baseUrl(appContext, activeSrv).trim().trimEnd('/')
-        if (curUrl.isNotBlank()) {
-            val cleanCur = if (!curUrl.startsWith("http://") && !curUrl.startsWith("https://")) "http://$curUrl" else curUrl
-            if (!list.contains(cleanCur)) {
-                list.add(0, cleanCur)
-            }
-        }
 
-        val rid = getResellerId(context)
-        if (rid.equals("suporte24", ignoreCase = true) && list.isEmpty()) {
-            list.add("http://bmgroup2026.com:8080")
+        // Se o anúncio remoto não tem lista explícita ||DNS_LIST:, faz fallback para a URL atual
+        if (list.isEmpty() && curUrl.isNotBlank()) {
+            val cleanCur = if (!curUrl.startsWith("http://") && !curUrl.startsWith("https://")) "http://$curUrl" else curUrl
+            list.add(cleanCur)
         }
 
         return list
+    }
+
+    /**
+     * Verifica se o servidor DNS atualmente em uso no dispositivo ainda é autorizado pelo painel.
+     * Se o administrador tiver removido o DNS no painel, retorna false.
+     */
+    fun isCurrentDnsAllowed(context: Context): Boolean {
+        val allowed = getAvailableDnsList(context)
+        if (allowed.isEmpty()) return true
+        val appContext = context.applicationContext
+        IptvServiceConfig.initialize(appContext)
+        val activeSrv = IptvServiceConfig.activeServiceId(appContext)
+        val curUrl = IptvServiceConfig.baseUrl(appContext, activeSrv).trim().trimEnd('/')
+        if (curUrl.isBlank()) return true
+        val cleanCur = if (!curUrl.startsWith("http://") && !curUrl.startsWith("https://")) "http://$curUrl" else curUrl
+        return allowed.any { it.trim().trimEnd('/').equals(cleanCur, ignoreCase = true) }
     }
 
     fun isDeviceActivatedInPanel(context: Context): Boolean {
@@ -378,6 +390,20 @@ object RemotePanelManager {
         } else if (activity is VpnActivity && !PiaVpnConfig.isVpnAllowedForCurrentUser(activity)) {
             activity.finish()
             return true
+        }
+
+        if (!isCurrentDnsAllowed(activity)) {
+            IptvServiceConfig.clearAllCredentials(activity)
+            activity.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                .putBoolean("USER_LOGGED_OUT", true)
+                .apply()
+            if (activity is EagleTvActivity) {
+                activity.startActivity(android.content.Intent(activity, StreamPlayLoginActivity::class.java).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+                activity.finish()
+                return true
+            }
         }
         val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val blocked = prefs.getBoolean(KEY_IS_BLOCKED, false)
