@@ -28,8 +28,8 @@ android {
         create("eagle_tv") {
             dimension = "reseller"
             applicationId = "com.eagle.tv"
-            versionCode = 89
-            versionName = "3.19"
+            versionCode = 90
+            versionName = "3.20"
             resValue("string", "app_name", "Eagle TV")
             resValue("string", "reseller_id", "eagle_tv")
         }
@@ -37,8 +37,8 @@ android {
         create("dream") {
             dimension = "reseller"
             applicationId = "com.redon.tv"
-            versionCode = 101
-            versionName = "3.31"
+            versionCode = 102
+            versionName = "3.32"
             resValue("string", "app_name", "RedOn")
             resValue("string", "reseller_id", "dream")
         }
