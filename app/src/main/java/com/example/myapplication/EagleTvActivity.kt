@@ -352,16 +352,20 @@ class EagleTvActivity : BaseActivity() {
             return
         }
         val safePos = targetPos.coerceIn(0, count - 1)
-        val lm = rv.layoutManager
-        if (lm is LinearLayoutManager) {
-            lm.scrollToPositionWithOffset(safePos, dp(40))
-        } else {
-            rv.scrollToPosition(safePos)
-        }
-        rv.post {
-            val vh = rv.findViewHolderForAdapterPosition(safePos)
-            if (vh != null) {
+        val vh = rv.findViewHolderForAdapterPosition(safePos)
+        if (vh != null) {
+            if (!vh.itemView.hasFocus()) {
                 vh.itemView.requestFocus()
+            }
+            return
+        }
+        rv.scrollToPosition(safePos)
+        rv.post {
+            val newVh = rv.findViewHolderForAdapterPosition(safePos)
+            if (newVh != null) {
+                if (!newVh.itemView.hasFocus()) {
+                    newVh.itemView.requestFocus()
+                }
             } else if (retries > 0) {
                 rv.postDelayed({ focarRecyclerViewPosicao(rv, safePos, retries - 1) }, 50)
             }
@@ -2534,19 +2538,12 @@ class EagleTvActivity : BaseActivity() {
                         CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
                             if (activeSection == WorkspaceSection.MOVIES) {
-                                val selPos = movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
-                                val hadFocus = rvCatalogGroups.hasFocus()
-                                movieGroupAdapter?.notifyDataSetChanged()
-                                if (hadFocus && selPos >= 0) {
-                                    rvCatalogGroups.post {
-                                        focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                    }
-                                }
+                                movieGroupAdapter?.atualizarContadoresVisiveis()
                                 if (currentVodCategoryId == "RECENT") {
                                     currentVodCategoryMovies = allMoviesCache.sortedWith(
                                         compareByDescending<VodStream> { parseTimestamp(it.added) }
                                             .thenByDescending { it.streamId }
-                                    ).take(40)
+                                    ).take(50)
                                     atualizarGrelhaFilmes()
                                 }
                             }
@@ -2585,6 +2582,9 @@ class EagleTvActivity : BaseActivity() {
                                 movieGroupAdapter?.updateItems(completas.map { it.categoryId to it.categoryName })
                             } else {
                                 montarCategoriasFilmes(completas)
+                            }
+                            if (currentVodCategoryId == "RECENT" && currentVodCategoryMovies.isEmpty()) {
+                                carregarFilmesRecentes()
                             }
                         }
                     }
@@ -2677,20 +2677,13 @@ class EagleTvActivity : BaseActivity() {
                         counts["ALL_MOVIES"] = filmes.size
                         CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
-                            val selPos = movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
-                            val hadFocus = rvCatalogGroups.hasFocus()
-                            movieGroupAdapter?.notifyDataSetChanged()
-                            if (hadFocus && selPos >= 0) {
-                                rvCatalogGroups.post {
-                                    focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                }
-                            }
+                            movieGroupAdapter?.atualizarContadoresVisiveis()
                             if (activeSection == WorkspaceSection.MOVIES) {
                                 if (currentVodCategoryId == "RECENT") {
                                     currentVodCategoryMovies = allMoviesCache.sortedWith(
                                         compareByDescending<VodStream> { parseTimestamp(it.added) }
                                             .thenByDescending { it.streamId }
-                                    ).take(40)
+                                    ).take(50)
                                     atualizarGrelhaFilmes()
                                 } else if (currentVodCategoryId == "ALL_MOVIES") {
                                     currentVodCategoryMovies = allMoviesCache
@@ -2780,20 +2773,13 @@ class EagleTvActivity : BaseActivity() {
                                 list
                             }
                             withContext(Dispatchers.Main) {
-                                val selPos = movieGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
-                                val hadFocus = rvCatalogGroups.hasFocus()
-                                movieGroupAdapter?.notifyDataSetChanged()
-                                if (hadFocus && selPos >= 0) {
-                                    rvCatalogGroups.post {
-                                        focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                    }
-                                }
+                                movieGroupAdapter?.atualizarContadoresVisiveis()
                                 if (activeSection == WorkspaceSection.MOVIES) {
                                     if (currentVodCategoryId == "RECENT") {
                                         currentVodCategoryMovies = allMoviesCache.sortedWith(
                                             compareByDescending<VodStream> { parseTimestamp(it.added) }
                                                 .thenByDescending { it.streamId }
-                                        ).take(40)
+                                        ).take(50)
                                         atualizarGrelhaFilmes()
                                     } else if (currentVodCategoryId == "ALL_MOVIES") {
                                         currentVodCategoryMovies = allMoviesCache
@@ -2817,6 +2803,121 @@ class EagleTvActivity : BaseActivity() {
                     }
                 }
             })
+        }
+    }
+
+    private fun carregarFilmesRecentes() {
+        if (allMoviesCache.isNotEmpty()) {
+            currentVodCategoryMovies = allMoviesCache.sortedWith(
+                compareByDescending<VodStream> { parseTimestamp(it.added) }
+                    .thenByDescending { it.streamId }
+            ).take(50)
+            atualizarGrelhaFilmes()
+            return
+        }
+
+        // Tentar carregar da cache de recentes salva anteriormente
+        val recentCacheFile = File(cacheDir, "vod_recent_movies_cache.json")
+        if (recentCacheFile.exists() && recentCacheFile.length() > 0) {
+            try {
+                val type = object : TypeToken<List<VodStream>>() {}.type
+                val cachedRecents: List<VodStream> = FileReader(recentCacheFile).use { gson.fromJson(it, type) } ?: emptyList()
+                if (cachedRecents.isNotEmpty()) {
+                    currentVodCategoryMovies = cachedRecents
+                    atualizarGrelhaFilmes()
+                }
+            } catch (_: Exception) {}
+        }
+
+        if (currentVodCategoryMovies.isEmpty()) {
+            tvCatalogEmpty.text = "⏳ A carregar adicionados recentemente..."
+            tvCatalogEmpty.visibility = View.VISIBLE
+            catalogPosterAdapter = null
+            rvCatalogGrid.adapter = null
+        }
+
+        // 1. Procurar nas categorias remotas por pastas de novidades/recentes/lançamentos
+        val keywords = listOf("novidad", "recent", "lanç", "lanc", "cinema", "2026", "2025", "estrei", "adicionad")
+        val remoteCats = allVodCategories.filter {
+            it.categoryId != "RECENT" && it.categoryId != "FAVORITES" &&
+            it.categoryId != "RESUME" && it.categoryId != "ALL_MOVIES"
+        }
+        val targetCats = remoteCats.filter { cat ->
+            val n = cat.categoryName.lowercase()
+            keywords.any { k -> n.contains(k) }
+        }.take(5).ifEmpty {
+            remoteCats.take(3)
+        }
+
+        if (targetCats.isNotEmpty()) {
+            val collectedMovies = java.util.concurrent.ConcurrentLinkedQueue<VodStream>()
+            val remaining = java.util.concurrent.atomic.AtomicInteger(targetCats.size)
+            for (cat in targetCats) {
+                val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams&category_id=${cat.categoryId}"
+                val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+                client.newCall(req).enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        checkDone()
+                    }
+                    override fun onResponse(call: Call, response: Response) {
+                        try {
+                            if (response.isSuccessful) {
+                                val json = response.body?.string().orEmpty()
+                                val type = object : TypeToken<List<VodStream>>() {}.type
+                                val list: List<VodStream> = gson.fromJson(json, type) ?: emptyList()
+                                collectedMovies.addAll(list)
+                            }
+                        } catch (_: Exception) {}
+                        checkDone()
+                    }
+
+                    private fun checkDone() {
+                        if (remaining.decrementAndGet() == 0) {
+                            val distinct = collectedMovies.distinctBy { it.streamId }
+                            val sorted = distinct.sortedWith(
+                                compareByDescending<VodStream> { parseTimestamp(it.added) }
+                                    .thenByDescending { it.streamId }
+                            ).take(50)
+
+                            if (sorted.isNotEmpty()) {
+                                synchronized(allMoviesCache) {
+                                    val existingIds = allMoviesCache.map { it.streamId }.toHashSet()
+                                    val newItems = distinct.filter { !existingIds.contains(it.streamId) }
+                                    allMoviesCache.addAll(newItems)
+                                }
+                                try {
+                                    File(cacheDir, "vod_recent_movies_cache.json").writeText(gson.toJson(sorted))
+                                } catch (_: Exception) {}
+
+                                runOnUiThread {
+                                    if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT") {
+                                        currentVodCategoryMovies = sorted
+                                        atualizarGrelhaFilmes()
+                                    }
+                                }
+                            } else {
+                                runOnUiThread {
+                                    if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT" && currentVodCategoryMovies.isEmpty()) {
+                                        tvCatalogEmpty.text = "Nenhum filme recente encontrado."
+                                        tvCatalogEmpty.visibility = View.VISIBLE
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+        }
+
+        // 2. Dispara também a carga geral em background caso consiga trazer tudo
+        carregarTodosFilmesEmCache {
+            if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT" && allMoviesCache.isNotEmpty()) {
+                currentVodCategoryMovies = allMoviesCache.sortedWith(
+                    compareByDescending<VodStream> { parseTimestamp(it.added) }
+                        .thenByDescending { it.streamId }
+                ).take(50)
+                atualizarGrelhaFilmes()
+            }
         }
     }
 
@@ -2906,27 +3007,7 @@ class EagleTvActivity : BaseActivity() {
                 }
             }
             "RECENT" -> {
-                if (allMoviesCache.isNotEmpty()) {
-                    currentVodCategoryMovies = allMoviesCache.sortedWith(
-                        compareByDescending<VodStream> { parseTimestamp(it.added) }
-                            .thenByDescending { it.streamId }
-                    ).take(40)
-                    atualizarGrelhaFilmes()
-                } else {
-                    tvCatalogEmpty.text = "⏳ A carregar adicionados recentemente..."
-                    tvCatalogEmpty.visibility = View.VISIBLE
-                    catalogPosterAdapter = null
-                    rvCatalogGrid.adapter = null
-                    carregarTodosFilmesEmCache {
-                        if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT") {
-                            currentVodCategoryMovies = allMoviesCache.sortedWith(
-                                compareByDescending<VodStream> { parseTimestamp(it.added) }
-                                    .thenByDescending { it.streamId }
-                            ).take(40)
-                            atualizarGrelhaFilmes()
-                        }
-                    }
-                }
+                carregarFilmesRecentes()
             }
             else -> {
                 tvCatalogEmpty.text = "⏳ A carregar $catNome..."
@@ -2959,15 +3040,19 @@ class EagleTvActivity : BaseActivity() {
                                     currentVodCategoryMovies = filmes
                                     CategoryCountHelper.saveVodCounts(this@EagleTvActivity, mapOf(catId to filmes.size))
 
-                                    // Atualiza apenas a linha da categoria selecionada sem recriar o RecyclerView para nunca saltar foco
+                                    // Atualiza apenas o contador da categoria sem re-focar ou mover o scroll da lista
                                     val selPos = movieGroupAdapter?.posicaoSelecionada() ?: -1
                                     if (selPos >= 0) {
-                                        movieGroupAdapter?.notifyItemChanged(selPos)
-                                        if (rvCatalogGroups.hasFocus()) {
-                                            rvCatalogGroups.post {
-                                                focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                            }
+                                        val vh = rvCatalogGroups.findViewHolderForAdapterPosition(selPos) as? GroupListAdapter.ViewHolder
+                                        if (vh != null) {
+                                            vh.tvCount.text = filmes.size.toString()
+                                            vh.tvCount.visibility = View.VISIBLE
                                         }
+                                    }
+                                    synchronized(allMoviesCache) {
+                                        val existingIds = allMoviesCache.map { it.streamId }.toHashSet()
+                                        val novos = filmes.filter { !existingIds.contains(it.streamId) }
+                                        allMoviesCache.addAll(novos)
                                     }
                                     atualizarGrelhaFilmes()
                                 }
@@ -3054,14 +3139,7 @@ class EagleTvActivity : BaseActivity() {
                         CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
                             if (activeSection == WorkspaceSection.SERIES) {
-                                val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
-                                val hadFocus = rvCatalogGroups.hasFocus()
-                                seriesGroupAdapter?.notifyDataSetChanged()
-                                if (hadFocus && selPos >= 0) {
-                                    rvCatalogGroups.post {
-                                        focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                    }
-                                }
+                                seriesGroupAdapter?.atualizarContadoresVisiveis()
                                 if (currentSeriesCategoryId == "RECENT") {
                                     currentSeriesCategoryItems = allSeriesCache.sortedWith(
                                         compareByDescending<SeriesItem> { parseTimestamp(it.lastModified ?: it.added ?: it.releaseDate) }
@@ -3194,14 +3272,7 @@ class EagleTvActivity : BaseActivity() {
                         counts["ALL_SERIES"] = series.size
                         CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
-                            val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
-                            val hadFocus = rvCatalogGroups.hasFocus()
-                            seriesGroupAdapter?.notifyDataSetChanged()
-                            if (hadFocus && selPos >= 0) {
-                                rvCatalogGroups.post {
-                                    focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                }
-                            }
+                            seriesGroupAdapter?.atualizarContadoresVisiveis()
                             val callbacks = synchronized(pendingSeriesCallbacks) {
                                 val list = pendingSeriesCallbacks.toList()
                                 pendingSeriesCallbacks.clear()
@@ -3285,14 +3356,7 @@ class EagleTvActivity : BaseActivity() {
                                 list
                             }
                             withContext(Dispatchers.Main) {
-                                val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: lastCatalogGroupPos
-                                val hadFocus = rvCatalogGroups.hasFocus()
-                                seriesGroupAdapter?.notifyDataSetChanged()
-                                if (hadFocus && selPos >= 0) {
-                                    rvCatalogGroups.post {
-                                        focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                    }
-                                }
+                                seriesGroupAdapter?.atualizarContadoresVisiveis()
                                 if (activeSection == WorkspaceSection.SERIES) {
                                     if (currentSeriesCategoryId == "RECENT") {
                                         currentSeriesCategoryItems = allSeriesCache.sortedWith(
@@ -3437,14 +3501,13 @@ class EagleTvActivity : BaseActivity() {
                                     currentSeriesCategoryItems = series
                                     CategoryCountHelper.saveSeriesCounts(this@EagleTvActivity, mapOf(catId to series.size))
 
-                                    // Atualiza apenas a linha da categoria selecionada sem recriar o RecyclerView para nunca saltar foco
+                                    // Atualiza apenas o contador da categoria sem re-focar ou mover o scroll da lista
                                     val selPos = seriesGroupAdapter?.posicaoSelecionada() ?: -1
                                     if (selPos >= 0) {
-                                        seriesGroupAdapter?.notifyItemChanged(selPos)
-                                        if (rvCatalogGroups.hasFocus()) {
-                                            rvCatalogGroups.post {
-                                                focarRecyclerViewPosicao(rvCatalogGroups, selPos)
-                                            }
+                                        val vh = rvCatalogGroups.findViewHolderForAdapterPosition(selPos) as? GroupListAdapter.ViewHolder
+                                        if (vh != null) {
+                                            vh.tvCount.text = series.size.toString()
+                                            vh.tvCount.visibility = View.VISIBLE
                                         }
                                     }
                                     atualizarGrelhaSeries()
@@ -5273,6 +5336,21 @@ class EagleTvActivity : BaseActivity() {
         }
 
         fun posicaoPorId(id: String): Int = items.indexOfFirst { it.first == id }
+
+        fun atualizarContadoresVisiveis() {
+            val rv = recyclerViewRef ?: return
+            for (i in 0 until (rv.adapter?.itemCount ?: 0)) {
+                val vh = rv.findViewHolderForAdapterPosition(i) as? ViewHolder ?: continue
+                val (id, _) = if (i in items.indices) items[i] else continue
+                val count = countProvider(id)
+                if (count > 0) {
+                    vh.tvCount.text = count.toString()
+                    vh.tvCount.visibility = View.VISIBLE
+                } else {
+                    vh.tvCount.visibility = View.GONE
+                }
+            }
+        }
 
         fun selecionarPorId(id: String) {
             val idx = items.indexOfFirst { it.first == id }
