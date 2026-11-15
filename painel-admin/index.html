@@ -995,6 +995,27 @@
                         <input type="url" id="cfgBest2Url" placeholder="http://gd.tugabest.xyz:8080">
                     </div>
                 </div>
+
+                <!-- Secção de Gestão de Múltiplos DNS para PlayTV (suporte24) -->
+                <div id="suporte24DnsSection" style="display: none; margin-bottom: 16px; padding: 14px 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <span style="font-weight: 700; font-size: 13px; color: var(--accent);">🌐 Gestão de Múltiplos DNS (PlayTV)</span>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                Alterna rapidamente entre servidores DNS ou adiciona novos servidores à lista.
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="suporte24DnsSelect" style="padding: 6px 12px; font-size: 13px; max-width: 280px;" onchange="onSuporte24DnsSelected(this.value)">
+                            </select>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeSelectedSuporte24Dns()" title="Remover o DNS selecionado da lista">🗑️</button>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="newSuporte24DnsInput" placeholder="Adicionar novo DNS (ex: http://bmgroup2026.com:8080 ou http://playtv.site)" style="flex: 1; min-width: 250px; font-size: 13px; padding: 7px 12px;" onkeydown="if(event.key==='Enter'){event.preventDefault();addNewSuporte24Dns();}">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="addNewSuporte24Dns()">➕ Adicionar DNS</button>
+                    </div>
+                </div>
                 <div class="form-grid">
                     <div class="form-group" id="announcementGroup">
                         <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
@@ -1397,6 +1418,101 @@
         renderDreamDnsOptions(dns);
     }
 
+    let suporte24DnsList = [
+        "http://bmgroup2026.com:8080"
+    ];
+
+    function loadSuporte24DnsList(rawAnnouncement) {
+        const stored = localStorage.getItem("suporte24_custom_dns_list");
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    suporte24DnsList = parsed;
+                }
+            } catch (_e) {}
+        }
+        if (rawAnnouncement && rawAnnouncement.includes("||DNS_LIST:")) {
+            const rawList = rawAnnouncement.split("||DNS_LIST:")[1].split("||")[0].trim();
+            rawList.split(",").map(s => s.trim().replace(/\/+$/, "")).filter(Boolean).forEach(u => {
+                if (!suporte24DnsList.includes(u)) suporte24DnsList.push(u);
+            });
+        }
+        const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
+            || (lastDashboardData ? (lastDashboardData.best_url || "").trim() : "")
+            || "http://bmgroup2026.com:8080";
+        if (curDns && !suporte24DnsList.includes(curDns)) {
+            suporte24DnsList.push(curDns);
+        }
+        renderSuporte24DnsOptions(curDns);
+    }
+
+    function renderSuporte24DnsOptions(selectedVal = null) {
+        const sel = document.getElementById("suporte24DnsSelect");
+        if (!sel) return;
+        const list = Array.from(new Set(suporte24DnsList.filter(Boolean)));
+        sel.innerHTML = list.map(dns => `<option value="${escapeHtml(dns)}">${escapeHtml(dns)}</option>`).join("");
+        const curVal = selectedVal || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || list[0];
+        if (list.includes(curVal)) {
+            sel.value = curVal;
+        }
+    }
+
+    function onSuporte24DnsSelected(dns) {
+        if (!dns) return;
+        document.getElementById("cfgBestUrl").value = dns;
+        showToast(`DNS "${dns}" selecionado. Clica em "Guardar Alterações" para aplicar na app!`);
+    }
+
+    async function addNewSuporte24Dns() {
+        const inp = document.getElementById("newSuporte24DnsInput");
+        if (!inp) return;
+        let dns = inp.value.trim().replace(/\/+$/, "");
+        if (!dns) return;
+        if (!dns.startsWith("http://") && !dns.startsWith("https://")) {
+            dns = "http://" + dns;
+        }
+        if (!suporte24DnsList.includes(dns)) {
+            suporte24DnsList.push(dns);
+            localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
+            document.getElementById("cfgBestUrl").value = dns;
+            renderSuporte24DnsOptions(dns);
+            inp.value = "";
+            showToast("✔ Novo DNS adicionado à lista e selecionado!");
+            await saveSuporte24DnsListToBackend();
+        } else {
+            document.getElementById("cfgBestUrl").value = dns;
+            renderSuporte24DnsOptions(dns);
+            inp.value = "";
+            showToast("Esse DNS já existia na lista e foi selecionado.");
+        }
+    }
+
+    async function removeSelectedSuporte24Dns() {
+        const sel = document.getElementById("suporte24DnsSelect");
+        if (!sel || !sel.value) return;
+        const toRemove = sel.value;
+        if (suporte24DnsList.length <= 1) {
+            showToast("Tens de manter pelo menos um DNS na lista.", true);
+            return;
+        }
+        if (!confirm(`Tens a certeza que queres remover o DNS:\n${toRemove}?`)) return;
+        suporte24DnsList = suporte24DnsList.filter(d => d !== toRemove);
+        localStorage.setItem("suporte24_custom_dns_list", JSON.stringify(suporte24DnsList));
+        const nextDns = suporte24DnsList[0];
+        document.getElementById("cfgBestUrl").value = nextDns;
+        renderSuporte24DnsOptions(nextDns);
+        showToast("✔ DNS removido da lista.");
+        await saveSuporte24DnsListToBackend();
+    }
+
+    async function saveSuporte24DnsListToBackend() {
+        if (currentResellerId !== "suporte24") return;
+        try {
+            await saveVpnConfigSilent("Lista de DNS atualizada com sucesso!");
+        } catch (_e) {}
+    }
+
     function isUserVpnEnabled(username) {
         if (!username) return false;
         return allowedVpnUsers.has(String(username).trim().toLowerCase());
@@ -1554,8 +1670,8 @@
     function buildEncodedAnnouncement() {
         const annEl = document.getElementById("cfgAnnouncement");
         const cleanAnnouncement = (annEl ? annEl.value : "")
-            .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
-            .replace(/\|\|DNS_LIST:[^|]+/g, "")
+            .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
             .trim();
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
@@ -1569,9 +1685,11 @@
         const actPart = (typeof currentActivations !== "undefined" && Array.isArray(currentActivations) && currentActivations.length > 0)
             ? buildActivationsString(currentActivations)
             : "";
-        const dnsListPart = (currentResellerId === "dream" || isMasterRole) && dreamDnsList.length > 0
-            ? `||DNS_LIST:${dreamDnsList.join(",")}`
-            : "";
+        const dnsListPart = (currentResellerId === "suporte24" && suporte24DnsList.length > 0)
+            ? `||DNS_LIST:${suporte24DnsList.join(",")}`
+            : (((currentResellerId === "dream" || isMasterRole) && dreamDnsList.length > 0)
+                ? `||DNS_LIST:${dreamDnsList.join(",")}`
+                : "");
         return `${cleanAnnouncement} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
 
@@ -1896,6 +2014,11 @@
             if (dreamSec) {
                 dreamSec.style.display = isDream ? "block" : "none";
             }
+            const isSuporte24 = (currentResellerId === "suporte24");
+            const suporte24Sec = document.getElementById("suporte24DnsSection");
+            if (suporte24Sec) {
+                suporte24Sec.style.display = isSuporte24 ? "block" : "none";
+            }
             const dnsInputsRow = document.getElementById("dnsInputsRow");
             if (dnsInputsRow) {
                 dnsInputsRow.style.display = isDream ? "none" : "grid";
@@ -1922,10 +2045,13 @@
             syncLockedDns(data.best_url);
             const rawAnn = String(data.announcement || "");
             loadDreamDnsList(rawAnn);
+            if (isSuporte24) {
+                loadSuporte24DnsList(rawAnn);
+            }
             const vpnSplit = rawAnn.split("||VPN:");
             const cleanNotice = (vpnSplit[0] || "")
-                .replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "")
-                .replace(/\|\|DNS_LIST:[^|]+/g, "")
+                .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
+                .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
                 .trim();
             document.getElementById("cfgAnnouncement").value = cleanNotice;
 
@@ -2208,7 +2334,10 @@
             const devReseller = (d.reseller_id || "master").toLowerCase();
             if (devReseller === "dream" || currentResellerId === "dream") {
                 const cleanDevId = (d.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-                return Array.isArray(currentActivations) && currentActivations.some(a => (a.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase() === cleanDevId);
+                return Array.isArray(currentActivations) && currentActivations.some(a => 
+                    (a.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase() === cleanDevId ||
+                    (d.username && a.username && a.username.trim().toLowerCase() === d.username.trim().toLowerCase())
+                );
             }
             return true;
         });
@@ -2386,7 +2515,7 @@
                     <td title="${escapeHtml(d.last_seen)}">${formatRelativeTime(d.last_seen)}</td>
                     <td style="text-align: right; white-space: nowrap;">
                         ${vpnToggleBtn}${blockBtn}
-                        <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}')">🗑️</button>
+                        <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Eliminar este utilizador / dispositivo">🗑️</button>
                     </td>
                 </tr>
             `;
@@ -2883,8 +3012,13 @@
         }
     });
 
+    function normId(str) {
+        return (str || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    }
+
     async function deleteActivation(index) {
         if (!confirm("Tens a certeza que queres remover a ativação deste dispositivo?")) return;
+        const targetAct = currentActivations[index];
         currentActivations.splice(index, 1);
         try {
             await saveActivationsToBackend(currentActivations);
@@ -2892,8 +3026,27 @@
         } catch (err) {
             showToast("Ativação removida localmente.");
         }
+        if (targetAct) {
+            const cleanDev = normId(targetAct.device_id);
+            const cleanUser = (targetAct.username || "").trim().toLowerCase();
+            try {
+                if (isMasterRole) {
+                    await rpcCall("admin_delete_device", { p_password: adminPassword, p_device_id: targetAct.device_id });
+                } else if (multiResellerEnabled) {
+                    await rpcCall("panel_delete_device", { p_reseller_id: currentResellerId, p_password: adminPassword, p_device_id: targetAct.device_id });
+                }
+            } catch (_) {}
+            allDevices = allDevices.filter(d => {
+                const dNorm = normId(d.device_id);
+                const dUser = (d.username || "").trim().toLowerCase();
+                const matchId = cleanDev && (dNorm === cleanDev);
+                const matchUser = cleanUser && (dUser === cleanUser);
+                return !(matchId || matchUser);
+            });
+        }
         renderActivations();
         renderDevices();
+        updateStats();
     }
 
     document.getElementById("configForm").addEventListener("submit", async (e) => {
@@ -2982,18 +3135,40 @@
         }
     }
 
-    async function deleteDevice(deviceId) {
-        if (!confirm("Remover este dispositivo da lista?")) return;
-        try {
-            if (currentResellerId === "dream" || currentActivations.some(a => a.device_id.toLowerCase() === deviceId.toLowerCase())) {
-                const actIdx = currentActivations.findIndex(a => a.device_id.toLowerCase() === deviceId.toLowerCase());
-                if (actIdx >= 0) {
-                    currentActivations.splice(actIdx, 1);
+    async function deleteDevice(deviceId, username = "") {
+        if (!confirm("Remover este utilizador / dispositivo da lista?")) return;
+        
+        const cleanDev = normId(deviceId);
+        const cleanUser = (username || "").trim().toLowerCase();
+
+        // 1. Remover de currentActivations (Dream / RedOn) por ID, MAC ou username
+        if (currentResellerId === "dream" || (Array.isArray(currentActivations) && currentActivations.length > 0)) {
+            const initialCount = currentActivations.length;
+            currentActivations = currentActivations.filter(a => {
+                const aNormId = normId(a.device_id);
+                const aUser = (a.username || "").trim().toLowerCase();
+                const matchId = cleanDev && (aNormId === cleanDev);
+                const matchUser = cleanUser && (aUser === cleanUser);
+                return !(matchId || matchUser);
+            });
+            if (currentActivations.length !== initialCount) {
+                try {
                     const dns = (lastDashboardData && lastDashboardData.best_url) || "https://thebestplay.site";
                     await saveActivationsToBackend(currentActivations, dns);
+                } catch (saveErr) {
+                    console.warn("Aviso ao guardar remoção de ativação:", saveErr);
                 }
             }
-            if (multiResellerEnabled) {
+        }
+
+        // 2. Remover da base de dados Supabase (tabela devices)
+        try {
+            if (isMasterRole) {
+                await rpcCall("admin_delete_device", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
+            } else if (multiResellerEnabled) {
                 await rpcCall("panel_delete_device", {
                     p_reseller_id: currentResellerId,
                     p_password: adminPassword,
@@ -3005,11 +3180,35 @@
                     p_device_id: deviceId
                 });
             }
-            showToast("Dispositivo removido da lista.");
-            await loadDashboard();
-        } catch (err) {
-            showToast("Erro ao remover dispositivo.", true);
+        } catch (dbErr) {
+            console.warn("Aviso ao remover dispositivo via RPC:", dbErr);
+            try {
+                await rpcCall("admin_delete_device", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
+            } catch (_) {}
         }
+
+        // 3. Remover imediatamente da lista em memória allDevices
+        allDevices = allDevices.filter(d => {
+            const dNorm = normId(d.device_id);
+            const dUser = (d.username || "").trim().toLowerCase();
+            const matchId = cleanDev && (dNorm === cleanDev);
+            const matchUser = cleanUser && (dUser === cleanUser);
+            return !(matchId || matchUser);
+        });
+
+        renderDevices();
+        if (typeof renderActivations === "function") renderActivations();
+        updateStats();
+
+        showToast("✔ Utilizador / dispositivo removido com sucesso.");
+
+        // 4. Recarregar dashboard em segundo plano para sincronizar com Supabase
+        try {
+            await loadDashboard();
+        } catch (_) {}
     }
 
     if (adminPassword) {
