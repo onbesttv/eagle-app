@@ -52,6 +52,25 @@ class StreamPlayLoginActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Se a app já estava em execução e o utilizador saiu há menos de 15 segundos:
+        // volta diretamente para onde estava sem reiniciar e sem recarregar!
+        if (EagleTvActivity.isAlive) {
+            val act = EagleTvActivity.instance?.get()
+            if (act != null && !act.isFinishing && !act.isDestroyed) {
+                val elapsed = System.currentTimeMillis() - EagleTvActivity.lastBackgroundTs
+                if (elapsed < 15_000L) {
+                    val intent = Intent(this, EagleTvActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    }
+                    startActivity(intent)
+                    finish()
+                    overridePendingTransition(0, 0)
+                    return
+                }
+            }
+        }
+
         PiaVpnManager.cleanZombieVpnIfNeeded(this)
         val rid = RemotePanelManager.getResellerId(this)
         val isDream = rid.equals("dream", ignoreCase = true) || packageName.equals("com.redon.tv", ignoreCase = true)

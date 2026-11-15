@@ -67,9 +67,16 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 import java.util.Date
 import java.util.Locale
+import java.lang.ref.WeakReference
 import java.util.concurrent.ConcurrentHashMap
 
 class EagleTvActivity : BaseActivity() {
+
+    companion object {
+        var isAlive: Boolean = false
+        var lastBackgroundTs: Long = 0L
+        var instance: WeakReference<EagleTvActivity>? = null
+    }
 
     enum class WorkspaceSection {
         LIVE_TV,
@@ -702,12 +709,26 @@ class EagleTvActivity : BaseActivity() {
         }, 1500)
     }
 
+    override fun onStart() {
+        super.onStart()
+        isAlive = true
+        instance = WeakReference(this)
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun onStop() {
         super.onStop()
+        lastBackgroundTs = System.currentTimeMillis()
         player?.pause()
     }
 
     override fun onDestroy() {
+        isAlive = false
+        instance = null
         activeVodCall?.cancel()
         activeSeriesCall?.cancel()
         cacheMoviesCall?.cancel()
