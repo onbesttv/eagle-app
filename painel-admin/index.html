@@ -2723,7 +2723,7 @@
         const actString = buildActivationsString(newList);
         if (currentResellerId === "dream") {
             const annEl = document.getElementById("cfgAnnouncement");
-            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").replace(/\|\|DNS_LIST:[^|]+/g, "").trim() : "";
+            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim() : "";
             const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
             const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
             const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -2754,7 +2754,7 @@
         } else if (isMasterRole) {
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
-            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:[^|]+(\|[^|]+)*/g, "").replace(/\|\|DNS_LIST:[^|]+/g, "").trim();
+            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim();
             const dnsListPart = dreamDnsList.length > 0 ? `||DNS_LIST:${dreamDnsList.join(",")}` : "";
             const newAnn = `${cleanAnn} ${actString} ${dnsListPart}`.trim();
             const dns = fallbackDns || (dreamRes ? (dreamRes.best_url || "https://topnextplay.online:443") : "https://topnextplay.online:443");
