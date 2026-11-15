@@ -59,7 +59,7 @@ class StreamPlayLoginActivity : BaseActivity() {
             val act = EagleTvActivity.instance?.get()
             if (act != null && !act.isFinishing && !act.isDestroyed) {
                 val elapsed = System.currentTimeMillis() - EagleTvActivity.lastBackgroundTs
-                if (elapsed < 15_000L) {
+                if (elapsed < 15_000L && RemotePanelManager.isCurrentDnsAllowed(this)) {
                     val intent = Intent(this, EagleTvActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     }
@@ -176,21 +176,24 @@ class StreamPlayLoginActivity : BaseActivity() {
 
         showBusy("A verificar a conta…")
 
-        // Lista de DNS a tentar: o atual primeiro, seguido de todos os configurados no painel
-        val dnsCandidates = mutableListOf<String>()
-        val currentDns = baseUrl.trim().trimEnd('/')
-        if (currentDns.isNotBlank()) {
-            dnsCandidates.add(currentDns)
-        }
+        // Lista de DNS a tentar: APENAS os autorizados e configurados no painel
         val available = RemotePanelManager.getAvailableDnsList(this)
-        for (dns in available) {
-            val clean = dns.trim().trimEnd('/')
-            if (clean.isNotBlank() && !dnsCandidates.any { it.equals(clean, ignoreCase = true) }) {
-                dnsCandidates.add(clean)
+        val dnsCandidates = available
+            .map { it.trim().trimEnd('/') }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .toMutableList()
+
+        if (dnsCandidates.isEmpty()) {
+            val currentDns = baseUrl.trim().trimEnd('/')
+            if (currentDns.isNotBlank()) {
+                dnsCandidates.add(currentDns)
             }
         }
+
         if (dnsCandidates.isEmpty()) {
-            dnsCandidates.add(currentDns.ifBlank { "http://bmgroup2026.com:8080" })
+            showStatus("Não existem servidores configurados no painel.")
+            return
         }
 
         tentarAutenticacaoEmLista(dnsCandidates, 0, username, password)
@@ -232,8 +235,14 @@ class StreamPlayLoginActivity : BaseActivity() {
                 }
 
                 if (validation.first) {
+                    val cleanTarget = targetDns.trim().trimEnd('/')
+                    getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                        .putString("AUTHENTICATED_DNS", cleanTarget)
+                        .remove("USER_LOGGED_OUT")
+                        .apply()
+
                     // Autenticação bem-sucedida! Define este DNS como o ativo da app
-                    IptvServiceConfig.updateRemoteUrls(this@StreamPlayLoginActivity, targetDns, "")
+                    IptvServiceConfig.updateRemoteUrls(this@StreamPlayLoginActivity, cleanTarget, "")
                     IptvServiceConfig.saveCredentials(this@StreamPlayLoginActivity, selectedService, username, password)
                     RemotePanelManager.sync(this@StreamPlayLoginActivity)
 

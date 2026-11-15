@@ -139,13 +139,28 @@ object RemotePanelManager {
     fun isCurrentDnsAllowed(context: Context): Boolean {
         val allowed = getAvailableDnsList(context)
         if (allowed.isEmpty()) return true
+
         val appContext = context.applicationContext
+        val loginPrefs = appContext.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+        val savedUser = loginPrefs.getString("SAVED_USER", "").orEmpty()
+        if (savedUser.isBlank()) return true
+
+        val authDns = loginPrefs.getString("AUTHENTICATED_DNS", "").orEmpty().trim().trimEnd('/')
         IptvServiceConfig.initialize(appContext)
-        val activeSrv = IptvServiceConfig.activeServiceId(appContext)
-        val curUrl = IptvServiceConfig.baseUrl(appContext, activeSrv).trim().trimEnd('/')
-        if (curUrl.isBlank()) return true
-        val cleanCur = if (!curUrl.startsWith("http://") && !curUrl.startsWith("https://")) "http://$curUrl" else curUrl
-        return allowed.any { it.trim().trimEnd('/').equals(cleanCur, ignoreCase = true) }
+        val curUrl = IptvServiceConfig.baseUrl(appContext).trim().trimEnd('/')
+
+        val checkAuth = if (authDns.isNotBlank()) {
+            if (!authDns.startsWith("http://") && !authDns.startsWith("https://")) "http://$authDns" else authDns
+        } else null
+
+        val checkCur = if (curUrl.isNotBlank()) {
+            if (!curUrl.startsWith("http://") && !curUrl.startsWith("https://")) "http://$curUrl" else curUrl
+        } else null
+
+        val isAuthAllowed = checkAuth != null && allowed.any { it.trim().trimEnd('/').equals(checkAuth, ignoreCase = true) }
+        val isCurAllowed = checkCur != null && allowed.any { it.trim().trimEnd('/').equals(checkCur, ignoreCase = true) }
+
+        return if (checkAuth != null) isAuthAllowed else isCurAllowed
     }
 
     fun isDeviceActivatedInPanel(context: Context): Boolean {
@@ -350,12 +365,6 @@ object RemotePanelManager {
                         val activatedCustomDns = loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty()
                         val isActivated = isDeviceActivatedInPanel(appContext) && activatedCustomDns.isNotBlank()
 
-                        if (!isActivated) {
-                            IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
-                        } else {
-                            IptvServiceConfig.updateRemoteUrls(appContext, activatedCustomDns, best2Url)
-                        }
-
                         appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                             .putBoolean(KEY_IS_BLOCKED, blocked)
                             .putString(KEY_BLOCK_REASON, blockReason)
@@ -363,6 +372,23 @@ object RemotePanelManager {
                             .putString(KEY_ANNOUNCEMENT, announcement)
                             .putString("RAW_ANNOUNCEMENT", rawAnnouncement)
                             .apply()
+
+                        val allowedDns = getAvailableDnsList(appContext)
+                        val authDns = loginPrefs.getString("AUTHENTICATED_DNS", "").orEmpty().trim().trimEnd('/')
+
+                        if (authDns.isNotBlank() && allowedDns.isNotEmpty() && !allowedDns.any { it.trim().trimEnd('/').equals(authDns, ignoreCase = true) }) {
+                            // O servidor DNS desta conta foi eliminado do painel! Cortar credenciais imediatamente
+                            IptvServiceConfig.clearAllCredentials(appContext)
+                            loginPrefs.edit().putBoolean("USER_LOGGED_OUT", true).apply()
+                        } else if (!isActivated) {
+                            if (authDns.isNotBlank() && allowedDns.any { it.trim().trimEnd('/').equals(authDns, ignoreCase = true) }) {
+                                IptvServiceConfig.updateRemoteUrls(appContext, authDns, best2Url)
+                            } else {
+                                IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
+                            }
+                        } else {
+                            IptvServiceConfig.updateRemoteUrls(appContext, activatedCustomDns, best2Url)
+                        }
 
                         success = true
                     } catch (_: Exception) {
@@ -397,7 +423,23 @@ object RemotePanelManager {
             activity.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
                 .putBoolean("USER_LOGGED_OUT", true)
                 .apply()
+            try {
+                activity.cacheDir.listFiles()?.forEach { file ->
+                    if (file.name.endsWith(".json")) file.delete()
+                }
+            } catch (_: Exception) {}
+
+            mainHandler.post {
+                android.widget.Toast.makeText(activity, "O servidor desta conta foi removido no painel de controlo.", android.widget.Toast.LENGTH_LONG).show()
+            }
+
             if (activity is EagleTvActivity) {
+                activity.startActivity(android.content.Intent(activity, StreamPlayLoginActivity::class.java).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+                activity.finish()
+                return true
+            } else if (activity !is StreamPlayLoginActivity && activity !is StartupSplashActivity) {
                 activity.startActivity(android.content.Intent(activity, StreamPlayLoginActivity::class.java).apply {
                     addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 })

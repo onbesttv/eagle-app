@@ -75,7 +75,7 @@ class StartupSplashActivity : BaseActivity() {
             val act = EagleTvActivity.instance?.get()
             if (act != null && !act.isFinishing && !act.isDestroyed) {
                 val elapsed = System.currentTimeMillis() - EagleTvActivity.lastBackgroundTs
-                if (elapsed < 15_000L) {
+                if (elapsed < 15_000L && RemotePanelManager.isCurrentDnsAllowed(this)) {
                     val intent = Intent(this, EagleTvActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     }

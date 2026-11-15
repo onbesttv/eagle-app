@@ -1712,7 +1712,25 @@
             lastDashboardData.best_url = activeDns;
         }
 
-        const announcement = buildEncodedAnnouncement();
+        const annEl = document.getElementById("cfgAnnouncement");
+        const cleanAnn = (annEl ? annEl.value : "")
+            .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|VPN:.*?(?=\|\||$)/g, "")
+            .trim();
+        const dnsListPart = (suporte24DnsList.length > 0)
+            ? `||DNS_LIST:${suporte24DnsList.join(",")}`
+            : "";
+        const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
+        const defaultAcc = VPN_ACCOUNTS["suporte24"] || VPN_ACCOUNTS.master;
+        const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
+        const vpnPass = (document.getElementById("cfgVpnPass") && document.getElementById("cfgVpnPass").value.trim()) || defaultAcc.pass;
+        const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
+        const vpnUsersPart = hasPerUserVpnControl()
+            ? `||VPN_USERS:restricted|${Array.from(allowedVpnUsers).join(",")}`
+            : "";
+        const vpnKillPart = vpnKillTimestamp > 0 ? `||VPN_KILL:${vpnKillTimestamp}` : "";
+        const announcement = `${cleanAnn} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
         const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
 
         try {

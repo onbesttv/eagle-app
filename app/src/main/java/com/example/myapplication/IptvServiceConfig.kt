@@ -184,6 +184,8 @@ object IptvServiceConfig {
             .remove(BEST2_PASS)
             .remove("SAVED_USER")
             .remove("SAVED_PASS")
+            .remove("AUTHENTICATED_DNS")
+            .remove(KEY_REMOTE_BEST_URL)
             .putBoolean("auto_login", false)
             .apply()
     }

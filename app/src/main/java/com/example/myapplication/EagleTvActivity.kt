@@ -525,9 +525,10 @@ class EagleTvActivity : BaseActivity() {
     private val periodicUpdateCheckRunnable = object : Runnable {
         override fun run() {
             if (!isFinishing && !isDestroyed) {
+                RemotePanelManager.syncAndEnforce(this@EagleTvActivity)
                 AppUpdateManager.checkForUpdates(this@EagleTvActivity, manual = false)
-                // Volta a verificar a cada 10 minutos automaticamente em segundo plano
-                uiHandler.postDelayed(this, 10 * 60_000L)
+                // Volta a verificar a cada 3 minutos automaticamente em segundo plano
+                uiHandler.postDelayed(this, 3 * 60_000L)
             }
         }
     }
@@ -556,14 +557,26 @@ class EagleTvActivity : BaseActivity() {
             return
         }
 
+        if (!RemotePanelManager.isCurrentDnsAllowed(this)) {
+            IptvServiceConfig.clearAllCredentials(this)
+            getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                .putBoolean("USER_LOGGED_OUT", true)
+                .apply()
+            try {
+                cacheDir.listFiles()?.forEach { if (it.name.endsWith(".json")) it.delete() }
+            } catch (_: Exception) {}
+            Toast.makeText(this, "O servidor desta conta foi removido no painel de controlo.", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, StreamPlayLoginActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+            finish()
+            return
+        }
+
         if (IptvServiceConfig.username(this).isBlank()) {
             IptvServiceConfig.saveCredentials(this, IptvServiceConfig.activeServiceId(this), user, pass)
         }
-        RemotePanelManager.sync(this) {
-            if (!isFinishing && !isDestroyed) {
-                atualizarEstadoServidorEVpn()
-            }
-        }
+        RemotePanelManager.syncAndEnforce(this)
 
         inicializarViews()
         configurarMenuLateral()
@@ -696,6 +709,7 @@ class EagleTvActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        RemotePanelManager.syncAndEnforce(this)
         carregarCachesLocais()
         uiHandler.removeCallbacks(clockTickRunnable)
         uiHandler.post(clockTickRunnable)
@@ -1955,6 +1969,10 @@ class EagleTvActivity : BaseActivity() {
     // =========================================================================
 
     private fun carregarTudoLiveTv() {
+        if (!RemotePanelManager.isCurrentDnsAllowed(this)) {
+            RemotePanelManager.enforceOnUi(this)
+            return
+        }
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_categories"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
 
@@ -1966,6 +1984,20 @@ class EagleTvActivity : BaseActivity() {
             }
 
             override fun onResponse(call: Call, response: Response) {
+                if (response.code == 401 || response.code == 403) {
+                    runOnUiThread {
+                        Toast.makeText(this@EagleTvActivity, "Acesso revogado ou credenciais inválidas.", Toast.LENGTH_LONG).show()
+                        IptvServiceConfig.clearAllCredentials(this@EagleTvActivity)
+                        getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE).edit()
+                            .putBoolean("USER_LOGGED_OUT", true)
+                            .apply()
+                        startActivity(Intent(this@EagleTvActivity, StreamPlayLoginActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        })
+                        finish()
+                    }
+                    return
+                }
                 val json = response.body?.string() ?: return
                 try {
                     val type = object : TypeToken<List<LiveCategory>>() {}.type
