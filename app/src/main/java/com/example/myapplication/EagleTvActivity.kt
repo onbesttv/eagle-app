@@ -242,7 +242,6 @@ class EagleTvActivity : BaseActivity() {
     // Catálogo VOD & Séries
     private var allVodCategories = listOf<VodCategory>()
     private val allMoviesCache = mutableListOf<VodStream>()
-    private var isFullMoviesCacheLoaded = false
     private var isLoadingMoviesCache = false
     private var lastMoviesFetchTs = 0L
     private val pendingMoviesCacheCallbacks = mutableListOf<() -> Unit>()
@@ -983,7 +982,6 @@ class EagleTvActivity : BaseActivity() {
                 inlineEpgCache.clear()
                 allLiveStreamsCache.clear()
                 allMoviesCache.clear()
-                isFullMoviesCacheLoaded = false
                 allSeriesCache.clear()
                 allVodCategories = emptyList()
                 allSeriesCategories = emptyList()
@@ -2531,7 +2529,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun carregarCacheFilmesDiscoSeExistir() {
-        if (isFullMoviesCacheLoaded) return
+        if (allMoviesCache.isNotEmpty()) return
         lifecycleScope.launch(Dispatchers.IO) {
             val cacheFile = File(cacheDir, "vod_movies_cache.json")
             if (cacheFile.exists() && cacheFile.length() > 0) {
@@ -2543,14 +2541,14 @@ class EagleTvActivity : BaseActivity() {
                     if (filmes.isNotEmpty()) {
                         val sortedFilmes = filmes.sortedBy { it.name.lowercase() }
                         synchronized(allMoviesCache) {
-                            allMoviesCache.clear()
-                            allMoviesCache.addAll(sortedFilmes)
+                            if (allMoviesCache.isEmpty()) {
+                                allMoviesCache.addAll(sortedFilmes)
+                            }
                         }
-                        isFullMoviesCacheLoaded = true
                         val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                         counts["ALL_MOVIES"] = filmes.size
-                        counts["RECENT"] = minOf(50, filmes.size)
-                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
+                        counts["RECENT"] = minOf(40, filmes.size)
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
                             if (activeSection == WorkspaceSection.MOVIES) {
                                 movieGroupAdapter?.atualizarContadoresVisiveis()
@@ -2558,7 +2556,7 @@ class EagleTvActivity : BaseActivity() {
                                     currentVodCategoryMovies = allMoviesCache.sortedWith(
                                         compareByDescending<VodStream> { parseTimestamp(it.added) }
                                             .thenByDescending { it.streamId }
-                                    ).take(50)
+                                    ).take(40)
                                     atualizarGrelhaFilmes()
                                 }
                             }
@@ -2597,9 +2595,6 @@ class EagleTvActivity : BaseActivity() {
                                 movieGroupAdapter?.updateItems(completas.map { it.categoryId to it.categoryName })
                             } else {
                                 montarCategoriasFilmes(completas)
-                            }
-                            if (currentVodCategoryId == "RECENT" && currentVodCategoryMovies.isEmpty()) {
-                                carregarFilmesRecentes()
                             }
                         }
                     }
@@ -2645,12 +2640,12 @@ class EagleTvActivity : BaseActivity() {
             countProvider = { id ->
                 when (id) {
                     "ALL_MOVIES" -> {
-                        val count = if (isFullMoviesCacheLoaded && allMoviesCache.size > 200) allMoviesCache.size else 0
+                        val count = allMoviesCache.size
                         if (count > 0) count else CategoryCountHelper.getVodCount(this, "ALL_MOVIES")
                     }
                     "FAVORITES" -> movieFavIdsCache.size
                     "RESUME" -> vodResumePosCache.size
-                    "RECENT" -> minOf(50, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else (currentVodCategoryMovies.size.takeIf { it > 0 } ?: CategoryCountHelper.getVodCount(this, "RECENT")))
+                    "RECENT" -> minOf(50, if (allMoviesCache.isNotEmpty()) allMoviesCache.size else CategoryCountHelper.getVodCount(this, "RECENT"))
                     else -> CategoryCountHelper.getVodCount(this, id)
                 }
             },
@@ -2663,7 +2658,7 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun carregarTodosFilmesEmCache(onDone: (() -> Unit)? = null) {
-        if (isFullMoviesCacheLoaded && allMoviesCache.size > 200) {
+        if (allMoviesCache.isNotEmpty()) {
             onDone?.invoke()
             return
         }
@@ -2676,7 +2671,7 @@ class EagleTvActivity : BaseActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             // 1. Tentar carregar instantaneamente da cache em disco se existir
             val cacheFile = File(cacheDir, "vod_movies_cache.json")
-            if (!isFullMoviesCacheLoaded && cacheFile.exists() && cacheFile.length() > 0) {
+            if (allMoviesCache.isEmpty() && cacheFile.exists() && cacheFile.length() > 0) {
                 try {
                     val type = object : TypeToken<List<VodStream>>() {}.type
                     val filmes: List<VodStream> = FileReader(cacheFile).use { reader ->
@@ -2685,28 +2680,16 @@ class EagleTvActivity : BaseActivity() {
                     if (filmes.isNotEmpty()) {
                         val sortedFilmes = filmes.sortedBy { it.name.lowercase() }
                         synchronized(allMoviesCache) {
-                            allMoviesCache.clear()
-                            allMoviesCache.addAll(sortedFilmes)
+                            if (allMoviesCache.isEmpty()) {
+                                allMoviesCache.addAll(sortedFilmes)
+                            }
                         }
-                        isFullMoviesCacheLoaded = true
                         val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                         counts["ALL_MOVIES"] = filmes.size
-                        counts["RECENT"] = minOf(50, filmes.size)
-                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
+                        counts["RECENT"] = minOf(40, filmes.size)
+                        CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
                         withContext(Dispatchers.Main) {
                             movieGroupAdapter?.atualizarContadoresVisiveis()
-                            if (activeSection == WorkspaceSection.MOVIES) {
-                                if (currentVodCategoryId == "RECENT") {
-                                    currentVodCategoryMovies = allMoviesCache.sortedWith(
-                                        compareByDescending<VodStream> { parseTimestamp(it.added) }
-                                            .thenByDescending { it.streamId }
-                                    ).take(50)
-                                    atualizarGrelhaFilmes()
-                                } else if (currentVodCategoryId == "ALL_MOVIES") {
-                                    currentVodCategoryMovies = allMoviesCache
-                                    atualizarGrelhaFilmes()
-                                }
-                            }
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {
                                 val list = pendingMoviesCacheCallbacks.toList()
                                 pendingMoviesCacheCallbacks.clear()
@@ -2776,12 +2759,11 @@ class EagleTvActivity : BaseActivity() {
                                     allMoviesCache.clear()
                                     allMoviesCache.addAll(sortedFilmes)
                                 }
-                                isFullMoviesCacheLoaded = true
                                 lastMoviesFetchTs = System.currentTimeMillis()
                                 val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                                 counts["ALL_MOVIES"] = filmes.size
-                                counts["RECENT"] = minOf(50, filmes.size)
-                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts, clearOld = true)
+                                counts["RECENT"] = minOf(40, filmes.size)
+                                CategoryCountHelper.saveVodCounts(this@EagleTvActivity, counts)
                             }
 
                             val callbacks = synchronized(pendingMoviesCacheCallbacks) {
@@ -2797,7 +2779,7 @@ class EagleTvActivity : BaseActivity() {
                                         currentVodCategoryMovies = allMoviesCache.sortedWith(
                                             compareByDescending<VodStream> { parseTimestamp(it.added) }
                                                 .thenByDescending { it.streamId }
-                                        ).take(50)
+                                        ).take(40)
                                         atualizarGrelhaFilmes()
                                     } else if (currentVodCategoryId == "ALL_MOVIES") {
                                         currentVodCategoryMovies = allMoviesCache
@@ -2821,121 +2803,6 @@ class EagleTvActivity : BaseActivity() {
                     }
                 }
             })
-        }
-    }
-
-    private fun carregarFilmesRecentes() {
-        if (allMoviesCache.isNotEmpty()) {
-            currentVodCategoryMovies = allMoviesCache.sortedWith(
-                compareByDescending<VodStream> { parseTimestamp(it.added) }
-                    .thenByDescending { it.streamId }
-            ).take(50)
-            atualizarGrelhaFilmes()
-            return
-        }
-
-        // Tentar carregar da cache de recentes salva anteriormente
-        val recentCacheFile = File(cacheDir, "vod_recent_movies_cache.json")
-        if (recentCacheFile.exists() && recentCacheFile.length() > 0) {
-            try {
-                val type = object : TypeToken<List<VodStream>>() {}.type
-                val cachedRecents: List<VodStream> = FileReader(recentCacheFile).use { gson.fromJson(it, type) } ?: emptyList()
-                if (cachedRecents.isNotEmpty()) {
-                    currentVodCategoryMovies = cachedRecents
-                    atualizarGrelhaFilmes()
-                }
-            } catch (_: Exception) {}
-        }
-
-        if (currentVodCategoryMovies.isEmpty()) {
-            tvCatalogEmpty.text = "⏳ A carregar adicionados recentemente..."
-            tvCatalogEmpty.visibility = View.VISIBLE
-            catalogPosterAdapter = null
-            rvCatalogGrid.adapter = null
-        }
-
-        // 1. Procurar nas categorias remotas por pastas de novidades/recentes/lançamentos
-        val keywords = listOf("novidad", "recent", "lanç", "lanc", "cinema", "2026", "2025", "estrei", "adicionad")
-        val remoteCats = allVodCategories.filter {
-            it.categoryId != "RECENT" && it.categoryId != "FAVORITES" &&
-            it.categoryId != "RESUME" && it.categoryId != "ALL_MOVIES"
-        }
-        val targetCats = remoteCats.filter { cat ->
-            val n = cat.categoryName.lowercase()
-            keywords.any { k -> n.contains(k) }
-        }.take(5).ifEmpty {
-            remoteCats.take(3)
-        }
-
-        if (targetCats.isNotEmpty()) {
-            val collectedMovies = java.util.concurrent.ConcurrentLinkedQueue<VodStream>()
-            val remaining = java.util.concurrent.atomic.AtomicInteger(targetCats.size)
-            for (cat in targetCats) {
-                val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_vod_streams&category_id=${cat.categoryId}"
-                val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-                client.newCall(req).enqueue(object : Callback {
-                    override fun onFailure(call: Call, e: IOException) {
-                        checkDone()
-                    }
-                    override fun onResponse(call: Call, response: Response) {
-                        try {
-                            if (response.isSuccessful) {
-                                val json = response.body?.string().orEmpty()
-                                val type = object : TypeToken<List<VodStream>>() {}.type
-                                val list: List<VodStream> = gson.fromJson(json, type) ?: emptyList()
-                                collectedMovies.addAll(list)
-                            }
-                        } catch (_: Exception) {}
-                        checkDone()
-                    }
-
-                    private fun checkDone() {
-                        if (remaining.decrementAndGet() == 0) {
-                            val distinct = collectedMovies.distinctBy { it.streamId }
-                            val sorted = distinct.sortedWith(
-                                compareByDescending<VodStream> { parseTimestamp(it.added) }
-                                    .thenByDescending { it.streamId }
-                            ).take(50)
-
-                            if (sorted.isNotEmpty()) {
-                                synchronized(allMoviesCache) {
-                                    val existingIds = allMoviesCache.map { it.streamId }.toHashSet()
-                                    val newItems = distinct.filter { !existingIds.contains(it.streamId) }
-                                    allMoviesCache.addAll(newItems)
-                                }
-                                try {
-                                    File(cacheDir, "vod_recent_movies_cache.json").writeText(gson.toJson(sorted))
-                                } catch (_: Exception) {}
-
-                                runOnUiThread {
-                                    if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT") {
-                                        currentVodCategoryMovies = sorted
-                                        atualizarGrelhaFilmes()
-                                    }
-                                }
-                            } else {
-                                runOnUiThread {
-                                    if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT" && currentVodCategoryMovies.isEmpty()) {
-                                        tvCatalogEmpty.text = "Nenhum filme recente encontrado."
-                                        tvCatalogEmpty.visibility = View.VISIBLE
-                                    }
-                                }
-                            }
-                        }
-                    }
-                })
-            }
-        }
-
-        // 2. Dispara também a carga geral em background caso consiga trazer tudo
-        carregarTodosFilmesEmCache {
-            if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT" && allMoviesCache.isNotEmpty()) {
-                currentVodCategoryMovies = allMoviesCache.sortedWith(
-                    compareByDescending<VodStream> { parseTimestamp(it.added) }
-                        .thenByDescending { it.streamId }
-                ).take(50)
-                atualizarGrelhaFilmes()
-            }
         }
     }
 
@@ -3020,10 +2887,30 @@ class EagleTvActivity : BaseActivity() {
                 }
             }
             "RECENT" -> {
-                carregarFilmesRecentes()
+                if (allMoviesCache.isNotEmpty()) {
+                    currentVodCategoryMovies = allMoviesCache.sortedWith(
+                        compareByDescending<VodStream> { parseTimestamp(it.added) }
+                            .thenByDescending { it.streamId }
+                    ).take(40)
+                    atualizarGrelhaFilmes()
+                } else {
+                    tvCatalogEmpty.text = "⏳ A carregar adicionados recentemente..."
+                    tvCatalogEmpty.visibility = View.VISIBLE
+                    catalogPosterAdapter = null
+                    rvCatalogGrid.adapter = null
+                    carregarTodosFilmesEmCache {
+                        if (activeSection == WorkspaceSection.MOVIES && currentVodCategoryId == "RECENT") {
+                            currentVodCategoryMovies = allMoviesCache.sortedWith(
+                                compareByDescending<VodStream> { parseTimestamp(it.added) }
+                                    .thenByDescending { it.streamId }
+                            ).take(40)
+                            atualizarGrelhaFilmes()
+                        }
+                    }
+                }
             }
             else -> {
-                if (isFullMoviesCacheLoaded && allMoviesCache.isNotEmpty()) {
+                if (allMoviesCache.size > 200) {
                     val matching = allMoviesCache.filter { it.categoryId == catId }
                     if (matching.isNotEmpty()) {
                         currentVodCategoryMovies = matching
@@ -4375,7 +4262,6 @@ class EagleTvActivity : BaseActivity() {
         inlineEpgCache.clear()
         allLiveStreamsCache.clear()
         allMoviesCache.clear()
-        isFullMoviesCacheLoaded = false
         allSeriesCache.clear()
         allVodCategories = emptyList()
         allSeriesCategories = emptyList()

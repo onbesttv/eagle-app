@@ -50,7 +50,7 @@ data class VodStream(
     @com.google.gson.annotations.SerializedName("rating") private val rawRating: Any? = null,
     @com.google.gson.annotations.SerializedName("rating_5based") private val rawRating5: Any? = null,
     @com.google.gson.annotations.SerializedName("added") val added: String? = null,
-    @com.google.gson.annotations.SerializedName("category_id") private val rawCatId: Any? = null,
+    @com.google.gson.annotations.SerializedName("category_id") val categoryId: String? = null,
     @com.google.gson.annotations.SerializedName("container_extension") val containerExtension: String? = null
 ) {
     val streamId: Int
@@ -71,19 +71,6 @@ data class VodStream(
         get() = when (val r = rawRating5) {
             is Number -> r.toDouble()
             is String -> r.toDoubleOrNull()
-            else -> null
-        }
-
-    val categoryId: String?
-        get() = when (val c = rawCatId) {
-            is String -> {
-                val s = c.trim()
-                if (s.endsWith(".0") && s.toDoubleOrNull() != null) s.substringBefore(".0") else s
-            }
-            is Number -> {
-                val d = c.toDouble()
-                if (d % 1.0 == 0.0) d.toLong().toString() else c.toString()
-            }
             else -> null
         }
 }
