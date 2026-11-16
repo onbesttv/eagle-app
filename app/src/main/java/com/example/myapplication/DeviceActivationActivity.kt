@@ -87,13 +87,18 @@ class DeviceActivationActivity : BaseActivity() {
             var savedPass = IptvServiceConfig.password(this, activeService)
 
             val loginPrefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
-            if (savedUser.isBlank()) {
+            val isUserLoggedOut = loginPrefs.getBoolean("USER_LOGGED_OUT", false)
+
+            if (isUserLoggedOut) {
+                savedUser = ""
+                savedPass = ""
+            } else if (savedUser.isBlank()) {
                 savedUser = loginPrefs.getString("SAVED_USER", "").orEmpty()
                 savedPass = loginPrefs.getString("SAVED_PASS", "").orEmpty()
             }
 
             // Se fechou sessão por engano, compara se o Device ID continua ativo no painel e restaura os dados
-            if (savedUser.isBlank() && RemotePanelManager.isDeviceActivatedInPanel(this)) {
+            if (!isUserLoggedOut && savedUser.isBlank() && RemotePanelManager.isDeviceActivatedInPanel(this)) {
                 val lastUser = loginPrefs.getString("LAST_ACTIVATED_USER", "").orEmpty()
                 val lastPass = loginPrefs.getString("LAST_ACTIVATED_PASS", "").orEmpty()
                 val lastDns = loginPrefs.getString("LAST_ACTIVATED_DNS", "").orEmpty().ifBlank {
@@ -109,7 +114,7 @@ class DeviceActivationActivity : BaseActivity() {
                 }
             }
 
-            if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
+            if (!isUserLoggedOut && savedUser.isNotBlank() && savedPass.isNotBlank()) {
                 val activeDns = loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty().ifBlank {
                     IptvServiceConfig.baseUrl(this, activeService)
                 }
@@ -137,6 +142,9 @@ class DeviceActivationActivity : BaseActivity() {
                     tvActivationStatus.text = "● Dispositivo ainda não ativado no painel."
                     tvActivationStatus.setTextColor(0xFFFBBF24.toInt())
                     Toast.makeText(this, "Ainda não ativado. Informa o teu fornecedor.", Toast.LENGTH_LONG).show()
+                } else {
+                    tvActivationStatus.text = "● Dispositivo aguarda ativação no painel."
+                    tvActivationStatus.setTextColor(0xFF94A3B8.toInt())
                 }
             }
         }

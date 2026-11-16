@@ -935,6 +935,37 @@
             </div>
         </div>
 
+        <div class="card" id="activationsCard" style="display: none;">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">📱 Dispositivos Ativados por Device ID / MAC (RedOn)</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        Dispositivos autorizados permanentemente pelo MAC / Device ID com as suas linhas e DNS associados.
+                    </div>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Estado</th>
+                            <th>Device ID / MAC</th>
+                            <th>PIN / Key</th>
+                            <th>Servidor DNS</th>
+                            <th>Utilizador (Linha)</th>
+                            <th>Palavra-passe</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activationsTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">A carregar ativações...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
@@ -2385,11 +2416,15 @@
                 : "";
 
             const rawDevices = Array.isArray(data.devices) ? data.devices : [];
-            allDevices = isMasterRole
-                ? [...rawDevices]
-                : rawDevices.filter(d => (d.username || "").trim().toLowerCase() !== "xsrupyh");
+            allDevices = [...rawDevices];
             allDevices = allDevices.filter(d => !isDeviceDeleted(d.device_id, d.username));
             allResellers = Array.isArray(data.resellers) ? data.resellers : [];
+
+            // Exibir card de ativações para dream e master
+            const actCard = document.getElementById("activationsCard");
+            if (actCard) {
+                actCard.style.display = (currentResellerId === "dream" || isMasterRole) ? "block" : "none";
+            }
 
             // Integrar os dispositivos ativados do RedOn (Dream) diretamente na lista geral de dispositivos
             const dreamResellerObj = isMasterRole ? allResellers.find(r => r.reseller_id === "dream") : (currentResellerId === "dream" ? data : null);
@@ -2415,11 +2450,6 @@
                         });
                     }
                 });
-            }
-
-            if (!isMasterRole && allowedVpnUsers.has("xsrupyh")) {
-                allowedVpnUsers.delete("xsrupyh");
-                saveVpnConfigSilent();
             }
 
             // Se for Master, carregar e unir todos os utilizadores com VPN autorizada em todas as apps (exceto Pereira TV)
