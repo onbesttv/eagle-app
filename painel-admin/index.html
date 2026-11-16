@@ -935,37 +935,6 @@
             </div>
         </div>
 
-        <div class="card" id="activationsCard" style="display: none;">
-            <div class="card-header">
-                <div>
-                    <div class="card-title">📱 Dispositivos Ativados por Device ID / MAC (RedOn)</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                        Dispositivos autorizados permanentemente pelo MAC / Device ID com as suas linhas e DNS associados.
-                    </div>
-                </div>
-            </div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Estado</th>
-                            <th>Device ID / MAC</th>
-                            <th>PIN / Key</th>
-                            <th>Servidor DNS</th>
-                            <th>Utilizador (Linha)</th>
-                            <th>Palavra-passe</th>
-                            <th style="text-align: right;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activationsTableBody">
-                        <tr>
-                            <td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">A carregar ativações...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
         <div class="card">
             <div class="card-header">
                 <div class="card-title">📺 Utilizadores e Dispositivos Ligados</div>
@@ -2394,33 +2363,33 @@
             allDevices = allDevices.filter(d => !isDeviceDeleted(d.device_id, d.username));
             allResellers = Array.isArray(data.resellers) ? data.resellers : [];
 
-            // Exibir card de ativações para dream e master
-            const actCard = document.getElementById("activationsCard");
-            if (actCard) {
-                actCard.style.display = (currentResellerId === "dream" || isMasterRole) ? "block" : "none";
-            }
-
             // Integrar os dispositivos ativados do RedOn (Dream) diretamente na lista geral de dispositivos
             const dreamResellerObj = isMasterRole ? allResellers.find(r => r.reseller_id === "dream") : (currentResellerId === "dream" ? data : null);
             if (dreamResellerObj && dreamResellerObj.announcement) {
                 const dreamActs = parseActivationsFromAnnouncement(dreamResellerObj.announcement);
                 dreamActs.forEach(act => {
-                    if (isDeviceDeleted(act.device_id, act.username)) return;
-                    const normMac = act.device_id.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-                    const alreadyExists = allDevices.some(d => {
-                        const devNorm = (d.device_id || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-                        return devNorm === normMac || (d.username && d.username.toLowerCase() === act.username.toLowerCase());
+                    const normMac = normId(act.device_id);
+                    const normUser = (act.username || "").toLowerCase();
+                    const existingDev = allDevices.find(d => {
+                        const devNorm = normId(d.device_id);
+                        const devUser = (d.username || "").toLowerCase();
+                        const matchMac = normMac && devNorm && (devNorm === normMac || devNorm.startsWith(normMac) || normMac.startsWith(devNorm));
+                        const matchUser = normUser && devUser && normUser === devUser;
+                        return matchMac || matchUser;
                     });
-                    if (!alreadyExists) {
+                    if (existingDev) {
+                        if (act.dns) existingDev.dns = act.dns;
+                    } else {
                         allDevices.push({
                             device_id: act.device_id,
                             username: act.username,
                             reseller_id: "dream",
                             active_service: "best",
                             device_name: "RedOn TV Box" + (act.device_key ? ` (PIN: ${act.device_key})` : ""),
-                            app_version: "3.15",
+                            app_version: "3.37",
                             last_seen: new Date().toISOString(),
-                            is_blocked: false
+                            is_blocked: false,
+                            dns: act.dns
                         });
                     }
                 });
@@ -2728,11 +2697,40 @@
 
             const devResLower = devReseller.toLowerCase();
             const isJokerDev = (devResLower === "tv_joker" || devResLower === "joker" || currentResellerId === "tv_joker" || currentResellerId === "joker");
-            const srvBadge = isJokerDev
-                ? `<span class="badge badge-best2">Templarios</span>`
-                : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream" && currentResellerId !== "suporte24")
+
+            // Obter o nome configurado do DNS para apresentar na coluna "Serviço"
+            let dreamDnsName = "";
+            if (devResLower === "dream" || currentResellerId === "dream") {
+                const normDevId = normId(d.device_id);
+                const normUser = (d.username || "").toLowerCase();
+                const act = currentActivations.find(a => {
+                    const aMac = normId(a.device_id);
+                    const aUser = (a.username || "").toLowerCase();
+                    return (aMac && normDevId && (aMac === normDevId || normDevId.startsWith(aMac) || aMac.startsWith(normDevId))) || (aUser && aUser === normUser);
+                });
+                const assignedDns = (act && act.dns) ? act.dns : (d.dns || (lastDashboardData && lastDashboardData.best_url));
+                if (assignedDns) {
+                    const cleanAssigned = assignedDns.trim().toLowerCase().replace(/\/+$/, "");
+                    const matchedDnsObj = dreamDnsList.map(normalizeDreamDnsItem).find(item => {
+                        if (!item) return false;
+                        const cleanItem = item.url.trim().toLowerCase().replace(/\/+$/, "");
+                        return cleanItem === cleanAssigned;
+                    });
+                    if (matchedDnsObj && matchedDnsObj.name) {
+                        dreamDnsName = matchedDnsObj.name;
+                    } else {
+                        dreamDnsName = assignedDns.replace(/^https?:\/\//, "");
+                    }
+                }
+            }
+
+            const srvBadge = dreamDnsName
+                ? `<span class="badge badge-best" style="font-weight:700; background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56, 189, 248, 0.3); font-size:12px;">${escapeHtml(dreamDnsName)}</span>`
+                : (isJokerDev
                     ? `<span class="badge badge-best2">Templarios</span>`
-                    : (currentResellerId === "suporte24" ? `<span class="badge badge-online">PlayTV</span>` : `<span class="badge badge-best">StreamPlay</span>`));
+                    : ((srv === "best2" && currentResellerId !== "pereira_tv" && currentResellerId !== "godinho_tv" && currentResellerId !== "dream" && currentResellerId !== "suporte24")
+                        ? `<span class="badge badge-best2">Templarios</span>`
+                        : (currentResellerId === "suporte24" ? `<span class="badge badge-online">PlayTV</span>` : `<span class="badge badge-best">StreamPlay</span>`)));
 
             const devIdText = d.device_id ? escapeHtml(d.device_id) : "";
             const devIdHtml = devIdText ? `<div style="font-size:11px; color:#38bdf8; font-family:monospace; margin-top:3px; font-weight:600; letter-spacing:0.5px;">${devIdText}</div>` : "";
