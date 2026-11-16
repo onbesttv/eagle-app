@@ -11,6 +11,19 @@ object IptvServiceConfig {
         return if (serviceId == BEST2) "Templarios" else "StreamPlay"
     }
 
+    fun getServiceDisplayName(context: Context, serviceId: String = activeServiceId(context)): String {
+        val reseller = RemotePanelManager.getResellerId(context).lowercase()
+        if (reseller == "dream" || context.packageName.equals("com.redon.tv", ignoreCase = true)) {
+            val customName = RemotePanelManager.getActiveDnsName(context)
+            if (!customName.isNullOrBlank()) {
+                return customName
+            }
+        } else if (reseller == "suporte24") {
+            return "PlayTV"
+        }
+        return displayName(serviceId)
+    }
+
     fun isStreamPlayDisabled(context: Context): Boolean {
         return RemotePanelManager.getResellerId(context).equals("tv_fabio", ignoreCase = true)
     }

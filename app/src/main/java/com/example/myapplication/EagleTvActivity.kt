@@ -1207,7 +1207,7 @@ class EagleTvActivity : BaseActivity() {
 
     fun atualizarEstadoServidorEVpn() {
         val activeService = IptvServiceConfig.activeServiceId(this)
-        val serverName = IptvServiceConfig.displayName(activeService).uppercase(Locale.getDefault())
+        val serverName = IptvServiceConfig.getServiceDisplayName(this, activeService).uppercase(Locale.getDefault())
         tvRailActiveServer.text = "● $serverName"
         tvRailActiveServer.background = GradientDrawable().apply {
             setColor(0xFF0F1E33.toInt())
@@ -2342,7 +2342,7 @@ class EagleTvActivity : BaseActivity() {
             tvTopProgramTime.text = "AO VIVO"
             pbTopProgram.progress = 0
             tvTopProgramPercent.text = ""
-            tvTopProgramDesc.text = "Emissão em direto no servidor ${IptvServiceConfig.displayName(IptvServiceConfig.activeServiceId(this))}."
+            tvTopProgramDesc.text = "Emissão em direto no servidor ${IptvServiceConfig.getServiceDisplayName(this, IptvServiceConfig.activeServiceId(this))}."
             tvTopNextProgram.text = ""
         }
     }
@@ -4484,7 +4484,7 @@ class EagleTvActivity : BaseActivity() {
             carregarCacheFilmesDiscoSeExistir()
             carregarCacheSeriesDiscoSeExistir()
         }
-        Toast.makeText(this, "Servidor alterado para ${IptvServiceConfig.displayName(targetService)}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Servidor alterado para ${IptvServiceConfig.getServiceDisplayName(this, targetService)}", Toast.LENGTH_SHORT).show()
     }
 
     // =========================================================================
@@ -4889,7 +4889,7 @@ class EagleTvActivity : BaseActivity() {
         prefs.edit().putString("stream_type", "MPEGTS").apply()
         val timeFormat = prefs.getString("time_format", "24 Hr") ?: "24 Hr"
         val activeService = IptvServiceConfig.activeServiceId(this)
-        val serverName = IptvServiceConfig.displayName(activeService)
+        val serverName = IptvServiceConfig.getServiceDisplayName(this, activeService)
 
         val cards = listOf(
             EagleSettingCard("ACCOUNT", "👤", "A Minha Conta", "Ver validade da subscrição, ligações e detalhes", ::mostrarDialogoConta),
@@ -5132,13 +5132,15 @@ class EagleTvActivity : BaseActivity() {
 
         val url = "$baseUrl/player_api.php?username=$user&password=$pass"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
+        val serverDisplay = IptvServiceConfig.getServiceDisplayName(this@EagleTvActivity, IptvServiceConfig.activeServiceId(this@EagleTvActivity))
+
         client.newCall(req).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     layoutLoading.visibility = View.GONE
                     layoutRows.removeAllViews()
                     criarLinhaInfo("Utilizador", user, "👤")
-                    criarLinhaInfo("Servidor", baseUrl, "🌐")
+                    criarLinhaInfo("Servidor", serverDisplay, "🌐", 0xFF38BDF8.toInt())
                     criarLinhaInfo("Estado", "Sem ligação", "⚠️", 0xFFF87171.toInt())
                     layoutRows.visibility = View.VISIBLE
                     btnClose.requestFocus()
@@ -5166,8 +5168,6 @@ class EagleTvActivity : BaseActivity() {
                         "Ilimitada / Vitalícia"
                     }
 
-                    val serverDisplay = IptvServiceConfig.displayName(IptvServiceConfig.activeServiceId(this@EagleTvActivity))
-
                     runOnUiThread {
                         layoutLoading.visibility = View.GONE
                         layoutRows.removeAllViews()
@@ -5184,7 +5184,7 @@ class EagleTvActivity : BaseActivity() {
                         layoutLoading.visibility = View.GONE
                         layoutRows.removeAllViews()
                         criarLinhaInfo("Utilizador", user, "👤")
-                        criarLinhaInfo("Servidor", baseUrl, "🌐")
+                        criarLinhaInfo("Servidor", serverDisplay, "🌐", 0xFF38BDF8.toInt())
                         layoutRows.visibility = View.VISIBLE
                         btnClose.requestFocus()
                     }

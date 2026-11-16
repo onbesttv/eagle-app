@@ -132,6 +132,48 @@ object RemotePanelManager {
         return list
     }
 
+    fun getActiveDnsName(context: Context): String? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val rawAnn = prefs.getString("RAW_ANNOUNCEMENT", "").orEmpty()
+        val loginPrefs = context.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+
+        val activeDns = loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty().ifBlank {
+            IptvServiceConfig.baseUrl(context)
+        }.trim().trimEnd('/')
+
+        if (activeDns.isNotBlank() && rawAnn.contains("||DNS_LIST:")) {
+            val part = rawAnn.substringAfter("||DNS_LIST:").substringBefore("||").trim()
+            val cleanActive = activeDns.lowercase()
+                .removePrefix("http://")
+                .removePrefix("https://")
+                .trimEnd('/')
+
+            for (rawItem in part.split(",")) {
+                val item = rawItem.trim()
+                if (item.contains("|")) {
+                    val name = item.substringBefore("|").trim()
+                    val url = item.substringAfter("|").trim()
+                    val cleanUrl = url.lowercase()
+                        .removePrefix("http://")
+                        .removePrefix("https://")
+                        .trimEnd('/')
+                    if (cleanActive == cleanUrl || cleanActive.startsWith(cleanUrl) || cleanUrl.startsWith(cleanActive)) {
+                        if (name.isNotBlank()) return name
+                    }
+                } else if (item.isNotBlank()) {
+                    val cleanUrl = item.lowercase()
+                        .removePrefix("http://")
+                        .removePrefix("https://")
+                        .trimEnd('/')
+                    if (cleanActive == cleanUrl || cleanActive.startsWith(cleanUrl) || cleanUrl.startsWith(cleanActive)) {
+                        return cleanUrl
+                    }
+                }
+            }
+        }
+        return null
+    }
+
     /**
      * Verifica se o servidor DNS atualmente em uso no dispositivo ainda é autorizado pelo painel.
      * Se o administrador tiver removido o DNS no painel, retorna false.
