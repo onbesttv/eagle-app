@@ -110,7 +110,9 @@ class DeviceActivationActivity : BaseActivity() {
             }
 
             if (savedUser.isNotBlank() && savedPass.isNotBlank()) {
-                val activeDns = IptvServiceConfig.baseUrl(this, activeService)
+                val activeDns = loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty().ifBlank {
+                    IptvServiceConfig.baseUrl(this, activeService)
+                }
                 loginPrefs.edit()
                     .putString("LAST_ACTIVATED_USER", savedUser)
                     .putString("LAST_ACTIVATED_PASS", savedPass)

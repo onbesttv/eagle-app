@@ -163,24 +163,26 @@ object RemotePanelManager {
         return if (checkAuth != null) isAuthAllowed else isCurAllowed
     }
 
-    fun isDeviceActivatedInPanel(context: Context): Boolean {
-        val raw = getRawAnnouncement(context).lowercase()
+    fun isDeviceActivatedInPanel(context: Context, rawAnnOverride: String? = null): Boolean {
+        val raw = (rawAnnOverride ?: getRawAnnouncement(context)).lowercase()
         val myMac = getDeviceMac(context).replace(":", "").replace("-", "").lowercase()
         val myId = getDeviceId(context).replace(":", "").replace("-", "").lowercase()
         val actPart = raw.substringAfter("||activations:", "").substringBefore("||")
-        return actPart.contains(myMac) || actPart.contains(myId)
+        if (actPart.isBlank()) return false
+        val cleanActPart = actPart.replace(":", "").replace("-", "")
+        return cleanActPart.contains(myMac) || cleanActPart.contains(myId)
     }
 
     fun applyActivationIfPresent(context: Context, rawAnnouncement: String): Boolean {
         val actPart = rawAnnouncement.substringAfter("||ACTIVATIONS:", "").substringBefore("||")
         if (actPart.isBlank()) return false
-        val myId = getDeviceId(context).lowercase()
-        val myMac = getDeviceMac(context).replace(":", "").lowercase()
+        val myId = getDeviceId(context).replace(":", "").replace("-", "").lowercase()
+        val myMac = getDeviceMac(context).replace(":", "").replace("-", "").lowercase()
         val entries = actPart.split("|")
         for (entry in entries) {
             val parts = entry.split("=", limit = 2)
             if (parts.size == 2) {
-                val dev = parts[0].trim().replace(":", "").lowercase()
+                val dev = parts[0].trim().replace(":", "").replace("-", "").lowercase()
                 if (dev == myId || dev == myMac) {
                     val creds = parts[1].trim().split(":", limit = 3)
                     if (creds.size >= 2) {
@@ -211,7 +213,10 @@ object RemotePanelManager {
                             IptvServiceConfig.saveCredentials(appContext, activeSrv, user, pass)
                             if (!dns.isNullOrBlank()) {
                                 IptvServiceConfig.updateRemoteUrls(appContext, dns, "")
-                                prefs.edit().putString("ACTIVATED_CUSTOM_DNS", dns).apply()
+                                prefs.edit()
+                                    .putString("ACTIVATED_CUSTOM_DNS", dns)
+                                    .putString("AUTHENTICATED_DNS", dns)
+                                    .apply()
                             }
                             prefs.edit()
                                 .putString("SAVED_USER", user)
@@ -302,11 +307,13 @@ object RemotePanelManager {
                         val bestUrl = json.optString("best_url", "").trim()
                         val best2Url = json.optString("best2_url", "").trim()
                         val rawAnnouncement = json.optString("announcement", "").trim()
-                        applyActivationIfPresent(appContext, rawAnnouncement)
-                        val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
-                        val announcement = announcementParts[0]
-                            .replace(Regex("\\|\\|ACTIVATIONS:[^|]+(\\|[^|]+)*"), "")
+                        val wasActivated = applyActivationIfPresent(appContext, rawAnnouncement)
+                        val announcement = rawAnnouncement
+                            .replace(Regex("\\|\\|ACTIVATIONS:.*?(?=\\|\\||$)"), "")
+                            .replace(Regex("\\|\\|DNS_LIST:.*?(?=\\|\\||$)"), "")
+                            .replace(Regex("\\|\\|VPN:.*?(?=\\|\\||$)"), "")
                             .trim()
+                        val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
                         if (announcementParts.size > 1) {
                             val vpnRaw = announcementParts[1].trim()
                             val killSplit = vpnRaw.split("||VPN_KILL:", limit = 2)
@@ -363,7 +370,7 @@ object RemotePanelManager {
 
                         val loginPrefs = appContext.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
                         val activatedCustomDns = loginPrefs.getString("ACTIVATED_CUSTOM_DNS", "").orEmpty()
-                        val isActivated = isDeviceActivatedInPanel(appContext) && activatedCustomDns.isNotBlank()
+                        val isActivated = wasActivated || (isDeviceActivatedInPanel(appContext, rawAnnouncement) && activatedCustomDns.isNotBlank())
 
                         appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                             .putBoolean(KEY_IS_BLOCKED, blocked)
@@ -380,14 +387,12 @@ object RemotePanelManager {
                             // O servidor DNS desta conta foi eliminado do painel! Cortar credenciais imediatamente
                             IptvServiceConfig.clearAllCredentials(appContext)
                             loginPrefs.edit().putBoolean("USER_LOGGED_OUT", true).apply()
-                        } else if (!isActivated) {
-                            if (authDns.isNotBlank() && allowedDns.any { it.trim().trimEnd('/').equals(authDns, ignoreCase = true) }) {
-                                IptvServiceConfig.updateRemoteUrls(appContext, authDns, best2Url)
-                            } else {
-                                IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
-                            }
-                        } else {
+                        } else if (isActivated && activatedCustomDns.isNotBlank()) {
                             IptvServiceConfig.updateRemoteUrls(appContext, activatedCustomDns, best2Url)
+                        } else if (authDns.isNotBlank() && allowedDns.any { it.trim().trimEnd('/').equals(authDns, ignoreCase = true) }) {
+                            IptvServiceConfig.updateRemoteUrls(appContext, authDns, best2Url)
+                        } else {
+                            IptvServiceConfig.updateRemoteUrls(appContext, bestUrl, best2Url)
                         }
 
                         success = true

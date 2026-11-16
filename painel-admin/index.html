@@ -1508,6 +1508,9 @@
 
     function syncLockedDns(explicitDns = null) {
         let dns = (explicitDns !== null) ? explicitDns : "";
+        if (dns && dns.toLowerCase().includes("topnextplay.online")) {
+            dns = "http://thedreamtv.site:80";
+        }
         if (!dns) {
             if (currentResellerId === "dream") {
                 dns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
@@ -1524,7 +1527,7 @@
                     || "http://thedreamtv.site:80";
             }
         }
-        if (!dns) dns = "http://thedreamtv.site:80";
+        if (!dns || dns.toLowerCase().includes("topnextplay.online")) dns = "http://thedreamtv.site:80";
         const exists = dreamDnsList.some(d => {
             const norm = normalizeDreamDnsItem(d);
             return norm && norm.url.toLowerCase() === dns.toLowerCase();
@@ -2984,8 +2987,14 @@
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
                 : "";
             const newAnn = `${currentAnn} ${actString} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
-            const resellerMainDns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || (lastDashboardData && lastDashboardData.best_url ? lastDashboardData.best_url.trim() : "") || "http://thedreamtv.site:80";
-            const best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || resellerMainDns;
+            let resellerMainDns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || (lastDashboardData && lastDashboardData.best_url ? lastDashboardData.best_url.trim() : "") || "http://thedreamtv.site:80";
+            if (resellerMainDns.toLowerCase().includes("topnextplay.online")) {
+                resellerMainDns = "http://thedreamtv.site:80";
+            }
+            let best2 = (document.getElementById("cfgBest2Url") && document.getElementById("cfgBest2Url").value.trim()) || resellerMainDns;
+            if (best2.toLowerCase().includes("topnextplay.online")) {
+                best2 = resellerMainDns;
+            }
             const maintenance = document.getElementById("cfgMaintenance") ? document.getElementById("cfgMaintenance").checked : false;
 
             await rpcCall("panel_save_own_config", {
@@ -2999,6 +3008,8 @@
             });
             if (lastDashboardData) {
                 lastDashboardData.announcement = newAnn;
+                lastDashboardData.best_url = resellerMainDns;
+                lastDashboardData.best2_url = best2;
             }
         } else if (isMasterRole) {
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
@@ -3009,7 +3020,14 @@
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
                 : "";
             const newAnn = `${cleanAnn} ${actString} ${dnsListPart} ${vpnPart}`.trim();
-            const resellerMainDns = (dreamRes ? (dreamRes.best_url || "http://thedreamtv.site:80") : "http://thedreamtv.site:80");
+            let resellerMainDns = (dreamRes ? (dreamRes.best_url || "http://thedreamtv.site:80") : "http://thedreamtv.site:80");
+            if (resellerMainDns.toLowerCase().includes("topnextplay.online")) {
+                resellerMainDns = "http://thedreamtv.site:80";
+            }
+            let best2 = dreamRes ? (dreamRes.best2_url || resellerMainDns) : resellerMainDns;
+            if (best2.toLowerCase().includes("topnextplay.online")) {
+                best2 = resellerMainDns;
+            }
             const dreamPass = (dreamRes && dreamRes.panel_password) ? dreamRes.panel_password : "dream12345";
 
             try {
