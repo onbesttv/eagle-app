@@ -948,7 +948,7 @@
             </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="dnsConfigCard">
             <div class="card-header">
                 <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS</div>
                 <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
@@ -2202,6 +2202,10 @@
             const dreamSec = document.getElementById("dreamSection");
             if (dreamSec) {
                 dreamSec.style.display = isDream ? "block" : "none";
+            }
+            const dnsConfigCard = document.getElementById("dnsConfigCard");
+            if (dnsConfigCard) {
+                dnsConfigCard.style.display = isDream ? "none" : "block";
             }
             const isSuporte24 = (currentResellerId === "suporte24");
             const suporte24Sec = document.getElementById("suporte24DnsSection");
