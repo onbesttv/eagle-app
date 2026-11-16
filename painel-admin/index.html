@@ -2737,7 +2737,7 @@
                     <td title="${escapeHtml(d.last_seen)}">${formatRelativeTime(d.last_seen)}</td>
                     <td style="text-align: right; white-space: nowrap;">
                         ${vpnToggleBtn}${blockBtn}
-                        <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="openEditDeviceModal('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Editar DNS, Utilizador e Senha deste dispositivo">✏️ Editar</button>
+                        ${currentResellerId === "dream" ? `<button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="openEditDeviceModal('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Editar DNS, Utilizador e Senha deste dispositivo">✏️ Editar</button>` : ""}
                         <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Eliminar este utilizador / dispositivo">🗑️</button>
                     </td>
                 </tr>
