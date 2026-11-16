@@ -1306,40 +1306,14 @@
         return (str || "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
     }
 
-    const DELETED_DEVICES_KEY = "eagle_deleted_devices_v1";
-    function getDeletedDevicesSet() {
-        try {
-            const raw = sessionStorage.getItem(DELETED_DEVICES_KEY);
-            if (raw) return new Set(JSON.parse(raw));
-        } catch (_) {}
-        return new Set();
-    }
-    function markDeviceAsDeleted(idOrUser) {
-        if (!idOrUser) return;
-        const set = getDeletedDevicesSet();
-        const s = String(idOrUser).trim();
-        if (s) {
-            set.add(s);
-            set.add(s.toLowerCase());
-            const n = normId(s);
-            if (n) set.add(n);
-        }
-        try {
-            sessionStorage.setItem(DELETED_DEVICES_KEY, JSON.stringify(Array.from(set)));
-        } catch (_) {}
-    }
+    try {
+        sessionStorage.removeItem("eagle_deleted_devices_v1");
+    } catch (_) {}
+
     function isDeviceDeleted(deviceId, username) {
-        const set = getDeletedDevicesSet();
-        if (set.size === 0) return false;
-        const dRaw = String(deviceId || "").trim();
-        const dNorm = normId(dRaw);
-        const uRaw = String(username || "").trim();
-        const uLower = uRaw.toLowerCase();
-        return (dRaw && set.has(dRaw)) ||
-               (dNorm && set.has(dNorm)) ||
-               (uRaw && set.has(uRaw)) ||
-               (uLower && set.has(uLower));
+        return false;
     }
+    function markDeviceAsDeleted(idOrUser) {}
 
     const AVAILABLE_VPN_COUNTRIES = [
         { id: "pt", name: "Portugal", flag: "🇵🇹", defaultOn: true },
@@ -3320,10 +3294,6 @@
         const targetAct = currentActivations[index];
         if (!targetAct) return;
 
-        // Marcar na lista de eliminados da sessão
-        markDeviceAsDeleted(targetAct.device_id);
-        if (targetAct.username) markDeviceAsDeleted(targetAct.username);
-
         currentActivations.splice(index, 1);
         try {
             await saveActivationsToBackend(currentActivations);
@@ -3333,21 +3303,6 @@
             showToast("Ativação removida localmente.");
         }
 
-        // Tentar apagar e bloquear qualquer dispositivo sincronizado associado (tabela devices)
-        const toDeleteList = allDevices.filter(d => isDeviceDeleted(d.device_id, d.username));
-        for (const dev of toDeleteList) {
-            try {
-                if (isMasterRole) {
-                    await rpcCall("admin_delete_device", { p_password: adminPassword, p_device_id: dev.device_id });
-                    await rpcCall("admin_set_block", { p_password: adminPassword, p_device_id: dev.device_id, p_blocked: true, p_reason: "Ativação removida pelo revendedor." });
-                } else if (multiResellerEnabled) {
-                    await rpcCall("panel_delete_device", { p_reseller_id: currentResellerId, p_password: adminPassword, p_device_id: dev.device_id });
-                    await rpcCall("panel_set_device_block", { p_reseller_id: currentResellerId, p_password: adminPassword, p_device_id: dev.device_id, p_blocked: true, p_reason: "Ativação removida pelo revendedor." });
-                }
-            } catch (_) {}
-        }
-
-        allDevices = allDevices.filter(d => !isDeviceDeleted(d.device_id, d.username));
         renderActivations();
         renderDevices();
         updateStats();
@@ -3463,48 +3418,43 @@
         }
 
         // 2. Remover da base de dados Supabase (tabela devices) e bloquear
-        const targets = allDevices.filter(d => isDeviceDeleted(d.device_id, d.username));
-        const idsToDelete = new Set([deviceId, ...targets.map(t => t.device_id).filter(Boolean)]);
-
-        for (const targetId of idsToDelete) {
-            try {
-                if (isMasterRole) {
-                    await rpcCall("admin_delete_device", {
-                        p_password: adminPassword,
-                        p_device_id: targetId
-                    });
-                    await rpcCall("admin_set_block", {
-                        p_password: adminPassword,
-                        p_device_id: targetId,
-                        p_blocked: true,
-                        p_reason: "Dispositivo desativado pelo revendedor."
-                    });
-                } else if (multiResellerEnabled) {
-                    await rpcCall("panel_delete_device", {
-                        p_reseller_id: currentResellerId,
-                        p_password: adminPassword,
-                        p_device_id: targetId
-                    });
-                    await rpcCall("panel_set_device_block", {
-                        p_reseller_id: currentResellerId,
-                        p_password: adminPassword,
-                        p_device_id: targetId,
-                        p_blocked: true,
-                        p_reason: "Dispositivo desativado pelo revendedor."
-                    });
-                } else {
-                    await rpcCall("admin_delete_device", {
-                        p_password: adminPassword,
-                        p_device_id: targetId
-                    });
-                }
-            } catch (dbErr) {
-                console.warn("Aviso ao remover dispositivo via RPC:", dbErr);
+        try {
+            if (isMasterRole) {
+                await rpcCall("admin_delete_device", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
+                await rpcCall("admin_set_block", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId,
+                    p_blocked: true,
+                    p_reason: "Dispositivo desativado pelo revendedor."
+                });
+            } else if (multiResellerEnabled) {
+                await rpcCall("panel_delete_device", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
+                await rpcCall("panel_set_device_block", {
+                    p_reseller_id: currentResellerId,
+                    p_password: adminPassword,
+                    p_device_id: deviceId,
+                    p_blocked: true,
+                    p_reason: "Dispositivo desativado pelo revendedor."
+                });
+            } else {
+                await rpcCall("admin_delete_device", {
+                    p_password: adminPassword,
+                    p_device_id: deviceId
+                });
             }
+        } catch (dbErr) {
+            console.warn("Aviso ao remover dispositivo via RPC:", dbErr);
         }
 
         // 3. Remover imediatamente da lista em memória allDevices
-        allDevices = allDevices.filter(d => !isDeviceDeleted(d.device_id, d.username));
+        allDevices = allDevices.filter(d => normId(d.device_id) !== cleanDev && (d.username || "").trim().toLowerCase() !== cleanUser);
 
         renderDevices();
         if (typeof renderActivations === "function") renderActivations();
