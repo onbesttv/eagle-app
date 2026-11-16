@@ -2767,6 +2767,7 @@
                     <td title="${escapeHtml(d.last_seen)}">${formatRelativeTime(d.last_seen)}</td>
                     <td style="text-align: right; white-space: nowrap;">
                         ${vpnToggleBtn}${blockBtn}
+                        <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="openEditDeviceModal('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Editar DNS, Utilizador e Senha deste dispositivo">✏️ Editar</button>
                         <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Eliminar este utilizador / dispositivo">🗑️</button>
                     </td>
                 </tr>
@@ -3098,10 +3099,48 @@
         }).join("");
     }
 
+    function openEditDeviceModal(deviceId, username = "") {
+        const normDev = normId(deviceId);
+        const normU = (username || "").toLowerCase();
+        let idx = currentActivations.findIndex(a => {
+            const aMac = normId(a.device_id);
+            const aU = (a.username || "").toLowerCase();
+            return (aMac && normDev && (aMac === normDev || normDev.startsWith(aMac) || aMac.startsWith(normDev))) || (aU && normU && aU === normU);
+        });
+
+        if (idx >= 0) {
+            openActivationModal(idx);
+        } else {
+            editingActivationIndex = null;
+            const title = document.getElementById("modalActivationTitle");
+            title.textContent = "Editar Dados do Dispositivo";
+            const devInput = document.getElementById("actDeviceIdInput");
+            const keyInput = document.getElementById("actDeviceKeyInput");
+            const userInput = document.getElementById("actUserInput");
+            const passInput = document.getElementById("actPassInput");
+
+            let formattedId = deviceId;
+            if (deviceId && !deviceId.includes(":") && deviceId.length >= 12) {
+                const raw = deviceId.slice(0, 12).toUpperCase();
+                const parts = raw.match(/.{1,2}/g) || [];
+                formattedId = parts.join(":");
+            }
+
+            devInput.value = formattedId;
+            keyInput.value = "";
+            userInput.value = username;
+            passInput.value = "";
+
+            const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || "http://thedreamtv.site:80";
+            renderDreamDnsOptions(curDns);
+            document.getElementById("activationModal").style.display = "flex";
+        }
+    }
+
     function openActivationModal(editIndex = null) {
         editingActivationIndex = editIndex;
         const title = document.getElementById("modalActivationTitle");
-        title.textContent = (editIndex !== null) ? "Editar Ativação de Dispositivo" : "Ativar Dispositivo por Device ID / MAC";
+        title.textContent = (editIndex !== null) ? "Editar Dispositivo" : "Ativar Dispositivo por Device ID / MAC";
         const devInput = document.getElementById("actDeviceIdInput");
         const keyInput = document.getElementById("actDeviceKeyInput");
         const dnsInput = document.getElementById("actDnsInput");
@@ -3247,8 +3286,18 @@
                 return;
             }
 
-            if (editingActivationIndex !== null && currentActivations[editingActivationIndex]) {
-                currentActivations[editingActivationIndex] = {
+            const normDev = normId(devId);
+            const normU = user.toLowerCase();
+            const existingIdx = (editingActivationIndex !== null)
+                ? editingActivationIndex
+                : currentActivations.findIndex(a => {
+                    const aMac = normId(a.device_id);
+                    const aU = (a.username || "").toLowerCase();
+                    return (aMac && normDev && (aMac === normDev || normDev.startsWith(aMac) || aMac.startsWith(normDev))) || (aU && normU && aU === normU);
+                });
+
+            if (existingIdx >= 0 && currentActivations[existingIdx]) {
+                currentActivations[existingIdx] = {
                     device_id: devId,
                     device_key: devKey,
                     dns: dns,
@@ -3267,14 +3316,12 @@
 
             await saveActivationsToBackend(currentActivations, dns);
             closeActivationModal();
-            showToast("✔ Dispositivo guardado com o DNS selecionado!");
-            renderActivations();
-            renderDevices();
+            showToast("✔ Dispositivo atualizado com sucesso!");
+            await loadDashboard();
         } catch (err) {
             closeActivationModal();
             showToast("Erro ao guardar ativação no servidor.", true);
-            renderActivations();
-            renderDevices();
+            await loadDashboard();
         } finally {
             if (btn) {
                 btn.disabled = false;
