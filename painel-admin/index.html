@@ -1531,17 +1531,14 @@
         }
 
         grid.innerHTML = list.map((dns, idx) => {
-            const isActive = (dns.toLowerCase() === curActive.toLowerCase()) || (idx === 0 && !list.some(d => d.toLowerCase() === curActive.toLowerCase()));
             return `
-                <div style="background: rgba(255,255,255,0.04); border: 1px solid ${isActive ? '#38bdf8' : 'var(--border)'}; border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: ${isActive ? '0 0 10px rgba(56, 189, 248, 0.15)' : 'none'};">
+                <div style="background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-                        <span style="font-size: 12px; font-weight: 700; color: ${isActive ? '#38bdf8' : 'var(--text-muted)'}; display: flex; align-items: center; gap: 6px;">
-                            ${isActive ? '⭐ Servidor DNS ' + (idx + 1) + ' (Ativo na App)' : '🌐 Servidor DNS ' + (idx + 1)}
+                        <span style="font-size: 12px; font-weight: 700; color: var(--accent); display: flex; align-items: center; gap: 6px;">
+                            🌐 Servidor DNS ${idx + 1}
                         </span>
                         <div style="display: flex; gap: 6px; align-items: center;">
-                            ${isActive
-                                ? `<span class="badge badge-online" style="font-size: 11px; padding: 3px 8px;">● Ativo</span>`
-                                : `<button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 3px 8px; border-color: #38bdf8; color: #38bdf8;" onclick="setSuporte24ActiveDns(${idx})">⭐ Ativar na App</button>`}
+                            <span class="badge badge-online" style="font-size: 11px; padding: 3px 8px;">● Ativo</span>
                             ${list.length > 1
                                 ? `<button type="button" class="btn btn-danger btn-sm" style="font-size: 11px; padding: 3px 8px;" onclick="removeSuporte24Dns(${idx})" title="Remover este campo de DNS">🗑️</button>`
                                 : ''}
@@ -2219,6 +2216,10 @@
             const cfgBestUrlEl = document.getElementById("cfgBestUrl");
             if (cfgBestUrlEl) {
                 cfgBestUrlEl.required = !(isDream || isSuporte24);
+            }
+            const btnSaveConfig = document.getElementById("btnSaveConfig");
+            if (btnSaveConfig) {
+                btnSaveConfig.style.display = (isDream || isSuporte24) ? "none" : "block";
             }
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("announcementGroup").style.display = "none";
