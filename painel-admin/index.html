@@ -856,39 +856,7 @@
     <div id="tabContentMain" class="grid-2col">
         <!-- SECÇÃO EXCLUSIVA REDON TV (DREAM): DOWNLOAD E ATIVAÇÃO DE DISPOSITIVOS -->
         <div id="dreamSection" style="grid-column: 1 / -1; display: none;">
-            <!-- CARTÃO 1: ACESSO & DOWNLOAD DA APP REDON TV -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="dream-banner-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-                    <div style="max-width:720px;">
-                        <div style="font-size:18px; font-weight:bold; color:#fff; display:flex; align-items:center; gap:8px;">
-                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding:3px 8px; border-radius:6px; font-size:12px;">App Oficial</span>
-                            Aplicação RedOn TV (v3.26) — Acesso dos Teus Clientes
-                        </div>
-                        <div style="font-size:13px; color:var(--text-muted); margin-top:6px; line-height: 1.5;">
-                            Disponibiliza este link ou código Downloader aos teus clientes para instalarem na Smart TV Android, TV Box ou Fire Stick.
-                        </div>
-                        <div class="dream-info-row" style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                            <div class="dream-info-box" style="background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:12px; color:var(--text-muted);">Link:</span>
-                                <code style="font-size:13px; color:#38bdf8; font-weight:bold;">https://aftv.news/6718437</code>
-                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('https://aftv.news/6718437', 'Link copiado com sucesso!')">📋 Copiar Link</button>
-                            </div>
-                            <div class="dream-info-box" style="background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
-                                <span style="font-size:12px; color:var(--text-muted); font-weight:600;">⚡ Código Downloader:</span>
-                                <code style="font-size:14px; color:#38bdf8; font-weight:bold; letter-spacing:1px;">6718437</code>
-                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('6718437', 'Código Downloader copiado!')">📋 Copiar Código</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dream-banner-btn">
-                        <a href="http://aftv.news/6718437" target="_blank" class="btn btn-primary" style="font-weight:bold; padding:12px 20px; font-size:14px; text-decoration:none; display:inline-flex; align-items:center; gap:8px;">
-                            Baixar RedON
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CARTÃO 2: ADICIONAR NOVO DISPOSITIVO (FORMULÁRIO RÁPIDO) -->
+            <!-- CARTÃO: ADICIONAR NOVO DISPOSITIVO (FORMULÁRIO RÁPIDO) -->
             <div class="card" style="margin-bottom: 24px;">
                 <div class="card-header" style="margin-bottom: 16px;">
                     <div>
@@ -982,7 +950,7 @@
 
         <div class="card">
             <div class="card-header">
-                <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS & Avisos</div>
+                <div class="card-title" id="dnsCardTitle">⚙️ Configuração Remota dos Meus DNS</div>
                 <span style="font-size: 12px; color: var(--text-muted);" id="cfgUpdatedAt"></span>
             </div>
             <form id="configForm">
@@ -1019,11 +987,10 @@
                         <button type="button" class="btn btn-outline btn-sm" id="btnAddNewSuporte24Dns" onclick="addNewSuporte24Dns()">➕ Adicionar outro DNS</button>
                     </div>
                 </div>
+                <div class="form-group" id="announcementGroup" style="display: none;">
+                    <input type="hidden" id="cfgAnnouncement" value="">
+                </div>
                 <div class="form-grid">
-                    <div class="form-group" id="announcementGroup">
-                        <label>Mensagem / Aviso Global na TV (Opcional — aparece ao abrir a app)</label>
-                        <input type="text" id="cfgAnnouncement" placeholder="Deixa em branco para não mostrar aviso...">
-                    </div>
                     <div class="form-group" id="newPasswordGroup">
                         <label>Nova Password deste Painel (Opcional)</label>
                         <input type="password" id="cfgNewPassword" placeholder="Preenche apenas se quiseres mudar a tua senha">
@@ -2250,14 +2217,12 @@
                 cfgBestUrlEl.required = !(isDream || isSuporte24);
             }
             document.getElementById("resellerFilterSelect").style.display = isMasterRole ? "inline-block" : "none";
-            document.getElementById("announcementGroup").style.display = (currentResellerId === "pereira_tv") ? "none" : "block";
+            document.getElementById("announcementGroup").style.display = "none";
             document.getElementById("newPasswordGroup").style.display = isMasterRole ? "block" : "none";
             document.getElementById("maintenanceSwitchLabel").style.display = isMasterRole ? "flex" : "none";
-            document.getElementById("dnsCardTitle").textContent = isDream
-                ? "📢 Mensagem / Aviso Global no Ecrã da TV"
-                : (isMasterRole
-                    ? "⚙️ Configuração Remota dos Meus DNS (App Master)"
-                    : `⚙️ Configuração Remota de DNS (${data.brand_name || currentResellerId})`);
+            document.getElementById("dnsCardTitle").textContent = isMasterRole
+                ? "⚙️ Configuração Remota dos Meus DNS (App Master)"
+                : `⚙️ Configuração Remota de DNS (${data.brand_name || currentResellerId})`;
             document.getElementById("vpnCardTitle").textContent = isMasterRole
                 ? "🛡️ Gestão dos Países da VPN (App Master)"
                 : `🛡️ Gestão dos Países da VPN (${data.brand_name || currentResellerId})`;
