@@ -34,6 +34,8 @@ object IptvServiceConfig {
             reseller.equals("godinho_tv", ignoreCase = true) ||
             reseller.equals("suporte24", ignoreCase = true) ||
             reseller.equals("dream", ignoreCase = true) ||
+            reseller.equals("streamplay", ignoreCase = true) ||
+            reseller.equals("appstreamplay", ignoreCase = true) ||
             context.packageName.equals("com.redon.tv", ignoreCase = true)
     }
 
@@ -45,6 +47,7 @@ object IptvServiceConfig {
     private const val GODINHO_TV_BEST_URL = "https://godinho.site:443"
     private const val SUPORTE24_BEST_URL = "http://juveleoscp.xyz:8080"
     private const val DREAM_BEST_URL = "http://thedreamtv.site:80"
+    private const val STREAMPLAY_BEST_URL = "https://ultrasjuveleo.xyz:443"
     private const val BEST2_URL = "http://gd.tugabest.xyz:8080"
 
     private fun hasCustomDefaultBestUrl(context: Context): Boolean {
@@ -52,7 +55,9 @@ object IptvServiceConfig {
         return reseller.equals("pereira_tv", ignoreCase = true) ||
             reseller.equals("godinho_tv", ignoreCase = true) ||
             reseller.equals("suporte24", ignoreCase = true) ||
-            reseller.equals("dream", ignoreCase = true)
+            reseller.equals("dream", ignoreCase = true) ||
+            reseller.equals("streamplay", ignoreCase = true) ||
+            reseller.equals("appstreamplay", ignoreCase = true)
     }
 
     private fun defaultBestUrl(context: Context): String {
@@ -62,6 +67,7 @@ object IptvServiceConfig {
             reseller.equals("godinho_tv", ignoreCase = true) -> GODINHO_TV_BEST_URL
             reseller.equals("suporte24", ignoreCase = true) -> SUPORTE24_BEST_URL
             reseller.equals("dream", ignoreCase = true) -> DREAM_BEST_URL
+            reseller.equals("streamplay", ignoreCase = true) || reseller.equals("appstreamplay", ignoreCase = true) -> STREAMPLAY_BEST_URL
             else -> BEST_URL
         }
     }

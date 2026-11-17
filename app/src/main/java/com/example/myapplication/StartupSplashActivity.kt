@@ -49,6 +49,11 @@ class StartupSplashActivity : BaseActivity() {
                     .putExtra(StreamPlayLoginActivity.EXTRA_AUTO_LOGIN, true)
                     .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, activeService)
             )
+        } else if (IptvServiceConfig.isTemplariosDisabled(this) || IptvServiceConfig.isStreamPlayDisabled(this)) {
+            startActivity(
+                Intent(this, StreamPlayLoginActivity::class.java)
+                    .putExtra(StreamPlayLoginActivity.EXTRA_SERVICE_ID, activeService)
+            )
         } else {
             startActivity(Intent(this, ServiceSelectionActivity::class.java))
         }

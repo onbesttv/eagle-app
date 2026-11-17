@@ -112,7 +112,11 @@ class StreamPlayLoginActivity : BaseActivity() {
         loginButton = findViewById(R.id.btnServiceLogin)
         autoProgressPanel = findViewById(R.id.autoLoginProgressPanel)
         autoStatusText = findViewById(R.id.tvAutoLoginStatus)
-        val serviceBrandLabel = if (RemotePanelManager.getResellerId(this).equals("suporte24", ignoreCase = true)) "PLAYTV" else IptvServiceConfig.displayName(selectedService).uppercase()
+        val serviceBrandLabel = when (RemotePanelManager.getResellerId(this).lowercase()) {
+            "suporte24" -> "PLAYTV"
+            "streamplay", "appstreamplay" -> "STREAMPLAY"
+            else -> IptvServiceConfig.displayName(selectedService).uppercase()
+        }
         findViewById<TextView>(R.id.tvLoginServiceBrand).text = serviceBrandLabel
         findViewById<TextView>(R.id.tvAutoLoginServiceBrand).text = serviceBrandLabel
 
@@ -128,11 +132,15 @@ class StreamPlayLoginActivity : BaseActivity() {
         passwordInput.setText(IptvServiceConfig.password(this, selectedService))
 
         val chooseServiceButton = findViewById<ImageButton>(R.id.btnChooseService)
-        chooseServiceButton.setOnClickListener {
-            startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
-                putExtra(ServiceSelectionActivity.EXTRA_MANUAL_SELECTION, true)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-            })
+        if (IptvServiceConfig.isTemplariosDisabled(this) || IptvServiceConfig.isStreamPlayDisabled(this)) {
+            chooseServiceButton.visibility = View.GONE
+        } else {
+            chooseServiceButton.setOnClickListener {
+                startActivity(Intent(this, ServiceSelectionActivity::class.java).apply {
+                    putExtra(ServiceSelectionActivity.EXTRA_MANUAL_SELECTION, true)
+                    addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
+            }
         }
         if (isAutoLogin && usernameInput.text.isNotBlank() && passwordInput.text.isNotBlank()) {
             findViewById<androidx.cardview.widget.CardView>(R.id.cardServiceLogin).visibility = View.GONE
@@ -310,7 +318,9 @@ class StreamPlayLoginActivity : BaseActivity() {
         if (isAutoLogin) {
             autoProgressPanel.visibility = View.GONE
             findViewById<androidx.cardview.widget.CardView>(R.id.cardServiceLogin).visibility = View.VISIBLE
-            findViewById<ImageButton>(R.id.btnChooseService).visibility = View.VISIBLE
+            if (!IptvServiceConfig.isTemplariosDisabled(this) && !IptvServiceConfig.isStreamPlayDisabled(this)) {
+                findViewById<ImageButton>(R.id.btnChooseService).visibility = View.VISIBLE
+            }
         }
         statusText.text = message
         statusText.setTextColor(0xFFFF7777.toInt())

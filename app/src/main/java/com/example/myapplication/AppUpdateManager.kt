@@ -192,9 +192,10 @@ object AppUpdateManager {
                 "dream" -> "RedOn.apk"
                 "joker" -> "tv_joker.apk"
                 "suporte24" -> "PlayTV.apk"
+                "streamplay", "appstreamplay" -> "appstreamplay.apk"
                 else -> "${resellerId}.apk"
             }
-            val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream")
+            val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream" || resellerId == "streamplay" || resellerId == "appstreamplay")
             val releasesArray = if (bodyString.trimStart().startsWith("[")) {
                 org.json.JSONArray(bodyString)
             } else {
@@ -281,12 +282,13 @@ object AppUpdateManager {
             val xml = response.body?.string().orEmpty()
             if (xml.isBlank()) return null
 
-            val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream")
+            val isEagleTv = (resellerId == "eagle_tv" || resellerId == "dream" || resellerId == "streamplay" || resellerId == "appstreamplay")
             val expectedApkName = when (resellerId) {
                 "master" -> "eagle.apk"
                 "dream" -> "RedOn.apk"
                 "joker" -> "tv_joker.apk"
                 "suporte24" -> "PlayTV.apk"
+                "streamplay", "appstreamplay" -> "appstreamplay.apk"
                 else -> "${resellerId}.apk"
             }
 

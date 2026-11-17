@@ -375,7 +375,7 @@ object RemotePanelManager {
                                 PiaVpnConfig.setVpnUserAccessConfig(appContext, mode, usersCsv)
                             } else {
                                 val resId = getResellerId(appContext).trim().lowercase()
-                                val hasPerUser = (resId == "master" || resId == "eagle_tv" || resId == "godinho_tv" || resId == "dream" || resId == "joker" || resId == "tv_joker" || resId == "suporte24")
+                                val hasPerUser = (resId == "master" || resId == "eagle_tv" || resId == "godinho_tv" || resId == "dream" || resId == "joker" || resId == "tv_joker" || resId == "suporte24" || resId == "streamplay" || resId == "appstreamplay")
                                 if (hasPerUser) {
                                     PiaVpnConfig.setVpnUserAccessConfig(appContext, "restricted", "")
                                 }

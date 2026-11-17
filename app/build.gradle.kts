@@ -85,6 +85,15 @@ android {
             resValue("string", "app_name", "PlayTV")
             resValue("string", "reseller_id", "suporte24")
         }
+
+        create("appstreamplay") {
+            dimension = "reseller"
+            applicationId = "com.streamplay.tv"
+            versionCode = 10
+            versionName = "1.0"
+            resValue("string", "app_name", "StreamPlay")
+            resValue("string", "reseller_id", "streamplay")
+        }
     }
 
     buildTypes {

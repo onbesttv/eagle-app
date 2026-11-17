@@ -25,9 +25,10 @@ object EagleTvConfig {
     fun isEagleTvEdition(context: Context): Boolean {
         if (context.packageName.equals("com.eagle.tv", ignoreCase = true)) return true
         if (context.packageName.equals("com.redon.tv", ignoreCase = true)) return true
+        if (context.packageName.equals("com.streamplay.tv", ignoreCase = true)) return true
         return try {
             val rid = context.getString(R.string.reseller_id).trim().lowercase()
-            rid == "eagle_tv" || rid == "dream"
+            rid == "eagle_tv" || rid == "dream" || rid == "streamplay" || rid == "appstreamplay"
         } catch (_: Exception) {
             false
         }
