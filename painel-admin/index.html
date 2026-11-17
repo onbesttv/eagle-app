@@ -1443,6 +1443,10 @@
     async function saveDreamDnsListToBackend() {
         if (currentResellerId !== "dream" && !isMasterRole) return;
         try {
+            if (currentActivations.length === 0 && lastDashboardData && lastDashboardData.announcement) {
+                const parsed = parseActivationsFromAnnouncement(lastDashboardData.announcement);
+                if (parsed.length > 0) currentActivations = parsed;
+            }
             await saveActivationsToBackend(currentActivations);
         } catch (_e) {}
     }
@@ -2237,6 +2241,13 @@
             syncLockedDns(data.best_url);
             const rawAnn = String(data.announcement || "");
             loadDreamDnsList(rawAnn);
+            if (isDream || isMasterRole) {
+                const dreamAnn = (isDream ? rawAnn : ((allResellers.find(r => r.reseller_id === "dream") || {}).announcement || ""));
+                const parsedActs = parseActivationsFromAnnouncement(dreamAnn);
+                if (parsedActs.length > 0) {
+                    currentActivations = parsedActs;
+                }
+            }
             if (isSuporte24) {
                 loadSuporte24DnsList(rawAnn);
             }
@@ -2337,7 +2348,10 @@
             const dreamResellerObj = isMasterRole ? allResellers.find(r => r.reseller_id === "dream") : (currentResellerId === "dream" ? data : null);
             if (dreamResellerObj && dreamResellerObj.announcement) {
                 const dreamActs = parseActivationsFromAnnouncement(dreamResellerObj.announcement);
-                dreamActs.forEach(act => {
+                if (dreamActs.length > 0) {
+                    currentActivations = dreamActs;
+                }
+                currentActivations.forEach(act => {
                     const normMac = normId(act.device_id);
                     const normUser = (act.username || "").toLowerCase();
                     const existingDev = allDevices.find(d => {
@@ -2684,7 +2698,9 @@
                     const matchedDnsObj = dreamDnsList.map(normalizeDreamDnsItem).find(item => {
                         if (!item) return false;
                         const cleanItem = item.url.trim().toLowerCase().replace(/\/+$/, "");
-                        return cleanItem === cleanAssigned;
+                        if (cleanItem === cleanAssigned) return true;
+                        const normPort = u => u.replace(/^https?:\/\//, "").replace(/:80(?=\/|$)/, "").replace(/:443(?=\/|$)/, "");
+                        return normPort(cleanItem) === normPort(cleanAssigned);
                     });
                     if (matchedDnsObj && matchedDnsObj.name) {
                         dreamDnsName = matchedDnsObj.name;
@@ -2943,7 +2959,11 @@
     }
 
     async function saveActivationsToBackend(newList, fallbackDns = "") {
-        const actString = buildActivationsString(newList);
+        let listToSave = newList;
+        if ((!listToSave || listToSave.length === 0) && currentActivations && currentActivations.length > 0) {
+            listToSave = currentActivations;
+        }
+        const actString = buildActivationsString(listToSave);
         if (currentResellerId === "dream") {
             const annEl = document.getElementById("cfgAnnouncement");
             const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim() : "";
@@ -3026,13 +3046,16 @@
     }
 
     function renderActivations() {
-        const tbody = document.getElementById("activationsTableBody");
-        if (!tbody) return;
         const targetReseller = (currentResellerId === "master") ? allResellers.find(r => r.reseller_id === "dream") : lastDashboardData;
         const ann = targetReseller ? (targetReseller.announcement || "") : (lastDashboardData ? lastDashboardData.announcement : "");
-        currentActivations = parseActivationsFromAnnouncement(ann).filter(a => !isDeviceDeleted(a.device_id, a.username));
-
+        const parsedActs = parseActivationsFromAnnouncement(ann).filter(a => !isDeviceDeleted(a.device_id, a.username));
+        if (parsedActs.length > 0) {
+            currentActivations = parsedActs;
+        }
         syncLockedDns();
+
+        const tbody = document.getElementById("activationsTableBody");
+        if (!tbody) return;
 
         if (currentActivations.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color: var(--text-muted); padding: 28px;">Ainda não existem dispositivos ativados por Device ID / Key. Utiliza o formulário acima para ativar!</td></tr>`;
