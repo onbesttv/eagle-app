@@ -1357,27 +1357,51 @@
             return `<option value="${escapeHtml(d.url)}">${escapeHtml(label)}</option>`;
         }).join("");
 
-        const urls = items.map(d => d.url);
+        function matchUrl(val) {
+            if (!val) return null;
+            const clean = val.trim().toLowerCase().replace(/\/+$/, "");
+            const normPort = u => u.replace(/^https?:\/\//, "").replace(/:80(?=\/|$)/, "").replace(/:443(?=\/|$)/, "");
+            const cleanNoPort = normPort(clean);
+            // 1. Exact or port match with item url
+            for (const it of items) {
+                const itClean = it.url.trim().toLowerCase().replace(/\/+$/, "");
+                if (itClean === clean || normPort(itClean) === cleanNoPort) {
+                    return it.url;
+                }
+            }
+            // 2. Match with item name (e.g. "TESTE")
+            for (const it of items) {
+                if (it.name && it.name.trim().toLowerCase() === clean) {
+                    return it.url;
+                }
+            }
+            return null;
+        }
+
+        const matchedVal = matchUrl(selectedVal);
+
         if (sel1) {
             const currentVal = sel1.value;
             sel1.innerHTML = html;
-            if (selectedVal && urls.includes(selectedVal)) {
-                sel1.value = selectedVal;
-            } else if (currentVal && urls.includes(currentVal)) {
-                sel1.value = currentVal;
-            } else if (urls.length > 0) {
-                sel1.value = urls[0];
+            const matchedCur = matchUrl(currentVal);
+            if (matchedVal) {
+                sel1.value = matchedVal;
+            } else if (matchedCur) {
+                sel1.value = matchedCur;
+            } else if (items.length > 0) {
+                sel1.value = items[0].url;
             }
         }
         if (sel2) {
             const currentVal = sel2.value;
             sel2.innerHTML = html;
-            if (selectedVal && urls.includes(selectedVal)) {
-                sel2.value = selectedVal;
-            } else if (currentVal && urls.includes(currentVal)) {
-                sel2.value = currentVal;
-            } else if (urls.length > 0) {
-                sel2.value = urls[0];
+            const matchedCur = matchUrl(currentVal);
+            if (matchedVal) {
+                sel2.value = matchedVal;
+            } else if (matchedCur) {
+                sel2.value = matchedCur;
+            } else if (items.length > 0) {
+                sel2.value = items[0].url;
             }
         }
     }
@@ -2684,15 +2708,17 @@
 
             // Obter o nome configurado do DNS para apresentar na coluna "Serviço"
             let dreamDnsName = "";
+            let dreamAssignedDns = "";
             if (devResLower === "dream" || currentResellerId === "dream") {
                 const normDevId = normId(d.device_id);
                 const normUser = (d.username || "").toLowerCase();
                 const act = currentActivations.find(a => {
                     const aMac = normId(a.device_id);
                     const aUser = (a.username || "").toLowerCase();
-                    return (aMac && normDevId && (aMac === normDevId || normDevId.startsWith(aMac) || aMac.startsWith(normDevId))) || (aUser && aUser === normUser);
+                    return (aMac && normDevId && (aMac === normDevId || normDevId.startsWith(aMac) || aMac.startsWith(normDevId))) || (aUser && normUser && aUser === normUser);
                 });
                 const assignedDns = (act && act.dns) ? act.dns : (d.dns || (lastDashboardData && lastDashboardData.best_url));
+                dreamAssignedDns = assignedDns || "";
                 if (assignedDns) {
                     const cleanAssigned = assignedDns.trim().toLowerCase().replace(/\/+$/, "");
                     const matchedDnsObj = dreamDnsList.map(normalizeDreamDnsItem).find(item => {
@@ -2753,7 +2779,7 @@
                     <td title="${escapeHtml(d.last_seen)}">${formatRelativeTime(d.last_seen)}</td>
                     <td style="text-align: right; white-space: nowrap;">
                         ${vpnToggleBtn}${blockBtn}
-                        ${currentResellerId === "dream" ? `<button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="openEditDeviceModal('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Editar DNS, Utilizador e Senha deste dispositivo">✏️ Editar</button>` : ""}
+                        ${currentResellerId === "dream" ? `<button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="openEditDeviceModal('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}', '${escapeHtml(dreamAssignedDns)}')" title="Editar DNS, Utilizador e Senha deste dispositivo">✏️ Editar</button>` : ""}
                         <button class="btn btn-outline btn-sm" style="margin-left:6px;" onclick="deleteDevice('${escapeHtml(d.device_id)}', '${escapeHtml(d.username || '')}')" title="Eliminar este utilizador / dispositivo">🗑️</button>
                     </td>
                 </tr>
@@ -3092,7 +3118,7 @@
         }).join("");
     }
 
-    function openEditDeviceModal(deviceId, username = "") {
+    function openEditDeviceModal(deviceId, username = "", activeDns = "") {
         const normDev = normId(deviceId);
         const normU = (username || "").toLowerCase();
         let idx = currentActivations.findIndex(a => {
@@ -3102,7 +3128,7 @@
         });
 
         if (idx >= 0) {
-            openActivationModal(idx);
+            openActivationModal(idx, activeDns);
         } else {
             editingActivationIndex = null;
             const title = document.getElementById("modalActivationTitle");
@@ -3124,13 +3150,16 @@
             userInput.value = username;
             passInput.value = "";
 
-            const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || "http://thedreamtv.site:80";
+            const curDns = activeDns 
+                || (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") 
+                || (lastDashboardData && lastDashboardData.best_url) 
+                || "http://thedreamtv.site:80";
             renderDreamDnsOptions(curDns);
             document.getElementById("activationModal").style.display = "flex";
         }
     }
 
-    function openActivationModal(editIndex = null) {
+    function openActivationModal(editIndex = null, explicitDns = "") {
         editingActivationIndex = editIndex;
         const title = document.getElementById("modalActivationTitle");
         title.textContent = (editIndex !== null) ? "Editar Dispositivo" : "Ativar Dispositivo por Device ID / MAC";
@@ -3140,12 +3169,12 @@
         const userInput = document.getElementById("actUserInput");
         const passInput = document.getElementById("actPassInput");
 
-        const curDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || "http://thedreamtv.site:80";
+        const defaultDns = (document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : "") || (lastDashboardData && lastDashboardData.best_url) || "http://thedreamtv.site:80";
         if (editIndex !== null && currentActivations[editIndex]) {
             const item = currentActivations[editIndex];
             devInput.value = item.device_id;
             keyInput.value = item.device_key || "";
-            const targetDns = item.dns || curDns;
+            const targetDns = explicitDns || item.dns || defaultDns;
             if (targetDns && !dreamDnsList.some(d => {
                 const norm = normalizeDreamDnsItem(d);
                 return norm && norm.url.toLowerCase() === targetDns.toLowerCase();
@@ -3158,7 +3187,7 @@
         } else {
             devInput.value = "";
             keyInput.value = "";
-            renderDreamDnsOptions(curDns);
+            renderDreamDnsOptions(explicitDns || defaultDns);
             userInput.value = "";
             passInput.value = "";
         }
