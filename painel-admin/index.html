@@ -2573,7 +2573,7 @@
             return true;
         });
         const total = baseDevices.length;
-        const online = baseDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000).length;
+        const online = baseDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 60 * 1000).length;
         const today = baseDevices.filter(d => (now - new Date(d.last_seen).getTime()) < 24 * 60 * 60 * 1000).length;
         const bestCount = baseDevices.filter(d => (d.active_service || "best").toLowerCase() === "best").length;
         const best2Count = baseDevices.filter(d => (d.active_service || "").toLowerCase() === "best2").length;
@@ -2646,7 +2646,7 @@
         const now = Date.now();
 
         const filtered = allDevices.filter(d => {
-            const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
+            const isOnline = (now - new Date(d.last_seen).getTime()) < 60 * 1000;
             const srv = (d.active_service || "best").toLowerCase();
             const devReseller = (d.reseller_id || "master").toLowerCase();
             const appType = getDeviceAppType(d);
@@ -2694,7 +2694,7 @@
         }
 
         tbody.innerHTML = filtered.map(d => {
-            const isOnline = (now - new Date(d.last_seen).getTime()) < 15 * 60 * 1000;
+            const isOnline = (now - new Date(d.last_seen).getTime()) < 60 * 1000;
             const srv = (d.active_service || "best").toLowerCase();
             const devReseller = d.reseller_id || "master";
             const statusBadge = d.is_blocked
