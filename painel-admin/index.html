@@ -3091,7 +3091,7 @@
                                 <span style="color:#60a5fa; font-family:monospace; font-size:13px; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
                                     ${shortUrl}
                                 </span>
-                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('${app.url}', 'Link copiado!')" title="Copiar URL completo" style="padding:4px 8px; font-size:11px;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="copyAppDirectLink('${app.id}', this)" title="Copiar URL completo" style="padding:4px 10px; font-size:11px; white-space:nowrap;">
                                     📋 Copiar
                                 </button>
                             </div>
@@ -3104,7 +3104,7 @@
 
                     <!-- Botões de Ação -->
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06);">
-                        <button type="button" class="btn btn-outline btn-sm" onclick="copyClientInstallMsg('${escapeHtml(app.name)}', '${app.url}')" style="font-size:11px; padding:7px 10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="copyAppInstallMsg('${app.id}', this)" style="font-size:11px; padding:7px 10px; display:flex; align-items:center; justify-content:center; gap:6px;">
                             💬 Msg Cliente
                         </button>
                         <a href="${app.url}" download class="btn btn-sm" style="font-size:11px; padding:7px 10px; display:flex; align-items:center; justify-content:center; gap:6px; text-decoration:none;">
@@ -3117,33 +3117,98 @@
     }
 
     function copyText(text, successMsg = "Copiado!") {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
+        if (!text) return;
+        if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(() => {
-                showToast(successMsg);
+                showToast("✔ " + successMsg);
             }).catch(() => {
                 fallbackCopy(text, successMsg);
             });
-        } else {
-            fallbackCopy(text, successMsg);
+            return;
         }
+        fallbackCopy(text, successMsg);
     }
 
     function fallbackCopy(text, successMsg) {
-        const temp = document.createElement("textarea");
-        temp.value = text;
-        temp.style.position = "fixed";
-        temp.style.left = "-9999px";
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand("copy");
-        document.body.removeChild(temp);
-        showToast(successMsg);
+        try {
+            const temp = document.createElement("textarea");
+            temp.value = text;
+            temp.setAttribute("readonly", "");
+            temp.style.position = "fixed";
+            temp.style.top = "0";
+            temp.style.left = "-9999px";
+            temp.style.opacity = "0";
+            document.body.appendChild(temp);
+            temp.focus();
+            temp.select();
+            temp.setSelectionRange(0, 99999);
+            const successful = document.execCommand("copy");
+            document.body.removeChild(temp);
+            if (successful) {
+                showToast("✔ " + successMsg);
+            } else {
+                prompt("Copia o link:", text);
+            }
+        } catch (err) {
+            prompt("Copia o link:", text);
+        }
     }
 
-    function copyClientInstallMsg(appName, url) {
+    function copyAppDirectLink(appId, btnEl = null) {
+        let app = KNOWN_RESELLER_APPS.find(a => a.id.toLowerCase() === (appId || "").toLowerCase());
+        if (!app && Array.isArray(allResellers)) {
+            const r = allResellers.find(x => (x.reseller_id || "").toLowerCase() === (appId || "").toLowerCase());
+            if (r) {
+                app = {
+                    id: r.reseller_id,
+                    name: r.brand_name || r.name || r.reseller_id,
+                    url: `https://eaglepanel.site/${r.reseller_id}.apk`
+                };
+            }
+        }
+        const url = app ? app.url : `https://eaglepanel.site/${appId}.apk`;
+        copyText(url, "Link copiado!");
+        if (btnEl) {
+            const orig = btnEl.innerHTML;
+            btnEl.innerHTML = "✅ Copiado!";
+            btnEl.style.borderColor = "var(--success)";
+            btnEl.style.color = "var(--success)";
+            setTimeout(() => {
+                btnEl.innerHTML = orig;
+                btnEl.style.borderColor = "";
+                btnEl.style.color = "";
+            }, 1800);
+        }
+    }
+
+    function copyAppInstallMsg(appId, btnEl = null) {
+        let app = KNOWN_RESELLER_APPS.find(a => a.id.toLowerCase() === (appId || "").toLowerCase());
+        if (!app && Array.isArray(allResellers)) {
+            const r = allResellers.find(x => (x.reseller_id || "").toLowerCase() === (appId || "").toLowerCase());
+            if (r) {
+                app = {
+                    id: r.reseller_id,
+                    name: r.brand_name || r.name || r.reseller_id,
+                    url: `https://eaglepanel.site/${r.reseller_id}.apk`
+                };
+            }
+        }
+        const appName = app ? app.name : appId;
+        const url = app ? app.url : `https://eaglepanel.site/${appId}.apk`;
         const shortUrl = url.replace("https://", "");
         const msg = `📺 *Instalação da App ${appName}* 📺\n\n1️⃣ Abre a aplicação *Downloader* na tua TV Box ou Firestick;\n2️⃣ Escreve exatamente este link no campo de busca:\n👉 *${shortUrl}*\n3️⃣ Clica em *Go* / *Baixar* e depois em *Instalar*;\n4️⃣ Abre a aplicação e introduz o teu Username e Password.\n\nQualquer dúvida avisa! 👍`;
-        copyText(msg, `Mensagem de instalação da ${appName} copiada!`);
+        copyText(msg, `Mensagem de ${appName} copiada!`);
+        if (btnEl) {
+            const orig = btnEl.innerHTML;
+            btnEl.innerHTML = "✅ Copiado!";
+            btnEl.style.borderColor = "var(--success)";
+            btnEl.style.color = "var(--success)";
+            setTimeout(() => {
+                btnEl.innerHTML = orig;
+                btnEl.style.borderColor = "";
+                btnEl.style.color = "";
+            }, 1800);
+        }
     }
 
     function openResellerModal(reseller = null) {
@@ -3281,14 +3346,6 @@
             return `${a.device_id}=${a.username}:${a.password}:${d}${k ? `:${k}` : ''}`;
         });
         return "||ACTIVATIONS:" + parts.join("|");
-    }
-
-    function copyText(str, msg) {
-        navigator.clipboard.writeText(str).then(() => {
-            showToast("✔ " + msg);
-        }).catch(() => {
-            prompt("Copiar:", str);
-        });
     }
 
     function copyRedonLink() {
