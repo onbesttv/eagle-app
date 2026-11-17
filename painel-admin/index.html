@@ -826,6 +826,7 @@
         <button class="tab-btn active" id="tabBtnMain" onclick="switchTab('main')">📺 DNS & Dispositivos</button>
         <button class="tab-btn" id="tabBtnVpn" onclick="switchTab('vpn')">🛡️ Gerir VPN</button>
         <button class="tab-btn" id="tabBtnResellers" style="display: none;" onclick="switchTab('resellers')">🤝 Gerir Revendedores (Apps White-Label)</button>
+        <button class="tab-btn" id="tabBtnLinks" style="display: none;" onclick="switchTab('links')">🔗 Links Revendas</button>
     </div>
 
     <!-- CARTÕES DE ESTATÍSTICAS -->
@@ -1116,6 +1117,44 @@
                     </thead>
                     <tbody id="resellersTableBody"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ABA 4: LINKS DE DOWNLOAD DE REVENDAS (Apenas Master) -->
+    <div id="tabContentLinks" style="display: none;">
+        <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
+                <div>
+                    <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                        <span>🔗</span> Links Oficiais de Download das Apps (eaglepanel.site)
+                    </div>
+                    <div class="card-sub" style="margin-top: 4px;">
+                        Links diretos e permanentes para TV Boxes e telemóveis. Ficam automaticamente atualizados após cada compilação no teu domínio <strong>eaglepanel.site</strong>.
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="searchLinksInput" placeholder="🔍 Filtrar por nome ou app..." oninput="filterResellerLinks()" style="padding: 8px 14px; font-size: 13px; width: 240px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text);">
+                </div>
+            </div>
+
+            <!-- Caixa de instrução / dica para Firestick & Android TV -->
+            <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 26px;">💡</span>
+                    <div>
+                        <div style="font-weight: 700; color: #60a5fa; font-size: 13px;">Como passar o link ao cliente na TV Box (Fire TV / Android TV)</div>
+                        <div style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">
+                            Na aplicação <strong>Downloader</strong> da TV, basta digitar apenas <code>eaglepanel.site/nome.apk</code> (sem <code>https://</code>). O descarregamento é imediato!
+                        </div>
+                    </div>
+                </div>
+                <span class="badge badge-online" style="font-size: 11px;">SSL / HTTPS ATIVO</span>
+            </div>
+
+            <!-- Grelha de cartões de cada revenda -->
+            <div id="resellerLinksGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px;">
+                <!-- Preenchido via JavaScript -->
             </div>
         </div>
     </div>
@@ -2129,9 +2168,14 @@
         document.getElementById("tabBtnMain").classList.toggle("active", tab === "main");
         document.getElementById("tabBtnVpn").classList.toggle("active", tab === "vpn");
         document.getElementById("tabBtnResellers").classList.toggle("active", tab === "resellers");
+        document.getElementById("tabBtnLinks").classList.toggle("active", tab === "links");
         document.getElementById("tabContentMain").style.display = tab === "main" ? "grid" : "none";
         document.getElementById("tabContentVpn").style.display = tab === "vpn" ? "block" : "none";
         document.getElementById("tabContentResellers").style.display = tab === "resellers" ? "block" : "none";
+        document.getElementById("tabContentLinks").style.display = tab === "links" ? "block" : "none";
+        if (tab === "links") {
+            renderResellerLinks();
+        }
     }
 
     document.getElementById("loginForm").addEventListener("submit", async (e) => {
@@ -2225,6 +2269,7 @@
             document.getElementById("filterBtnXciptv").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("filterBtnMytvonline").style.display = isMasterRole ? "inline-block" : "none";
             document.getElementById("tabBtnResellers").style.display = isMasterRole ? "inline-block" : "none";
+            document.getElementById("tabBtnLinks").style.display = isMasterRole ? "inline-block" : "none";
             const isDream = (currentResellerId === "dream");
             const dreamSec = document.getElementById("dreamSection");
             if (dreamSec) {
@@ -2432,7 +2477,8 @@
             if (isMasterRole) {
                 populateResellerFilter();
                 renderResellers();
-            } else if (document.getElementById("tabBtnResellers").classList.contains("active")) {
+                renderResellerLinks();
+            } else if (document.getElementById("tabBtnResellers").classList.contains("active") || document.getElementById("tabBtnLinks").classList.contains("active")) {
                 switchTab("main");
             }
 
@@ -2835,6 +2881,269 @@
                 </tr>
             `;
         }).join("");
+    }
+
+    const KNOWN_RESELLER_APPS = [
+        {
+            id: "streamplay",
+            name: "StreamPlay TV",
+            badge: "NOVA",
+            badgeClass: "badge-online",
+            type: "MyTvOnline (Eagle TV)",
+            typeClass: "badge-mytvonline",
+            apk: "appstreamplay.apk",
+            url: "https://eaglepanel.site/appstreamplay.apk",
+            dns: "https://ultrasjuveleo.xyz:443",
+            features: "Ecrã Login User/Pass Direto • Jogos do Dia • Jornais em PDF • VPN Integrada",
+            icon: "🔥"
+        },
+        {
+            id: "eagle_tv",
+            name: "Eagle TV (Oficial MyTvOnline)",
+            badge: "MASTER",
+            badgeClass: "badge-best",
+            type: "MyTvOnline",
+            typeClass: "badge-mytvonline",
+            apk: "eagle_tv.apk",
+            url: "https://eaglepanel.site/eagle_tv.apk",
+            dns: "https://thebestplay.site",
+            features: "Layout MyTvOnline Oficial • Jogos do Dia • Jornais em PDF • VPN Integrada",
+            icon: "🦅"
+        },
+        {
+            id: "master",
+            name: "Eagle TV (Oficial Grid)",
+            badge: "MASTER",
+            badgeClass: "badge-best",
+            type: "XCIPTV / Grid",
+            typeClass: "badge-xciptv",
+            apk: "eagle.apk",
+            url: "https://eaglepanel.site/eagle.apk",
+            dns: "https://thebestplay.site",
+            features: "Layout Grid Tradicional • Catálogo VOD • Multi-DNS",
+            icon: "🦅"
+        },
+        {
+            id: "suporte24",
+            name: "PlayTV",
+            badge: "REVENDA",
+            badgeClass: "badge-reseller",
+            type: "XCIPTV / PlayTV",
+            typeClass: "badge-xciptv",
+            apk: "PlayTV.apk",
+            url: "https://eaglepanel.site/PlayTV.apk",
+            dns: "http://juveleoscp.xyz:8080",
+            features: "Layout PlayTV Personalizado • VPN Própria • Gestão suporte24",
+            icon: "▶️"
+        },
+        {
+            id: "dream",
+            name: "RedOn (Dream)",
+            badge: "REVENDA",
+            badgeClass: "badge-reseller",
+            type: "MyTvOnline (Ativação MAC)",
+            typeClass: "badge-mytvonline",
+            apk: "RedOn.apk",
+            url: "https://eaglepanel.site/RedOn.apk",
+            dns: "http://thedreamtv.site:80",
+            features: "Ativação por MAC / Device ID • DNS Remoto • Sem login manual",
+            icon: "🔴"
+        },
+        {
+            id: "tv_joker",
+            name: "TV do Joker",
+            badge: "REVENDA",
+            badgeClass: "badge-reseller",
+            type: "XCIPTV Dark/Gold",
+            typeClass: "badge-xciptv",
+            apk: "tv_joker.apk",
+            url: "https://eaglepanel.site/tv_joker.apk",
+            dns: "Configurado no Painel",
+            features: "Tema Preto & Dourado Joker • VPN Privada",
+            icon: "🃏"
+        },
+        {
+            id: "pereira_tv",
+            name: "PereiraTV",
+            badge: "REVENDA",
+            badgeClass: "badge-reseller",
+            type: "XCIPTV Royal",
+            typeClass: "badge-xciptv",
+            apk: "pereira_tv.apk",
+            url: "https://eaglepanel.site/pereira_tv.apk",
+            dns: "https://pereiratv.com:443",
+            features: "Tema Azul Royal • Servidor Dedicado pereiratv.com",
+            icon: "📺"
+        },
+        {
+            id: "godinho_tv",
+            name: "GodinhoTV",
+            badge: "REVENDA",
+            badgeClass: "badge-reseller",
+            type: "XCIPTV Carmesim",
+            typeClass: "badge-xciptv",
+            apk: "godinho_tv.apk",
+            url: "https://eaglepanel.site/godinho_tv.apk",
+            dns: "https://godinho.site:443",
+            features: "Tema Preto & Vermelho • Servidor Dedicado godinho.site",
+            icon: "📺"
+        },
+        {
+            id: "tv_fabio",
+            name: "Fpinto TV",
+            badge: "REVENDA",
+            badgeClass: "badge-reseller",
+            type: "XCIPTV Carbon",
+            typeClass: "badge-xciptv",
+            apk: "tv_fabio.apk",
+            url: "https://eaglepanel.site/tv_fabio.apk",
+            dns: "Templarios (BEST2)",
+            features: "Tema Carbon Gold • Conta Própria VPN",
+            icon: "📺"
+        }
+    ];
+
+    let currentResellerLinksFilter = "";
+
+    function filterResellerLinks() {
+        const inp = document.getElementById("searchLinksInput");
+        currentResellerLinksFilter = (inp ? inp.value : "").trim().toLowerCase();
+        renderResellerLinks();
+    }
+
+    function renderResellerLinks() {
+        const grid = document.getElementById("resellerLinksGrid");
+        if (!grid) return;
+
+        let apps = [...KNOWN_RESELLER_APPS];
+        if (Array.isArray(allResellers)) {
+            allResellers.forEach(r => {
+                const rid = (r.reseller_id || "").toLowerCase();
+                if (rid && rid !== "master" && !apps.some(a => a.id.toLowerCase() === rid)) {
+                    apps.push({
+                        id: rid,
+                        name: r.brand_name || r.name || rid,
+                        badge: "REVENDA",
+                        badgeClass: "badge-reseller",
+                        type: "Personalizada",
+                        typeClass: "badge-xciptv",
+                        apk: `${rid}.apk`,
+                        url: `https://eaglepanel.site/${rid}.apk`,
+                        dns: r.best_url || "Configurado no Painel",
+                        features: "App Personalizada White-Label",
+                        icon: "📱"
+                    });
+                }
+            });
+        }
+
+        const filter = currentResellerLinksFilter;
+        if (filter) {
+            apps = apps.filter(a => 
+                a.name.toLowerCase().includes(filter) ||
+                a.id.toLowerCase().includes(filter) ||
+                a.apk.toLowerCase().includes(filter) ||
+                a.type.toLowerCase().includes(filter)
+            );
+        }
+
+        if (apps.length === 0) {
+            grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 40px;">Nenhuma aplicação ou revenda encontrada para o filtro "${escapeHtml(filter)}".</div>`;
+            return;
+        }
+
+        grid.innerHTML = apps.map(app => {
+            const shortUrl = app.url.replace("https://", "");
+            return `
+                <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between; border: 1px solid var(--border); background: rgba(18, 24, 38, 0.7); border-radius: 14px; padding: 18px; transition: all 0.2s ease;">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:10px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <span style="font-size:28px;">${app.icon}</span>
+                                <div>
+                                    <div style="font-size:16px; font-weight:700; color:#FFFFFF; display:flex; align-items:center; gap:8px;">
+                                        ${escapeHtml(app.name)}
+                                    </div>
+                                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">
+                                        ID: <code style="color:#60a5fa; font-weight:600;">${escapeHtml(app.id)}</code> • Ficheiro: <strong style="color:#FFFFFF;">${escapeHtml(app.apk)}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+                                <span class="badge ${app.badgeClass}">${escapeHtml(app.badge)}</span>
+                                <span class="badge ${app.typeClass}" style="font-size:10px;">${escapeHtml(app.type)}</span>
+                            </div>
+                        </div>
+
+                        <!-- DNS / Servidor -->
+                        <div style="background:rgba(0,0,0,0.25); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:12px;">
+                            <span style="color:var(--text-muted);">Servidor / DNS:</span>
+                            <span style="color:#e2e8f0; font-family:monospace; margin-left:4px; word-break:break-all;">${escapeHtml(app.dns)}</span>
+                        </div>
+
+                        <!-- Link no Downloader -->
+                        <div style="margin-bottom:12px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                <span style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Link para Downloader / TV:</span>
+                                <span style="font-size:11px; color:#10b981; font-weight:600;">Permanente</span>
+                            </div>
+                            <div style="display:flex; align-items:center; background:#070b13; border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:6px 10px; gap:8px;">
+                                <span style="color:#60a5fa; font-family:monospace; font-size:13px; font-weight:700; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    ${shortUrl}
+                                </span>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('${app.url}', 'Link copiado!')" title="Copiar URL completo" style="padding:4px 8px; font-size:11px;">
+                                    📋 Copiar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:14px; line-height:1.4;">
+                            ${escapeHtml(app.features)}
+                        </div>
+                    </div>
+
+                    <!-- Botões de Ação -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06);">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="copyClientInstallMsg('${escapeHtml(app.name)}', '${app.url}')" style="font-size:11px; padding:7px 10px; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            💬 Msg Cliente
+                        </button>
+                        <a href="${app.url}" download class="btn btn-sm" style="font-size:11px; padding:7px 10px; display:flex; align-items:center; justify-content:center; gap:6px; text-decoration:none;">
+                            ⬇️ Baixar APK
+                        </a>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function copyText(text, successMsg = "Copiado!") {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(successMsg);
+            }).catch(() => {
+                fallbackCopy(text, successMsg);
+            });
+        } else {
+            fallbackCopy(text, successMsg);
+        }
+    }
+
+    function fallbackCopy(text, successMsg) {
+        const temp = document.createElement("textarea");
+        temp.value = text;
+        temp.style.position = "fixed";
+        temp.style.left = "-9999px";
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+        showToast(successMsg);
+    }
+
+    function copyClientInstallMsg(appName, url) {
+        const shortUrl = url.replace("https://", "");
+        const msg = `📺 *Instalação da App ${appName}* 📺\n\n1️⃣ Abre a aplicação *Downloader* na tua TV Box ou Firestick;\n2️⃣ Escreve exatamente este link no campo de busca:\n👉 *${shortUrl}*\n3️⃣ Clica em *Go* / *Baixar* e depois em *Instalar*;\n4️⃣ Abre a aplicação e introduz o teu Username e Password.\n\nQualquer dúvida avisa! 👍`;
+        copyText(msg, `Mensagem de instalação da ${appName} copiada!`);
     }
 
     function openResellerModal(reseller = null) {

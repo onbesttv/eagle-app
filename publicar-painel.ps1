@@ -35,11 +35,21 @@ Copy-Item "painel-admin\index.html" -Destination (Join-Path $panelDir "index.htm
 Set-Content -Path (Join-Path $panelDir "CNAME") -Value "eaglepanel.site" -NoNewline -Encoding ASCII
 New-Item -ItemType File -Path (Join-Path $panelDir ".nojekyll") -Force | Out-Null
 
+# Copiar APKs de revendas para estarem diretamente disponiveis no dominio eaglepanel.site/<nome>.apk
+Write-Host "[2/3] A preparar APKs de revenda para alojamento em eaglepanel.site..." -ForegroundColor Yellow
+if (Test-Path "revendas") {
+    Get-ChildItem -Path "revendas" -Filter "*.apk" | ForEach-Object {
+        Copy-Item $_.FullName -Destination (Join-Path $panelDir $_.Name) -Force
+        Write-Host "  -> Incluido: $($_.Name) ($([math]::Round($_.Length / 1MB, 1)) MB)" -ForegroundColor Green
+    }
+}
+
 Push-Location $panelDir
 git init | Out-Null
 git checkout -b main | Out-Null
-git add index.html CNAME .nojekyll
-git commit -m "Painel Web + Dominio eaglepanel.site" | Out-Null
+git add -A | Out-Null
+git commit -m "Painel Web + APKs atualizados em eaglepanel.site" | Out-Null
+Write-Host "[3/3] A enviar para o servidor eaglepanel.site (isto pode demorar alguns segundos)..." -ForegroundColor Yellow
 git remote add origin "https://onbesttv:$token@github.com/onbesttv/painel-tv.git"
 git push -f origin main
 Pop-Location
