@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamPlay — Painel de Controlo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #070a12;
+            --bg-card: #0e1526;
+            --bg-card-hover: #131c33;
+            --bg-input: #080d19;
+            --border: #1c2942;
+            --border-focus: #0ea5e9;
+            --primary: #06b6d4;
+            --primary-glow: rgba(6, 182, 212, 0.25);
+            --accent: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #6366f1 100%);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(6, 182, 212, 0.15), transparent),
+                radial-gradient(ellipse 60% 40% at 90% 100%, rgba(59, 130, 246, 0.08), transparent);
+            background-attachment: fixed;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* LOGIN SCREEN */
+        #loginScreen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .login-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px 36px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 40px -10px var(--primary-glow);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-gradient);
+        }
+
+        .brand-icon-wrap {
+            width: 64px;
+            height: 64px;
+            background: var(--accent-gradient);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px -5px var(--primary-glow);
+        }
+
+        .brand-icon-wrap svg {
+            width: 34px;
+            height: 34px;
+            fill: #ffffff;
+        }
+
+        .login-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+        }
+
+        .login-sub {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        /* FORM CONTROLS */
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            letter-spacing: 0.2px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .btn {
+            background: var(--accent-gradient);
+            color: #ffffff;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px -3px var(--primary-glow);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px -4px var(--primary-glow);
+            filter: brightness(1.08);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            box-shadow: none;
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--text-muted);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            box-shadow: 0 4px 15px -3px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        /* DASHBOARD SCREEN */
+        #dashboardScreen {
+            display: none;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px 20px 80px;
+        }
+
+        /* TOPBAR */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-badge {
+            width: 44px;
+            height: 44px;
+            background: var(--accent-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px -4px var(--primary-glow);
+        }
+
+        .brand-badge svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+        }
+
+        .brand-title h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-title .tag-pro {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            text-transform: uppercase;
+        }
+
+        .sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
+            display: inline-block;
+        }
+
+        .sync-dot.offline {
+            background-color: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* KPI STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 22px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .stat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -1px;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .stat-sub {
+            font-size: 12px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .live-pulse {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* SECTIONS & CARDS */
+        .section-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        /* DNS SECTION */
+        .dns-input-wrap {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .dns-input-wrap input {
+            flex: 1;
+            min-width: 280px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .dns-input-wrap input:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .dns-info-box {
+            margin-top: 14px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: rgba(6, 182, 212, 0.06);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* VPN SECTION */
+        .vpn-controls-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .vpn-mode-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .mode-pill {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .mode-pill.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
+        }
+
+        .vpn-countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .country-card {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .country-card.active {
+            border-color: var(--primary);
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .country-flag {
+            font-size: 20px;
+        }
+
+        .country-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .country-card.active .country-name {
+            color: var(--text-main);
+        }
+
+        .vpn-users-area {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 20px;
+        }
+
+        .vpn-user-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            min-height: 40px;
+        }
+
+        .user-tag {
+            background: var(--bg-card);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-tag button {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            transition: color 0.15s;
+        }
+
+        .user-tag button:hover {
+            color: var(--danger);
+        }
+
+        /* USERS / DEVICES TABLE */
+        .table-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 360px;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 14px 10px 38px;
+            border-radius: 10px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--border-focus);
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            fill: var(--text-dim);
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .filter-pill.active {
+            background: var(--bg-card-hover);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        thead {
+            background: #090e1b;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            padding: 14px 16px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            transition: background 0.15s;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td {
+            padding: 14px 16px;
+            color: var(--text-main);
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .user-col {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .user-name {
+            font-weight: 700;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .device-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .device-model {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .device-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-online {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-offline {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-dim);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .badge-blocked {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .badge-vpn {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        /* ACTIONS */
+        .actions-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .icon-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .icon-btn.active {
+            background: var(--primary-glow);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .icon-btn.danger:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--danger);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            #dashboardScreen {
+                padding: 16px 12px 60px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+            }
+            .stat-value {
+                font-size: 24px;
+            }
+            .card {
+                padding: 18px 16px;
+            }
+            .dns-input-wrap input {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ECRÃ DE LOGIN STREAMPLAY -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="brand-icon-wrap">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <div class="login-title">StreamPlay</div>
+        <div class="login-sub">Painel Exclusivo de Gestão IPTV & VPN</div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Password de Administrador</label>
+                <input type="password" id="loginPassword" placeholder="Introduz a password do StreamPlay" required autofocus>
+            </div>
+            <div id="loginError" style="color: var(--danger); font-size: 13px; margin-bottom: 14px; display: none;"></div>
+            <button type="submit" class="btn" id="btnLogin" style="width: 100%;">
+                Entrar no Painel StreamPlay
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ECRÃ DO DASHBOARD STREAMPLAY -->
+<div id="dashboardScreen">
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <div class="brand-header">
+            <div class="brand-badge">
+                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+            </div>
+            <div class="brand-title">
+                <h1>StreamPlay <span class="tag-pro">Admin</span></h1>
+                <div class="sync-indicator">
+                    <span class="sync-dot" id="syncDot"></span>
+                    <span id="syncText">Ligado em tempo real ao Supabase</span>
+                </div>
+            </div>
+        </div>
+        <div class="topbar-actions">
+            <button class="btn btn-outline btn-sm" onclick="fetchStreamPlayData(true)" title="Recarregar dados">
+                🔄 Atualizar
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="logout()" title="Terminar sessão">
+                Sair
+            </button>
+        </div>
+    </div>
+
+    <!-- ESTATÍSTICAS / KPIS -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Users Ativos</span>
+                <div class="stat-icon">🟢</div>
+            </div>
+            <div class="stat-value" id="statActiveUsers">0</div>
+            <div class="stat-sub"><span class="live-pulse"></span> Online nos últimos 2 min</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Total Boxes</span>
+                <div class="stat-icon">📱</div>
+            </div>
+            <div class="stat-value" id="statTotalDevices">0</div>
+            <div class="stat-sub">Dispositivos registados</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">VPN Ativa</span>
+                <div class="stat-icon">🛡️</div>
+            </div>
+            <div class="stat-value" id="statVpnUsers">0</div>
+            <div class="stat-sub" id="statVpnMode">Modo: Utilizadores Restritos</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-header">
+                <span class="stat-label">Servidor DNS</span>
+                <div class="stat-icon">🌐</div>
+            </div>
+            <div class="stat-value" id="statDnsStatus" style="font-size: 16px; font-family: 'JetBrains Mono', monospace; font-weight: 600; word-break: break-all; line-height: 1.3;">-</div>
+            <div class="stat-sub">DNS Oficial StreamPlay</div>
+        </div>
+    </div>
+
+    <!-- 1. MUDANÇA DE UM DNS APENAS -->
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <div>
+                <div class="card-title">🌐 Servidor DNS do StreamPlay</div>
+                <div class="card-subtitle">Altera o servidor IPTV oficial da aplicação StreamPlay (apenas 1 DNS). Todas as boxes atualizam automaticamente.</div>
+            </div>
+            <div>
+                <button class="btn btn-outline btn-sm" onclick="testDnsConnectivity()">⚡ Testar Ligação</button>
+            </div>
+        </div>
+        <div class="dns-input-wrap">
+            <input type="url" id="dnsUrlInput" placeholder="https://ultrasjuveleo.xyz:443" autocomplete="off" spellcheck="false" required>
+            <button class="btn" id="btnSaveDns" onclick="saveStreamPlayDns()">
+                💾 Guardar Novo DNS
+            </button>
+        </div>
+        <div class="dns-info-box">
+            <span>ℹ️</span>
+            <span>Ao guardares o novo DNS, qualquer cliente com o StreamPlay instalado receberá o endereço atualizado na próxima vez que abrir a app ou trocar de canal.</span>
+        </div>
+    </div>
+
+    <!-- 2. GESTÃO DA VPN -->
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <div>
+                <div class="card-title">🛡️ Gestão da VPN (StreamPlay)</div>
+                <div class="card-subtitle">Proteção de tráfego integrada PIA VPN com controlo por utilizador e seleção de países.</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-danger btn-sm" onclick="triggerVpnKillswitch()" title="Corta as sessões ativas da VPN">
+                    ⚡ Desconectar Sessões Ativas (Killswitch)
+                </button>
+                <button class="btn btn-success btn-sm" onclick="saveStreamPlayVpn()">
+                    💾 Guardar Alterações VPN
+                </button>
+            </div>
+        </div>
+
+        <!-- MODO DA VPN -->
+        <div class="vpn-controls-row">
+            <div>
+                <div style="font-weight: 700; font-size: 14px; margin-bottom: 4px;">Modo de Acesso à VPN</div>
+                <div style="font-size: 12px; color: var(--text-dim);">Escolhe quem tem permissão para ligar a VPN na app</div>
+            </div>
+            <div class="vpn-mode-selector">
+                <button type="button" class="mode-pill active" id="modeRestricted" onclick="setVpnMode('restricted')">
+                    🔒 Apenas Utilizadores Autorizados
+                </button>
+                <button type="button" class="mode-pill" id="modeAll" onclick="setVpnMode('all')">
+                    🌐 Todos os Utilizadores (Livre)
+                </button>
+            </div>
+        </div>
+
+        <!-- PAÍSES DISPONÍVEIS -->
+        <div style="margin-bottom: 18px;">
+            <div style="font-weight: 700; font-size: 14px; margin-bottom: 8px;">Países VPN Ativos na App</div>
+            <div style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">Clica nos países para ativar ou desativar a sua visibilidade na app</div>
+            <div class="vpn-countries-grid" id="vpnCountriesContainer"></div>
+        </div>
+
+        <!-- UTILIZADORES COM VPN ATIVA -->
+        <div class="vpn-users-area" id="vpnUsersSection">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                <div style="font-weight: 700; font-size: 14px;">Utilizadores com Acesso VPN Autorizado</div>
+                <div style="font-size: 12px; color: var(--text-dim);" id="vpnUsersCountLabel">0 autorizados</div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="addVpnUserInput" placeholder="Introduz o username do cliente..." style="flex: 1; background: var(--bg-card); border: 1px solid var(--border); color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 13px;">
+                <button class="btn btn-sm" onclick="addVpnUserFromInput()">+ Adicionar</button>
+            </div>
+            <div class="vpn-user-tags" id="vpnUserTagsList">
+                <div style="font-size: 13px; color: var(--text-dim); padding: 8px 0;">Nenhum utilizador com acesso individual configurado.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. USERS ATIVOS & DISPOSITIVOS -->
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <div class="card-title">👥 Utilizadores & Boxes Ativas (StreamPlay)</div>
+                <div class="card-subtitle">Monitorização em tempo real dos clientes conectados à app StreamPlay.</div>
+            </div>
+        </div>
+
+        <div class="table-toolbar">
+            <div class="search-box">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="userSearchInput" placeholder="Pesquisar utilizador, dispositivo ou ID..." oninput="renderDevicesTable()">
+            </div>
+            <div class="filter-pills">
+                <button class="filter-pill active" data-filter="all" onclick="setDeviceFilter('all', this)">Todos</button>
+                <button class="filter-pill" data-filter="online" onclick="setDeviceFilter('online', this)">🟢 Online Agora</button>
+                <button class="filter-pill" data-filter="vpn" onclick="setDeviceFilter('vpn', this)">🛡️ Com VPN</button>
+                <button class="filter-pill" data-filter="blocked" onclick="setDeviceFilter('blocked', this)">🚫 Bloqueados</button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Utilizador</th>
+                        <th>Dispositivo / Modelo</th>
+                        <th>Versão App</th>
+                        <th>Estado</th>
+                        <th>Última Conexão</th>
+                        <th>Acesso VPN</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="devicesTableBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 32px;">
+                            A carregar dispositivos StreamPlay...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    const SUPABASE_URL = "https://myreymyqsnikjdhnstjn.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_Jsb0b0Kcf5-bv6GCUFu3KA_wO1G9HjM";
+    const STREAMPLAY_RESELLER_ID = "streamplay";
+
+    let adminPassword = sessionStorage.getItem("streamplay_admin_pass") || "";
+    let rawDashboardData = null;
+    let currentDevices = [];
+    let currentDnsUrl = "";
+    let currentAnnouncement = "";
+    let currentVpnMode = "restricted";
+    let allowedVpnUsers = new Set();
+    let vpnKillTimestamp = 0;
+    let currentFilter = "all";
+
+    const AVAILABLE_COUNTRIES = [
+        { id: "pt", name: "Portugal", flag: "🇵🇹", defaultOn: true },
+        { id: "spain", name: "Espanha", flag: "🇪🇸", defaultOn: true },
+        { id: "france", name: "França", flag: "🇫🇷", defaultOn: true },
+        { id: "uk", name: "Reino Unido", flag: "🇬🇧", defaultOn: true },
+        { id: "nl_amsterdam", name: "Holanda", flag: "🇳🇱", defaultOn: true },
+        { id: "de-frankfurt", name: "Alemanha", flag: "🇩🇪", defaultOn: true },
+        { id: "swiss", name: "Suíça", flag: "🇨🇭", defaultOn: true },
+        { id: "italy", name: "Itália", flag: "🇮🇹", defaultOn: true },
+        { id: "belgium", name: "Bélgica", flag: "🇧🇪", defaultOn: false },
+        { id: "lu", name: "Luxemburgo", flag: "🇱🇺", defaultOn: false },
+        { id: "us_new_york_city", name: "Estados Unidos", flag: "🇺🇸", defaultOn: false },
+        { id: "br", name: "Brasil", flag: "🇧🇷", defaultOn: false },
+        { id: "ca_toronto", name: "Canadá", flag: "🇨🇦", defaultOn: false },
+        { id: "poland", name: "Polónia", flag: "🇵🇱", defaultOn: false }
+    ];
+    let selectedCountries = new Set(AVAILABLE_COUNTRIES.filter(c => c.defaultOn).map(c => c.id));
+
+    // INICIALIZAÇÃO
+    window.addEventListener("DOMContentLoaded", () => {
+        if (adminPassword) {
+            document.getElementById("loginPassword").value = adminPassword;
+            attemptLogin(adminPassword);
+        }
+    });
+
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const pass = document.getElementById("loginPassword").value.trim();
+        if (pass) attemptLogin(pass);
+    });
+
+    async function attemptLogin(pass) {
+        const btn = document.getElementById("btnLogin");
+        const err = document.getElementById("loginError");
+        btn.disabled = true;
+        btn.textContent = "A autenticar no StreamPlay...";
+        err.style.display = "none";
+
+        try {
+            adminPassword = pass;
+            await fetchStreamPlayData(false);
+            sessionStorage.setItem("streamplay_admin_pass", pass);
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("dashboardScreen").style.display = "block";
+            showToast("Sessão iniciada com sucesso no StreamPlay!", "success");
+            
+            // Auto refresh a cada 45 segundos
+            setInterval(() => {
+                if (document.getElementById("dashboardScreen").style.display === "block") {
+                    fetchStreamPlayData(false, true);
+                }
+            }, 45000);
+        } catch (e) {
+            adminPassword = "";
+            sessionStorage.removeItem("streamplay_admin_pass");
+            err.textContent = "Password de administrador incorreta.";
+            err.style.display = "block";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Entrar no Painel StreamPlay";
+        }
+    }
+
+    function logout() {
+        sessionStorage.removeItem("streamplay_admin_pass");
+        adminPassword = "";
+        document.getElementById("dashboardScreen").style.display = "none";
+        document.getElementById("loginScreen").style.display = "flex";
+        document.getElementById("loginPassword").value = "";
+    }
+
+    // SUPABASE RPC CALL
+    async function rpc(name, params) {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+            method: "POST",
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(params)
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: res.statusText }));
+            throw new Error(err.message || "Erro no servidor Supabase");
+        }
+        return await res.json();
+    }
+
+    // CARREGAR DADOS STREAMPLAY
+    async function fetchStreamPlayData(showNotification = false, isSilent = false) {
+        try {
+            if (!isSilent) {
+                document.getElementById("syncDot").className = "sync-dot";
+                document.getElementById("syncText").textContent = "A sincronizar dados...";
+            }
+
+            const data = await rpc("panel_login_dashboard", {
+                p_reseller_id: STREAMPLAY_RESELLER_ID,
+                p_password: adminPassword
+            });
+
+            rawDashboardData = data;
+            currentDnsUrl = data.best_url || "https://ultrasjuveleo.xyz:443";
+            document.getElementById("dnsUrlInput").value = currentDnsUrl;
+            document.getElementById("statDnsStatus").textContent = currentDnsUrl.replace(/^https?:\/\//, '');
+
+            currentAnnouncement = data.announcement || "";
+            parseVpnAnnouncement(currentAnnouncement);
+
+            currentDevices = Array.isArray(data.devices) ? data.devices : [];
+            updateStats();
+            renderCountries();
+            renderVpnUsersTags();
+            renderDevicesTable();
+
+            document.getElementById("syncDot").className = "sync-dot";
+            document.getElementById("syncText").textContent = "Ligado em tempo real ao Supabase";
+
+            if (showNotification) {
+                showToast("Dados do StreamPlay atualizados!", "success");
+            }
+        } catch (e) {
+            document.getElementById("syncDot").className = "sync-dot offline";
+            document.getElementById("syncText").textContent = "Erro na sincronização";
+            if (!isSilent) throw e;
+        }
+    }
+
+    // ATUALIZAR ESTATÍSTICAS
+    function updateStats() {
+        const now = Date.now();
+        const activeThreshold = 2 * 60 * 1000; // 2 minutos
+
+        let activeCount = 0;
+        currentDevices.forEach(d => {
+            if (d.last_seen) {
+                const diff = now - new Date(d.last_seen).getTime();
+                if (diff <= activeThreshold) activeCount++;
+            }
+        });
+
+        document.getElementById("statActiveUsers").textContent = activeCount;
+        document.getElementById("statTotalDevices").textContent = currentDevices.length;
+        document.getElementById("statVpnUsers").textContent = currentVpnMode === "all" ? currentDevices.length : allowedVpnUsers.size;
+        document.getElementById("statVpnMode").textContent = currentVpnMode === "all" ? "Modo: Todos os Utilizadores" : `Modo: ${allowedVpnUsers.size} Utilizadores Autorizados`;
+    }
+
+    // 1. GUARDAR DNS
+    async function saveStreamPlayDns() {
+        const btn = document.getElementById("btnSaveDns");
+        const newUrl = document.getElementById("dnsUrlInput").value.trim();
+
+        if (!newUrl) {
+            showToast("Por favor, introduz um URL de DNS válido.", "error");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = "A guardar...";
+
+        try {
+            await rpc("panel_save_own_config", {
+                p_reseller_id: STREAMPLAY_RESELLER_ID,
+                p_password: adminPassword,
+                p_best_url: newUrl,
+                p_best2_url: newUrl,
+                p_announcement: currentAnnouncement,
+                p_maintenance_mode: false,
+                p_new_password: ""
+            });
+
+            currentDnsUrl = newUrl;
+            document.getElementById("statDnsStatus").textContent = newUrl.replace(/^https?:\/\//, '');
+            showToast("DNS do StreamPlay atualizado com sucesso!", "success");
+        } catch (e) {
+            showToast("Erro ao guardar DNS: " + e.message, "error");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "💾 Guardar Novo DNS";
+        }
+    }
+
+    async function testDnsConnectivity() {
+        const url = document.getElementById("dnsUrlInput").value.trim();
+        if (!url) return;
+        showToast("A verificar resposta do servidor DNS...", "");
+        try {
+            const start = Date.now();
+            await fetch(url, { method: "HEAD", mode: "no-cors" });
+            const ms = Date.now() - start;
+            showToast(`Servidor DNS respondeu em ${ms}ms!`, "success");
+        } catch (e) {
+            showToast("Não foi possível contactar diretamente (CORS ou offline). Mas o URL foi validado.", "warning");
+        }
+    }
+
+    // 2. PARSE E GESTÃO VPN
+    function parseVpnAnnouncement(ann) {
+        if (!ann || !ann.includes("||VPN:")) {
+            currentVpnMode = "restricted";
+            allowedVpnUsers = new Set();
+            return;
+        }
+
+        const vpnRaw = ann.substring(ann.indexOf("||VPN:") + 6);
+        const killSplit = vpnRaw.split("||VPN_KILL:");
+        if (killSplit.length > 1) {
+            vpnKillTimestamp = parseInt(killSplit[1], 10) || 0;
+        }
+
+        const usersSplit = killSplit[0].split("||VPN_USERS:");
+        if (usersSplit.length > 1) {
+            const userPart = usersSplit[1].trim();
+            const [mode, listStr] = userPart.split("|");
+            currentVpnMode = (mode === "all") ? "all" : "restricted";
+            if (listStr) {
+                const list = listStr.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+                allowedVpnUsers = new Set(list);
+            } else {
+                allowedVpnUsers = new Set();
+            }
+        }
+
+        const authSplit = usersSplit[0].split("||VPN_AUTH:");
+        const countriesPart = authSplit[0].trim();
+        if (countriesPart) {
+            const cList = countriesPart.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+            if (cList.length > 0) selectedCountries = new Set(cList);
+        }
+
+        updateVpnModeButtons();
+    }
+
+    function buildVpnAnnouncement() {
+        let countriesStr = Array.from(selectedCountries).join(",");
+        if (!countriesStr) countriesStr = "pt,spain,france";
+
+        let usersCsv = Array.from(allowedVpnUsers).join(",");
+        let ann = `||VPN:${countriesStr}||VPN_AUTH:p7426501:on4q5FT9vx||VPN_USERS:${currentVpnMode}|${usersCsv}`;
+        if (vpnKillTimestamp > 0) {
+            ann += `||VPN_KILL:${vpnKillTimestamp}`;
+        }
+        return ann;
+    }
+
+    function updateVpnModeButtons() {
+        document.getElementById("modeRestricted").classList.toggle("active", currentVpnMode === "restricted");
+        document.getElementById("modeAll").classList.toggle("active", currentVpnMode === "all");
+        document.getElementById("vpnUsersSection").style.opacity = currentVpnMode === "all" ? "0.6" : "1";
+    }
+
+    function setVpnMode(mode) {
+        currentVpnMode = mode;
+        updateVpnModeButtons();
+        updateStats();
+    }
+
+    function renderCountries() {
+        const container = document.getElementById("vpnCountriesContainer");
+        container.innerHTML = "";
+        AVAILABLE_COUNTRIES.forEach(c => {
+            const isActive = selectedCountries.has(c.id);
+            const el = document.createElement("div");
+            el.className = `country-card ${isActive ? "active" : ""}`;
+            el.innerHTML = `
+                <span class="country-flag">${c.flag}</span>
+                <span class="country-name">${c.name}</span>
+            `;
+            el.onclick = () => {
+                if (selectedCountries.has(c.id)) {
+                    if (selectedCountries.size > 1) selectedCountries.delete(c.id);
+                    else showToast("Tens de manter pelo menos 1 país ativo.", "warning");
+                } else {
+                    selectedCountries.add(c.id);
+                }
+                renderCountries();
+            };
+            container.appendChild(el);
+        });
+    }
+
+    function renderVpnUsersTags() {
+        const listEl = document.getElementById("vpnUserTagsList");
+        const countLabel = document.getElementById("vpnUsersCountLabel");
+        countLabel.textContent = `${allowedVpnUsers.size} autorizados`;
+
+        if (allowedVpnUsers.size === 0) {
+            listEl.innerHTML = `<div style="font-size: 13px; color: var(--text-dim); padding: 8px 0;">Nenhum utilizador com acesso individual configurado.</div>`;
+            return;
+        }
+
+        listEl.innerHTML = "";
+        allowedVpnUsers.forEach(u => {
+            const tag = document.createElement("div");
+            tag.className = "user-tag";
+            tag.innerHTML = `
+                <span>${escapeHtml(u)}</span>
+                <button type="button" onclick="removeVpnUser('${escapeHtml(u)}')" title="Remover acesso VPN">✕</button>
+            `;
+            listEl.appendChild(tag);
+        });
+    }
+
+    function addVpnUserFromInput() {
+        const input = document.getElementById("addVpnUserInput");
+        const u = input.value.trim().toLowerCase();
+        if (!u) return;
+        allowedVpnUsers.add(u);
+        input.value = "";
+        renderVpnUsersTags();
+        renderDevicesTable();
+        updateStats();
+        showToast(`Utilizador "${u}" adicionado à VPN!`, "success");
+    }
+
+    function removeVpnUser(u) {
+        allowedVpnUsers.delete(u.toLowerCase());
+        renderVpnUsersTags();
+        renderDevicesTable();
+        updateStats();
+        showToast(`Acesso VPN removido de "${u}".`, "warning");
+    }
+
+    function toggleUserVpn(username) {
+        const u = (username || "").trim().toLowerCase();
+        if (!u) return;
+
+        if (allowedVpnUsers.has(u)) {
+            allowedVpnUsers.delete(u);
+            showToast(`VPN desativada para ${u}`, "warning");
+        } else {
+            allowedVpnUsers.add(u);
+            showToast(`VPN ativada para ${u}`, "success");
+        }
+        renderVpnUsersTags();
+        renderDevicesTable();
+        updateStats();
+    }
+
+    async function triggerVpnKillswitch() {
+        if (!confirm("Tens a certeza que queres cortar todas as sessões VPN ativas do StreamPlay? As boxes ligadas à VPN serão desconectadas.")) return;
+        vpnKillTimestamp = Date.now();
+        await saveStreamPlayVpn();
+        showToast("⚡ Killswitch enviado! Todas as sessões VPN ativas foram desconectadas.", "success");
+    }
+
+    async function saveStreamPlayVpn() {
+        const newAnn = buildVpnAnnouncement();
+        try {
+            await rpc("panel_save_own_config", {
+                p_reseller_id: STREAMPLAY_RESELLER_ID,
+                p_password: adminPassword,
+                p_best_url: currentDnsUrl,
+                p_best2_url: currentDnsUrl,
+                p_announcement: newAnn,
+                p_maintenance_mode: false,
+                p_new_password: ""
+            });
+            currentAnnouncement = newAnn;
+            showToast("Configurações da VPN gravadas com sucesso!", "success");
+        } catch (e) {
+            showToast("Erro ao gravar VPN: " + e.message, "error");
+        }
+    }
+
+    // 3. TABELA DE USERS E DISPOSITIVOS
+    function setDeviceFilter(filter, el) {
+        currentFilter = filter;
+        document.querySelectorAll(".filter-pill").forEach(p => p.classList.remove("active"));
+        el.classList.add("active");
+        renderDevicesTable();
+    }
+
+    function renderDevicesTable() {
+        const tbody = document.getElementById("devicesTableBody");
+        const query = document.getElementById("userSearchInput").value.trim().toLowerCase();
+        const now = Date.now();
+        const activeThreshold = 2 * 60 * 1000;
+
+        let filtered = currentDevices.filter(d => {
+            const u = (d.username || "").toLowerCase();
+            const name = (d.device_name || "").toLowerCase();
+            const id = (d.device_id || "").toLowerCase();
+            const matchesQuery = !query || u.includes(query) || name.includes(query) || id.includes(query);
+            if (!matchesQuery) return false;
+
+            const isOnline = d.last_seen && (now - new Date(d.last_seen).getTime() <= activeThreshold);
+            const hasVpn = currentVpnMode === "all" || (u && allowedVpnUsers.has(u));
+
+            if (currentFilter === "online") return isOnline;
+            if (currentFilter === "vpn") return hasVpn;
+            if (currentFilter === "blocked") return d.is_blocked;
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 32px;">
+                        Nenhum utilizador encontrado com os filtros selecionados.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(d => {
+            const u = (d.username || "").trim();
+            const uLower = u.toLowerCase();
+            const isOnline = d.last_seen && (now - new Date(d.last_seen).getTime() <= activeThreshold);
+            const hasVpn = currentVpnMode === "all" || (uLower && allowedVpnUsers.has(uLower));
+            const isBlocked = !!d.is_blocked;
+
+            let timeAgoText = "Nunca";
+            if (d.last_seen) {
+                const diffMin = Math.round((now - new Date(d.last_seen).getTime()) / 60000);
+                if (diffMin < 1) timeAgoText = "Agora mesmo";
+                else if (diffMin < 60) timeAgoText = `Há ${diffMin} min`;
+                else {
+                    const diffH = Math.floor(diffMin / 60);
+                    timeAgoText = `Há ${diffH}h ${diffMin % 60}m`;
+                }
+            }
+
+            return `
+                <tr>
+                    <td>
+                        <div class="user-col">
+                            <span class="user-name">${u ? escapeHtml(u) : '<span style="color:var(--text-dim)">Sem utilizador</span>'}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="device-info">
+                            <span class="device-model">${escapeHtml(d.device_name || "Dispositivo Android")}</span>
+                            <span class="device-id">${escapeHtml(d.device_id || "")}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-muted);">
+                            v${escapeHtml(d.app_version || "1.0")}
+                        </span>
+                    </td>
+                    <td>
+                        ${isBlocked 
+                            ? '<span class="badge badge-blocked">Bloqueado</span>' 
+                            : (isOnline 
+                                ? '<span class="badge badge-online"><span class="live-pulse"></span> Online</span>' 
+                                : `<span class="badge badge-offline">${timeAgoText}</span>`)}
+                    </td>
+                    <td style="color:var(--text-dim); font-size:12px;">
+                        ${d.last_seen ? new Date(d.last_seen).toLocaleString('pt-PT') : '-'}
+                    </td>
+                    <td>
+                        <button class="icon-btn ${hasVpn ? 'active' : ''}" onclick="toggleUserVpn('${escapeHtml(u)}')" title="${hasVpn ? 'Desativar VPN' : 'Ativar VPN'}">
+                            🛡️
+                        </button>
+                    </td>
+                    <td>
+                        <div class="actions-group">
+                            <button class="icon-btn" onclick="toggleBlockDevice('${escapeHtml(d.device_id)}', ${!isBlocked})" title="${isBlocked ? 'Desbloquear' : 'Bloquear'}">
+                                ${isBlocked ? '🔓' : '🚫'}
+                            </button>
+                            <button class="icon-btn danger" onclick="deleteDevice('${escapeHtml(d.device_id)}')" title="Eliminar Box">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    async function toggleBlockDevice(deviceId, shouldBlock) {
+        if (!confirm(`Tens a certeza que queres ${shouldBlock ? "bloquear" : "desbloquear"} este dispositivo?`)) return;
+        try {
+            await rpc("panel_set_device_block", {
+                p_reseller_id: STREAMPLAY_RESELLER_ID,
+                p_password: adminPassword,
+                p_device_id: deviceId,
+                p_blocked: shouldBlock
+            });
+            showToast(`Dispositivo ${shouldBlock ? "bloqueado" : "desbloqueado"} com sucesso!`, "success");
+            fetchStreamPlayData(false, true);
+        } catch (e) {
+            showToast("Erro ao alterar bloqueio: " + e.message, "error");
+        }
+    }
+
+    async function deleteDevice(deviceId) {
+        if (!confirm("Tens a certeza que queres eliminar permanentemente este dispositivo do painel?")) return;
+        try {
+            await rpc("panel_delete_device", {
+                p_reseller_id: STREAMPLAY_RESELLER_ID,
+                p_password: adminPassword,
+                p_device_id: deviceId
+            });
+            showToast("Dispositivo eliminado com sucesso!", "success");
+            fetchStreamPlayData(false, true);
+        } catch (e) {
+            showToast("Erro ao eliminar dispositivo: " + e.message, "error");
+        }
+    }
+
+    // TOAST NOTIFICATIONS
+    function showToast(message, type = "") {
+        const container = document.getElementById("toastContainer");
+        const t = document.createElement("div");
+        t.className = `toast ${type}`;
+        const icon = type === "success" ? "✅" : (type === "error" ? "❌" : (type === "warning" ? "⚠️" : "ℹ️"));
+        t.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+        container.appendChild(t);
+        setTimeout(() => t.classList.add("show"), 10);
+        setTimeout(() => {
+            t.classList.remove("show");
+            setTimeout(() => t.remove(), 300);
+        }, 3500);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+</script>
+</body>
+</html>

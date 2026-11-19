@@ -31,7 +31,7 @@ if (Test-Path $panelDir) {
     Remove-Item $panelDir -Recurse -Force
 }
 New-Item -ItemType Directory -Path $panelDir | Out-Null
-Copy-Item "painel-admin\index.html" -Destination (Join-Path $panelDir "index.html") -Force
+Copy-Item "painel-admin\*" -Destination $panelDir -Recurse -Force
 Set-Content -Path (Join-Path $panelDir "CNAME") -Value "eaglepanel.site" -NoNewline -Encoding ASCII
 New-Item -ItemType File -Path (Join-Path $panelDir ".nojekyll") -Force | Out-Null
 

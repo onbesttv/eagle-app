@@ -506,9 +506,91 @@ object RemotePanelManager {
             activeBlockDialog = null
         }
 
-        // Popups de aviso desativados permanentemente a pedido do utilizador.
-        // Apenas o sistema de atualizações do app (AppUpdateManager) tem autorização para exibir popups.
+        checkAndShowTvMessage(activity)
         return false
+    }
+
+    private var activeTvMessageDialog: AlertDialog? = null
+
+    fun checkAndShowTvMessage(activity: Activity) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        val prefs = activity.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val rawAnn = prefs.getString("RAW_ANNOUNCEMENT", "").orEmpty()
+        if (!rawAnn.contains("||POPUP:")) return
+
+        val popupRaw = rawAnn.substringAfter("||POPUP:").substringBefore("||").trim()
+        if (popupRaw.isBlank()) return
+
+        // Formato: tipo|duracao|titulo|mensagem|target|msgId
+        val parts = popupRaw.split("|")
+        if (parts.size < 4) return
+
+        val type = parts.getOrNull(0)?.trim()?.lowercase().orEmpty().ifBlank { "info" }
+        val durationSec = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 10
+        val title = parts.getOrNull(2)?.trim().orEmpty().ifBlank { "Mensagem do Administrador" }
+        val body = parts.getOrNull(3)?.trim().orEmpty()
+        val target = parts.getOrNull(4)?.trim()?.lowercase().orEmpty().ifBlank { "all" }
+        val msgId = parts.getOrNull(5)?.trim().orEmpty().ifBlank {
+            (title + body).hashCode().toString()
+        }
+
+        if (body.isBlank()) return
+
+        // Verificar destinatário
+        val myReseller = getResellerId(activity).lowercase()
+        val myDevice = getDeviceId(activity).lowercase()
+        val myMac = getDeviceMac(activity).replace(":", "").replace("-", "").lowercase()
+        val loginPrefs = activity.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
+        val myUser = loginPrefs.getString("SAVED_USER", "")?.trim()?.lowercase().orEmpty()
+
+        val isForMe = when {
+            target == "all" -> true
+            target == "master" -> (myReseller == "master" || myReseller == "eagle_tv")
+            target == myReseller -> true
+            target == myDevice || target == myMac -> true
+            myUser.isNotBlank() && target == myUser -> true
+            else -> false
+        }
+
+        if (!isForMe) return
+
+        val lastShownId = prefs.getString("LAST_SHOWN_POPUP_ID", "")
+        if (lastShownId == msgId) return
+
+        prefs.edit().putString("LAST_SHOWN_POPUP_ID", msgId).apply()
+
+        mainHandler.post {
+            if (activity.isFinishing || activity.isDestroyed) return@post
+            activeTvMessageDialog?.takeIf { it.isShowing }?.dismiss()
+
+            val icon = when (type) {
+                "urgent" -> "🚨"
+                "billing" -> "⚠️"
+                else -> "ℹ️"
+            }
+
+            val dialog = AlertDialog.Builder(activity)
+                .setTitle("$icon  $title")
+                .setMessage(body)
+                .setPositiveButton("OK") { d, _ ->
+                    d.dismiss()
+                    activeTvMessageDialog = null
+                }
+                .create()
+
+            dialog.show()
+            activeTvMessageDialog = dialog
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.requestFocus()
+
+            if (durationSec > 0) {
+                mainHandler.postDelayed({
+                    if (dialog.isShowing && !activity.isFinishing && !activity.isDestroyed) {
+                        dialog.dismiss()
+                        if (activeTvMessageDialog === dialog) activeTvMessageDialog = null
+                    }
+                }, durationSec * 1000L)
+            }
+        }
     }
 
     private fun showBlockOrMaintenanceDialog(activity: Activity, isMaintenance: Boolean) {
