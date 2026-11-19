@@ -1,6 +1,8 @@
 *.iml
 .gradle
 /local.properties
+/scratch/
+*.apk
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -13,3 +15,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+/scratch/
+*.apk

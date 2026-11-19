@@ -38,6 +38,7 @@ if (-not (Test-Path $srcApk)) {
     Write-Error "APK gerado nao encontrado em $srcApk"
 }
 Copy-Item $srcApk -Destination "eagle.apk" -Force
+Copy-Item $srcApk -Destination "revendas\eagle.apk" -Force
 $apkSizeMB = [math]::Round((Get-Item "eagle.apk").Length / 1MB, 2)
 Write-Host "[3/6] eagle.apk atualizado com sucesso ($apkSizeMB MB)" -ForegroundColor Green
 
@@ -82,7 +83,7 @@ try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/tags/$tag" -Headers $headers -Method Get
     if ($release -and $release.id) {
         # Garante que a release nao tem qualquer descricao
-        $clearBody = @{ body = "" } | ConvertTo-Json
+        $clearBody = @{ body = ""; name = "Versao $versionName" } | ConvertTo-Json
         Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases/$($release.id)" -Headers $headers -Method Patch -Body $clearBody -ContentType "application/json" | Out-Null
     }
 } catch {}
