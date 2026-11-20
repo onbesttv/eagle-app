@@ -2024,6 +2024,16 @@ class EagleTvActivity : BaseActivity() {
                             initialIdx = if (listaCompleta.size > 3) 3 else 0
                         }
 
+                        // Proteção Controlo Parental no arranque da app
+                        if (ParentalControlManager.isParentalControlEnabled(this@EagleTvActivity) &&
+                            initialIdx in listaCompleta.indices &&
+                            ParentalControlManager.isAdultCategory(listaCompleta[initialIdx].categoryName) &&
+                            !ParentalControlManager.isCategoryUnlocked(listaCompleta[initialIdx].categoryId)
+                        ) {
+                            val safeIdx = listaCompleta.indexOfFirst { !ParentalControlManager.isAdultCategory(it.categoryName) }
+                            if (safeIdx >= 0) initialIdx = safeIdx
+                        }
+
                         liveGroupAdapter = GroupListAdapter(
                             items = listaCompleta.map { it.categoryId to it.categoryName },
                             initialSelected = initialIdx,
@@ -2100,6 +2110,25 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun selecionarGrupoLive(groupId: String, groupName: String, iniciarCanal: Boolean) {
+        if (ParentalControlManager.isParentalControlEnabled(this) &&
+            ParentalControlManager.isAdultCategory(groupName) &&
+            !ParentalControlManager.isCategoryUnlocked(groupId)
+        ) {
+            ParentalControlManager.promptPin(
+                activity = this,
+                categoryName = groupName,
+                onCorrect = {
+                    ParentalControlManager.unlockCategory(groupId)
+                    selecionarGrupoLive(groupId, groupName, iniciarCanal)
+                },
+                onCancel = {
+                    liveGroupAdapter?.selecionarPorId(currentLiveGroupId)
+                    overlayGroupAdapter?.selecionarPorId(currentLiveGroupId)
+                }
+            )
+            return
+        }
+
         currentLiveGroupId = groupId
         currentLiveGroupName = groupName
         tvLiveChannelListHeader.text = groupName.uppercase(Locale.getDefault())
@@ -2252,6 +2281,25 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun sintonizarCanal(canal: LiveStream, channelNumber: Int) {
+        val canalCatName = allLiveCategories.firstOrNull { it.categoryId == canal.categoryId }?.categoryName
+        val isAdult = ParentalControlManager.isAdultCategory(canalCatName) ||
+                      ParentalControlManager.isAdultCategory(canal.name)
+        val catId = canal.categoryId.orEmpty().ifBlank { "LIVE_STREAM_${canal.streamId}" }
+        if (ParentalControlManager.isParentalControlEnabled(this) &&
+            isAdult &&
+            !ParentalControlManager.isCategoryUnlocked(catId)
+        ) {
+            ParentalControlManager.promptPin(
+                activity = this,
+                categoryName = canal.name ?: "Canal Adulto",
+                onCorrect = {
+                    ParentalControlManager.unlockCategory(catId)
+                    sintonizarCanal(canal, channelNumber)
+                }
+            )
+            return
+        }
+
         currentPlayingChannel = canal
         currentPlayingNumber = channelNumber
         currentStreamId = canal.streamId
@@ -3035,9 +3083,27 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun selecionarCategoriaFilmes(catId: String) {
+        val catNome = allVodCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Filmes"
+        if (ParentalControlManager.isParentalControlEnabled(this) &&
+            ParentalControlManager.isAdultCategory(catNome) &&
+            !ParentalControlManager.isCategoryUnlocked(catId)
+        ) {
+            ParentalControlManager.promptPin(
+                activity = this,
+                categoryName = catNome,
+                onCorrect = {
+                    ParentalControlManager.unlockCategory(catId)
+                    selecionarCategoriaFilmes(catId)
+                },
+                onCancel = {
+                    catalogGroupAdapter?.selecionarPorId(currentVodCategoryId)
+                }
+            )
+            return
+        }
+
         currentVodCategoryId = catId
         catalogGroupAdapter?.selecionarPorId(catId)
-        val catNome = allVodCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Filmes"
         definirTopoInformativo("🎬 $catNome", "Pasta de Filmes", "Navega pelos filmes com o comando e carrega OK para ver a sinopse.")
 
         val isAllMovies = (catId == "ALL_MOVIES")
@@ -3503,9 +3569,27 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun selecionarCategoriaSeries(catId: String) {
+        val catNome = allSeriesCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Séries"
+        if (ParentalControlManager.isParentalControlEnabled(this) &&
+            ParentalControlManager.isAdultCategory(catNome) &&
+            !ParentalControlManager.isCategoryUnlocked(catId)
+        ) {
+            ParentalControlManager.promptPin(
+                activity = this,
+                categoryName = catNome,
+                onCorrect = {
+                    ParentalControlManager.unlockCategory(catId)
+                    selecionarCategoriaSeries(catId)
+                },
+                onCancel = {
+                    catalogGroupAdapter?.selecionarPorId(currentSeriesCategoryId)
+                }
+            )
+            return
+        }
+
         currentSeriesCategoryId = catId
         catalogGroupAdapter?.selecionarPorId(catId)
-        val catNome = allSeriesCategories.firstOrNull { it.categoryId == catId }?.categoryName ?: "Séries"
         definirTopoInformativo("🎞️ $catNome", "Pasta de Séries", "Navega pelas séries com o comando e carrega OK para ver episódios.")
 
         val isAllSeries = (catId == "ALL_SERIES")
@@ -3679,6 +3763,29 @@ class EagleTvActivity : BaseActivity() {
             onClick = { item ->
                 when (item) {
                     is CatalogPosterItem.Movie -> {
+                        val catName = allVodCategories.firstOrNull { it.categoryId == item.vod.categoryId }?.categoryName
+                        val isAdult = ParentalControlManager.isAdultCategory(catName) ||
+                                      ParentalControlManager.isAdultCategory(item.vod.name)
+                        val catId = item.vod.categoryId?.toString() ?: "VOD_${item.vod.streamId}"
+                        if (ParentalControlManager.isParentalControlEnabled(this) &&
+                            isAdult &&
+                            !ParentalControlManager.isCategoryUnlocked(catId)
+                        ) {
+                            ParentalControlManager.promptPin(
+                                activity = this,
+                                categoryName = item.vod.name ?: "Filme Adulto",
+                                onCorrect = {
+                                    ParentalControlManager.unlockCategory(catId)
+                                    startActivity(Intent(this, MovieDetailActivity::class.java).apply {
+                                        putExtra("STREAM_ID", item.vod.streamId)
+                                        putExtra("STREAM_TITLE", item.vod.name)
+                                        putExtra("STREAM_ICON", item.vod.streamIcon)
+                                        putExtra("CONTAINER_EXT", item.vod.containerExtension ?: "mp4")
+                                    })
+                                }
+                            )
+                            return@CatalogPosterAdapter
+                        }
                         startActivity(Intent(this, MovieDetailActivity::class.java).apply {
                             putExtra("STREAM_ID", item.vod.streamId)
                             putExtra("STREAM_TITLE", item.vod.name)
@@ -3687,6 +3794,29 @@ class EagleTvActivity : BaseActivity() {
                         })
                     }
                     is CatalogPosterItem.Series -> {
+                        val catName = allSeriesCategories.firstOrNull { it.categoryId == item.series.categoryId }?.categoryName
+                        val isAdult = ParentalControlManager.isAdultCategory(catName) ||
+                                      ParentalControlManager.isAdultCategory(item.series.name)
+                        val catId = item.series.categoryId?.toString() ?: "SERIES_${item.series.seriesId}"
+                        if (ParentalControlManager.isParentalControlEnabled(this) &&
+                            isAdult &&
+                            !ParentalControlManager.isCategoryUnlocked(catId)
+                        ) {
+                            ParentalControlManager.promptPin(
+                                activity = this,
+                                categoryName = item.series.name ?: "Série Adulta",
+                                onCorrect = {
+                                    ParentalControlManager.unlockCategory(catId)
+                                    startActivity(Intent(this, SeriesDetailActivity::class.java).apply {
+                                        putExtra("SERIES_ID", item.series.seriesId)
+                                        putExtra("SERIES_NAME", item.series.name)
+                                        putExtra("SERIES_COVER", item.series.cover)
+                                        putExtra("SERIES_PLOT", item.series.plot)
+                                    })
+                                }
+                            )
+                            return@CatalogPosterAdapter
+                        }
                         startActivity(Intent(this, SeriesDetailActivity::class.java).apply {
                             putExtra("SERIES_ID", item.series.seriesId)
                             putExtra("SERIES_NAME", item.series.name)

@@ -49,6 +49,7 @@ class MoviesActivity : BaseActivity() {
     private var lastClickedMovieId: Int = -1
 
     private var currentCategoryId = ""
+    private var categoriasCache: List<VodCategory> = emptyList()
     private var user = ""
     private var pass = ""
 
@@ -159,10 +160,29 @@ class MoviesActivity : BaseActivity() {
                     categoriasCompletas.add(VodCategory("RESUME", "▶ CONTINUAR A VER", 0))
                     categoriasCompletas.add(VodCategory("ALL_MOVIES", "🌟 TODOS OS FILMES", 0))
                     categoriasCompletas.addAll(categoriasRemotas)
+                    categoriasCache = categoriasCompletas
 
                     runOnUiThread {
                         val initialPos = 0
                         rvCategories.adapter = MovieCategoryAdapter(categoriasCompletas, initialPos) { cat ->
+                            if (ParentalControlManager.isParentalControlEnabled(this@MoviesActivity) &&
+                                ParentalControlManager.isAdultCategory(cat.categoryName) &&
+                                !ParentalControlManager.isCategoryUnlocked(cat.categoryId)
+                            ) {
+                                ParentalControlManager.promptPin(
+                                    activity = this@MoviesActivity,
+                                    categoryName = cat.categoryName,
+                                    onCorrect = {
+                                        ParentalControlManager.unlockCategory(cat.categoryId)
+                                        (rvCategories.adapter as? MovieCategoryAdapter)?.selecionarPorId(cat.categoryId)
+                                        tratarSelecaoCategoria(cat.categoryId)
+                                    },
+                                    onCancel = {
+                                        (rvCategories.adapter as? MovieCategoryAdapter)?.selecionarPorId(currentCategoryId)
+                                    }
+                                )
+                                return@MovieCategoryAdapter
+                            }
                             tratarSelecaoCategoria(cat.categoryId)
                         }
                         tratarSelecaoCategoria("RECENT")
@@ -581,6 +601,24 @@ class MoviesActivity : BaseActivity() {
     }
 
     private fun abrirFilme(filme: VodStream) {
+        val catName = categoriasCache.firstOrNull { it.categoryId == filme.categoryId }?.categoryName
+        val isAdult = ParentalControlManager.isAdultCategory(catName) || ParentalControlManager.isAdultCategory(filme.name)
+        val catId = filme.categoryId.orEmpty().ifBlank { "VOD_${filme.streamId}" }
+        if (ParentalControlManager.isParentalControlEnabled(this) &&
+            isAdult &&
+            !ParentalControlManager.isCategoryUnlocked(catId)
+        ) {
+            ParentalControlManager.promptPin(
+                activity = this,
+                categoryName = filme.name ?: "Filme Adulto",
+                onCorrect = {
+                    ParentalControlManager.unlockCategory(catId)
+                    abrirFilme(filme)
+                }
+            )
+            return
+        }
+
         lastClickedMovieId = filme.streamId
         val intent = Intent(this, MovieDetailActivity::class.java).apply {
             putExtra("STREAM_ID", filme.streamId)
@@ -599,6 +637,16 @@ class MoviesActivity : BaseActivity() {
     ) : RecyclerView.Adapter<MovieCategoryAdapter.ViewHolder>() {
 
         fun posicaoSelecionada(): Int = selectedPosition
+
+        fun selecionarPorId(categoryId: String) {
+            val idx = list.indexOfFirst { it.categoryId == categoryId }
+            if (idx >= 0 && idx != selectedPosition) {
+                val prev = selectedPosition
+                selectedPosition = idx
+                if (prev != RecyclerView.NO_POSITION) notifyItemChanged(prev)
+                notifyItemChanged(idx)
+            }
+        }
 
         fun atualizarTextoVisivel(categoryId: String) {
             val position = list.indexOfFirst { it.categoryId == categoryId }

@@ -354,6 +354,8 @@ object RemotePanelManager {
                             .replace(Regex("\\|\\|ACTIVATIONS:.*?(?=\\|\\||$)"), "")
                             .replace(Regex("\\|\\|DNS_LIST:.*?(?=\\|\\||$)"), "")
                             .replace(Regex("\\|\\|VPN:.*?(?=\\|\\||$)"), "")
+                            .replace(Regex("\\|\\|POPUP:.*?(?=\\|\\||$)"), "")
+                            .replace(Regex("\\|\\|PARENTAL_RESET:.*?(?=\\|\\||$)"), "")
                             .trim()
                         val announcementParts = rawAnnouncement.split("||VPN:", limit = 2)
                         if (announcementParts.size > 1) {
@@ -421,6 +423,8 @@ object RemotePanelManager {
                             .putString(KEY_ANNOUNCEMENT, announcement)
                             .putString("RAW_ANNOUNCEMENT", rawAnnouncement)
                             .apply()
+
+                        ParentalControlManager.applyRemoteReset(appContext, rawAnnouncement)
 
                         val allowedDns = getAvailableDnsList(appContext)
                         val authDns = loginPrefs.getString("AUTHENTICATED_DNS", "").orEmpty().trim().trimEnd('/')

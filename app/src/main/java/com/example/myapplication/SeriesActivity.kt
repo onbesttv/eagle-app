@@ -45,6 +45,7 @@ class SeriesActivity : BaseActivity() {
     private var lastClickedSeriesId: Int = -1
 
     private var currentCategoryId = ""
+    private var categoriasCache: List<SeriesCategory> = emptyList()
     private var user = ""
     private var pass = ""
 
@@ -136,10 +137,29 @@ class SeriesActivity : BaseActivity() {
                     categoriasCompletas.add(SeriesCategory("FAVORITES", getString(R.string.category_favorites)))
                     categoriasCompletas.add(SeriesCategory("ALL_SERIES", "🌟 TODAS AS SÉRIES"))
                     categoriasCompletas.addAll(categoriasRemotas)
+                    categoriasCache = categoriasCompletas
 
                     runOnUiThread {
                         val initialPos = 0
                         rvCategories.adapter = SeriesCategoryAdapter(categoriasCompletas, initialPos) { cat ->
+                            if (ParentalControlManager.isParentalControlEnabled(this@SeriesActivity) &&
+                                ParentalControlManager.isAdultCategory(cat.categoryName) &&
+                                !ParentalControlManager.isCategoryUnlocked(cat.categoryId)
+                            ) {
+                                ParentalControlManager.promptPin(
+                                    activity = this@SeriesActivity,
+                                    categoryName = cat.categoryName,
+                                    onCorrect = {
+                                        ParentalControlManager.unlockCategory(cat.categoryId)
+                                        (rvCategories.adapter as? SeriesCategoryAdapter)?.selecionarPorId(cat.categoryId)
+                                        tratarSelecaoCategoria(cat.categoryId)
+                                    },
+                                    onCancel = {
+                                        (rvCategories.adapter as? SeriesCategoryAdapter)?.selecionarPorId(currentCategoryId)
+                                    }
+                                )
+                                return@SeriesCategoryAdapter
+                            }
                             tratarSelecaoCategoria(cat.categoryId)
                         }
                         tratarSelecaoCategoria("RECENT")
@@ -489,6 +509,24 @@ class SeriesActivity : BaseActivity() {
     }
 
     private fun abrirDetalhesSerie(serie: SeriesItem) {
+        val catName = categoriasCache.firstOrNull { it.categoryId == serie.categoryId }?.categoryName
+        val isAdult = ParentalControlManager.isAdultCategory(catName) || ParentalControlManager.isAdultCategory(serie.name)
+        val catId = serie.categoryId.orEmpty().ifBlank { "SERIES_${serie.seriesId}" }
+        if (ParentalControlManager.isParentalControlEnabled(this) &&
+            isAdult &&
+            !ParentalControlManager.isCategoryUnlocked(catId)
+        ) {
+            ParentalControlManager.promptPin(
+                activity = this,
+                categoryName = serie.name ?: "Série Adulta",
+                onCorrect = {
+                    ParentalControlManager.unlockCategory(catId)
+                    abrirDetalhesSerie(serie)
+                }
+            )
+            return
+        }
+
         lastClickedSeriesId = serie.seriesId
         val intent = Intent(this, SeriesDetailActivity::class.java).apply {
             putExtra("SERIES_ID", serie.seriesId)
@@ -507,6 +545,16 @@ class SeriesActivity : BaseActivity() {
     ) : RecyclerView.Adapter<SeriesCategoryAdapter.ViewHolder>() {
 
         fun posicaoSelecionada(): Int = selectedPosition
+
+        fun selecionarPorId(categoryId: String) {
+            val idx = list.indexOfFirst { it.categoryId == categoryId }
+            if (idx >= 0 && idx != selectedPosition) {
+                val prev = selectedPosition
+                selectedPosition = idx
+                if (prev != RecyclerView.NO_POSITION) notifyItemChanged(prev)
+                notifyItemChanged(idx)
+            }
+        }
 
         fun atualizarTextoVisivel(categoryId: String) {
             val position = list.indexOfFirst { it.categoryId == categoryId }

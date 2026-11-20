@@ -5016,7 +5016,7 @@
             msgSel.innerHTML = optionsHtml || `<option value="">Nenhum dispositivo encontrado</option>`;
         }
         if (parSel) {
-            parSel.innerHTML = optionsHtml || `<option value="">Nenhum dispositivo encontrado</option>`;
+            parSel.innerHTML = `<option value="all">⚡ Todos os Dispositivos (PIN Geral)</option>` + (optionsHtml ? optionsHtml : "");
         }
     }
 
@@ -5206,18 +5206,38 @@
 
         try {
             const tag = `||PARENTAL_RESET:${targetDev}=${pin1}||`;
-            const currentAnn = document.getElementById("cfgAnnouncement") ? document.getElementById("cfgAnnouncement").value : "";
-            const cleanAnn = currentAnn.replace(new RegExp(`\\|\\|PARENTAL_RESET:${targetDev}=.*?\\|\\|`, 'g'), "").trim();
+            let baseAnn = (lastDashboardData && lastDashboardData.announcement) ? lastDashboardData.announcement : (document.getElementById("cfgAnnouncement") ? document.getElementById("cfgAnnouncement").value : "");
+            const escapedTarget = targetDev.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+            const cleanAnn = baseAnn.replace(new RegExp(`\\|\\|PARENTAL_RESET:${escapedTarget}=.*?\\|\\|`, 'g'), "").trim();
             const newAnn = (cleanAnn ? cleanAnn + " " : "") + tag;
 
-            await rpcCall("admin_save_config", {
-                p_password: adminPassword,
-                p_best_url: document.getElementById("cfgBestUrl").value,
-                p_best2_url: document.getElementById("cfgBest2Url").value,
-                p_announcement: newAnn,
-                p_maintenance_mode: false,
-                p_new_password: ""
-            });
+            if (lastDashboardData) {
+                lastDashboardData.announcement = newAnn;
+            }
+
+            const bestUrl = document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : (lastDashboardData ? (lastDashboardData.best_url || "") : "");
+            const best2Url = document.getElementById("cfgBest2Url") ? document.getElementById("cfgBest2Url").value.trim() : (lastDashboardData ? (lastDashboardData.best2_url || "") : "");
+
+            if (multiResellerEnabled) {
+                await rpcCall("panel_save_own_config", {
+                    p_reseller_id: "master",
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: newAnn,
+                    p_maintenance_mode: false,
+                    p_new_password: ""
+                });
+            } else {
+                await rpcCall("admin_save_config", {
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: newAnn,
+                    p_maintenance_mode: false,
+                    p_new_password: ""
+                });
+            }
 
             showToast(`🔑 Novo PIN (${pin1}) configurado com sucesso no dispositivo!`);
         } catch (err) {

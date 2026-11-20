@@ -82,6 +82,8 @@ class LiveTvActivity : BaseActivity() {
     private var categoryLoadRequestId = 0
     private var channelAdapter: ChannelAdapter? = null
     private var overlayAdapter: OverlayChannelAdapter? = null
+    private var categoriasCache: List<LiveCategory> = emptyList()
+    private var currentCategoryId: String = ""
 
     private var user = ""
     private var pass = ""
@@ -487,9 +489,31 @@ class LiveTvActivity : BaseActivity() {
                 try {
                     val type = object : TypeToken<List<LiveCategory>>() {}.type
                     val categorias: List<LiveCategory> = gson.fromJson(json, type)
+                    categoriasCache = categorias
 
                     runOnUiThread {
                         rvCategories.adapter = CategoryAdapter(categorias) { categoria ->
+                            if (ParentalControlManager.isParentalControlEnabled(this@LiveTvActivity) &&
+                                ParentalControlManager.isAdultCategory(categoria.categoryName) &&
+                                !ParentalControlManager.isCategoryUnlocked(categoria.categoryId)
+                            ) {
+                                ParentalControlManager.promptPin(
+                                    activity = this@LiveTvActivity,
+                                    categoryName = categoria.categoryName,
+                                    onCorrect = {
+                                        ParentalControlManager.unlockCategory(categoria.categoryId)
+                                        currentCategoryId = categoria.categoryId
+                                        (rvCategories.adapter as? CategoryAdapter)?.selecionarCategoriaPorId(categoria.categoryId)
+                                        carregarCanaisDaCategoria(categoria.categoryId, iniciarReproducao = false)
+                                        focarPastaSelecionada()
+                                    },
+                                    onCancel = {
+                                        (rvCategories.adapter as? CategoryAdapter)?.selecionarCategoriaPorId(currentCategoryId)
+                                    }
+                                )
+                                return@CategoryAdapter
+                            }
+                            currentCategoryId = categoria.categoryId
                             carregarCanaisDaCategoria(categoria.categoryId, iniciarReproducao = false)
                             focarPastaSelecionada()
                         }
@@ -499,7 +523,13 @@ class LiveTvActivity : BaseActivity() {
                             carregarContadoresELocalizarCanal(categorias, targetChannelName)
                         } else {
                             if (categorias.isNotEmpty()) {
-                                carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                                val initialCat = categorias.firstOrNull {
+                                    !ParentalControlManager.isParentalControlEnabled(this@LiveTvActivity) ||
+                                    !ParentalControlManager.isAdultCategory(it.categoryName)
+                                } ?: categorias[0]
+                                currentCategoryId = initialCat.categoryId
+                                (rvCategories.adapter as? CategoryAdapter)?.selecionarCategoriaPorId(initialCat.categoryId)
+                                carregarCanaisDaCategoria(initialCat.categoryId, iniciarReproducao = true)
                                 rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
                             }
                             carregarContadoresLive()
@@ -626,13 +656,34 @@ class LiveTvActivity : BaseActivity() {
                         CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, mapOf(catId to canais.size))
                         (rvCategories.adapter as? CategoryAdapter)?.atualizarTextoVisivel(catId)
 
+                        val onCanalSelect: (LiveStream) -> Unit = { canal ->
+                            val catName = categoriasCache.firstOrNull { it.categoryId == canal.categoryId }?.categoryName
+                            val isAdult = ParentalControlManager.isAdultCategory(catName) || ParentalControlManager.isAdultCategory(canal.name)
+                            val catUnlockId = canal.categoryId.orEmpty().ifBlank { "CHANNEL_${canal.streamId}" }
+                            if (ParentalControlManager.isParentalControlEnabled(this@LiveTvActivity) &&
+                                isAdult &&
+                                !ParentalControlManager.isCategoryUnlocked(catUnlockId)
+                            ) {
+                                ParentalControlManager.promptPin(
+                                    activity = this@LiveTvActivity,
+                                    categoryName = canal.name,
+                                    onCorrect = {
+                                        ParentalControlManager.unlockCategory(catUnlockId)
+                                        tocarNoMiniPlayer(canal)
+                                    }
+                                )
+                            } else {
+                                tocarNoMiniPlayer(canal)
+                            }
+                        }
+
                         channelAdapter = ChannelAdapter(canais) { canal ->
-                            tocarNoMiniPlayer(canal)
+                            onCanalSelect(canal)
                         }
                         rvChannels.adapter = channelAdapter
 
                         overlayAdapter = OverlayChannelAdapter(canais) { canal ->
-                            tocarNoMiniPlayer(canal)
+                            onCanalSelect(canal)
                             fecharGavetaFullscreen()
                         }
                         rvOverlayChannels.adapter = overlayAdapter
@@ -655,7 +706,16 @@ class LiveTvActivity : BaseActivity() {
                             } ?: canais[0]
 
                             channelAdapter?.selecionarCanalPorId(canalInicial.streamId)
-                            tocarNoMiniPlayer(canalInicial)
+                            val canalInicialIsAdult = ParentalControlManager.isAdultCategory(canalInicial.name) ||
+                                ParentalControlManager.isAdultCategory(categoriasCache.firstOrNull { it.categoryId == canalInicial.categoryId }?.categoryName)
+                            if (ParentalControlManager.isParentalControlEnabled(this@LiveTvActivity) &&
+                                canalInicialIsAdult &&
+                                !ParentalControlManager.isCategoryUnlocked(canalInicial.categoryId.orEmpty())
+                            ) {
+                                // Canal adulto não toca automaticamente sem desbloqueio
+                            } else {
+                                tocarNoMiniPlayer(canalInicial)
+                            }
                             focarCanalAtual()
                         }
                     }
