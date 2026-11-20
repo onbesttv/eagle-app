@@ -529,8 +529,14 @@ object RemotePanelManager {
         val durationSec = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 10
         val title = parts.getOrNull(2)?.trim().orEmpty().ifBlank { "Mensagem do Administrador" }
         val body = parts.getOrNull(3)?.trim().orEmpty()
-        val target = parts.getOrNull(4)?.trim()?.lowercase().orEmpty().ifBlank { "all" }
-        val msgId = parts.getOrNull(5)?.trim().orEmpty().ifBlank {
+        val target = if (parts.size >= 6) {
+            parts.subList(4, parts.size - 1).joinToString(",").trim().lowercase().ifBlank { "all" }
+        } else {
+            parts.getOrNull(4)?.trim()?.lowercase().orEmpty().ifBlank { "all" }
+        }
+        val msgId = if (parts.size >= 6) {
+            parts.last().trim().ifBlank { (title + body).hashCode().toString() }
+        } else {
             (title + body).hashCode().toString()
         }
 

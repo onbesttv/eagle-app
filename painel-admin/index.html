@@ -5008,7 +5008,7 @@
             const u = (d.username || "").trim();
             const devId = (d.device_id || "").trim();
             const dev = d.device_name || devId || "Dispositivo";
-            const val = devId && u ? `${devId}|${u}` : (devId || u);
+            const val = devId && u ? `${devId},${u}` : (devId || u);
             return `<option value="${escapeHtml(val)}">${escapeHtml(u || "Sem User")} — ${escapeHtml(dev)}</option>`;
         }).join("");
 
@@ -5135,6 +5135,7 @@
                 const sEl = document.getElementById("msgSpecificUserSelect");
                 targetVal = sEl ? sEl.value.trim().toLowerCase() : "";
             }
+            targetVal = targetVal.replace(/\|/g, ",").trim();
             const msgId = Date.now().toString(36);
             const tag = `||POPUP:${type}|${duration}|${title}|${body}|${targetVal}|${msgId}||`;
             
