@@ -168,10 +168,21 @@ class MainActivity : BaseActivity() {
         AccountExpirationAlert.checkAndShow(this)
     }
 
+    private val periodicSyncRunnable = object : Runnable {
+        override fun run() {
+            if (!isFinishing && !isDestroyed) {
+                RemotePanelManager.syncAndEnforce(this@MainActivity)
+                window.decorView.postDelayed(this, 30_000L)
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         RemotePanelManager.syncAndEnforce(this)
         AppUpdateManager.checkForUpdates(this, manual = false)
+        window.decorView.removeCallbacks(periodicSyncRunnable)
+        window.decorView.postDelayed(periodicSyncRunnable, 30_000L)
         // Atualiza os títulos caso o idioma tenha sido alterado nas Definições
         findViewById<TextView>(R.id.tvLiveTvTitle)?.text = getString(R.string.live_tv)
         findViewById<TextView>(R.id.tvEpgTitle)?.text = getString(R.string.tv_guide)
@@ -240,6 +251,11 @@ class MainActivity : BaseActivity() {
                 startActivity(Intent(this, VpnActivity::class.java))
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        window.decorView.removeCallbacks(periodicSyncRunnable)
     }
 
     private fun atualizarCatalogo(button: ImageButton, user: String, pass: String) {

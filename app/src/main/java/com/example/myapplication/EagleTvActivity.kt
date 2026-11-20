@@ -527,8 +527,8 @@ class EagleTvActivity : BaseActivity() {
             if (!isFinishing && !isDestroyed) {
                 RemotePanelManager.syncAndEnforce(this@EagleTvActivity)
                 AppUpdateManager.checkForUpdates(this@EagleTvActivity, manual = false)
-                // Volta a verificar a cada 3 minutos automaticamente em segundo plano
-                uiHandler.postDelayed(this, 3 * 60_000L)
+                // Volta a verificar a cada 30 segundos automaticamente em segundo plano
+                uiHandler.postDelayed(this, 30_000L)
             }
         }
     }

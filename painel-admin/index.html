@@ -1704,6 +1704,22 @@
 
     <!-- ABA 5: ENVIAR MENSAGENS PARA A BOX (Ottrun Send Message Style) -->
     <div id="tabContentMessages" style="display: none;">
+        <!-- Banner de Mensagem Ativa -->
+        <div id="activeTvMessageBanner" style="display: none; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">📢</span>
+                    <div>
+                        <strong style="color: #60a5fa; font-size: 14px;" id="activeTvMsgTitle">Mensagem Ativa</strong>
+                        <div style="color: #cbd5e1; font-size: 12px; margin-top: 2px;" id="activeTvMsgBody">...</div>
+                    </div>
+                </div>
+                <button type="button" class="btn" style="background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 6px 14px; font-size: 12px;" onclick="handleClearTvMessage()">
+                    🗑️ Limpar / Remover Mensagem do Ecrã
+                </button>
+            </div>
+        </div>
+
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
             <div class="card" style="margin-bottom: 0;">
                 <div class="card-header">
@@ -2963,7 +2979,11 @@
         if (tab === "links") {
             renderResellerLinks();
         }
-        if (tab === "messages" || tab === "parental") {
+        if (tab === "messages") {
+            populateMasterToolsDropdowns();
+            renderActiveTvMessageCard();
+        }
+        if (tab === "parental") {
             populateMasterToolsDropdowns();
         }
 
@@ -5027,22 +5047,87 @@
         }
     }
 
+    function renderActiveTvMessageCard() {
+        const banner = document.getElementById("activeTvMessageBanner");
+        if (!banner) return;
+        const rawAnn = (lastDashboardData && lastDashboardData.announcement) ? lastDashboardData.announcement : "";
+        if (!rawAnn.includes("||POPUP:")) {
+            banner.style.display = "none";
+            return;
+        }
+        const match = rawAnn.match(/\|\|POPUP:(.*?)\|\|/);
+        if (!match || !match[1]) {
+            banner.style.display = "none";
+            return;
+        }
+        const parts = match[1].split("|");
+        const type = parts[0] || "info";
+        const title = parts[2] || "Aviso Importante";
+        const body = parts[3] || "...";
+        const target = parts[4] || "all";
+
+        const titleEl = document.getElementById("activeTvMsgTitle");
+        const bodyEl = document.getElementById("activeTvMsgBody");
+        if (titleEl) titleEl.textContent = `📢 Mensagem Ativa no Ecrã: "${title}" (Destino: ${target === 'all' ? 'Todos' : target})`;
+        if (bodyEl) bodyEl.textContent = body;
+        banner.style.display = "block";
+    }
+
+    async function handleClearTvMessage() {
+        const btn = event ? event.target : null;
+        if (btn) btn.disabled = true;
+        try {
+            let baseAnn = (lastDashboardData && lastDashboardData.announcement) ? lastDashboardData.announcement : "";
+            const cleanAnn = baseAnn.replace(/\|\|POPUP:.*?\|\|/g, "").trim();
+            if (lastDashboardData) lastDashboardData.announcement = cleanAnn;
+
+            const bestUrl = document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : (lastDashboardData ? (lastDashboardData.best_url || "") : "");
+            const best2Url = document.getElementById("cfgBest2Url") ? document.getElementById("cfgBest2Url").value.trim() : (lastDashboardData ? (lastDashboardData.best2_url || "") : "");
+
+            if (multiResellerEnabled) {
+                await rpcCall("panel_save_own_config", {
+                    p_reseller_id: "master",
+                    p_password: adminPassword,
+                    p_best_url: bestUrl,
+                    p_best2_url: best2Url,
+                    p_announcement: cleanAnn,
+                    p_maintenance_mode: false,
+                    p_new_password: ""
+                });
+            }
+            renderActiveTvMessageCard();
+            showToast("🗑️ Mensagem removida dos ecrãs com sucesso!");
+        } catch (err) {
+            showToast("Erro ao remover mensagem: " + err.message, true);
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
     async function handleSendTvMessage(e) {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
         const target = document.getElementById("msgTargetSelect").value;
         const type = document.getElementById("msgTypeSelect").value;
-        const title = document.getElementById("msgTitleInput").value.trim();
-        const body = document.getElementById("msgBodyInput").value.trim();
+        const title = (document.getElementById("msgTitleInput").value || "").trim().replace(/\|/g, " - ");
+        const body = (document.getElementById("msgBodyInput").value || "").trim().replace(/\|/g, " - ");
         const duration = document.getElementById("msgDurationSelect").value;
         const btn = document.getElementById("btnSendTvMsg");
 
-        btn.disabled = true;
-        btn.textContent = "A disparar mensagem...";
+        if (!title || !body) {
+            showToast("Preenche o título e o conteúdo da mensagem.", true);
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.textContent = "A disparar mensagem...";
+        }
 
         try {
             let targetVal = target;
             if (target === "specific") {
-                targetVal = document.getElementById("msgSpecificUserSelect").value.trim().toLowerCase();
+                const sEl = document.getElementById("msgSpecificUserSelect");
+                targetVal = sEl ? sEl.value.trim().toLowerCase() : "";
             }
             const msgId = Date.now().toString(36);
             const tag = `||POPUP:${type}|${duration}|${title}|${body}|${targetVal}|${msgId}||`;
@@ -5080,12 +5165,15 @@
                 });
             }
 
-            showToast("🚀 Mensagem pop-up enviada com sucesso para os ecrãs de TV!");
+            showToast("🚀 Mensagem disparada com sucesso para o ecrã!");
+            renderActiveTvMessageCard();
         } catch (err) {
             showToast("Erro ao enviar mensagem: " + err.message, true);
         } finally {
-            btn.disabled = false;
-            btn.textContent = "🚀 Disparar Mensagem para a TV";
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = "🚀 Disparar Mensagem para a TV";
+            }
         }
     }
 
