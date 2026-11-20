@@ -543,12 +543,14 @@ object RemotePanelManager {
         val loginPrefs = activity.getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
         val myUser = loginPrefs.getString("SAVED_USER", "")?.trim()?.lowercase().orEmpty()
 
+        val targetTokens = target.split("|", ",", ";").map { it.trim().lowercase() }.filter { it.isNotBlank() }
         val isForMe = when {
-            target == "all" -> true
-            target == "master" -> (myReseller == "master" || myReseller == "eagle_tv")
-            target == myReseller -> true
-            target == myDevice || target == myMac -> true
-            myUser.isNotBlank() && target == myUser -> true
+            target == "all" || targetTokens.contains("all") -> true
+            target == "master" || targetTokens.contains("master") -> (myReseller == "master" || myReseller == "eagle_tv")
+            target == myReseller || targetTokens.contains(myReseller) -> true
+            target == myDevice || target == myMac || targetTokens.contains(myDevice) || targetTokens.contains(myMac) -> true
+            target.contains(myDevice) || (myMac.isNotBlank() && target.contains(myMac)) -> true
+            myUser.isNotBlank() && (target == myUser || targetTokens.contains(myUser) || target.contains(myUser) || myUser.contains(target)) -> true
             else -> false
         }
 

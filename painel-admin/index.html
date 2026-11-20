@@ -2677,7 +2677,12 @@
         const cleanAnnouncement = (annEl ? annEl.value : "")
             .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
             .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|POPUP:.*?(?=\|\||$)/g, "")
             .trim();
+        const activePopup = (lastDashboardData && lastDashboardData.announcement && lastDashboardData.announcement.match(/\|\|POPUP:.*?\|\|/))
+            ? lastDashboardData.announcement.match(/\|\|POPUP:.*?\|\|/)[0]
+            : ((annEl && annEl.value && annEl.value.match(/\|\|POPUP:.*?\|\|/)) ? annEl.value.match(/\|\|POPUP:.*?\|\|/)[0] : "");
+        const popupPart = activePopup ? ` ${activePopup}` : "";
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
         const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -2695,7 +2700,7 @@
             : (((currentResellerId === "dream" || isMasterRole) && dreamDnsList.length > 0)
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}`
                 : "");
-        return `${cleanAnnouncement} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+        return `${cleanAnnouncement}${popupPart} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
 
     function injectVpnMetadataIntoRawAnnouncement(rawAnn, options = {}) {
@@ -4985,9 +4990,11 @@
         const sorted = [...allDevices].sort((a, b) => (a.username || "").localeCompare(b.username || ""));
 
         const optionsHtml = sorted.map(d => {
-            const u = (d.username || "").trim() || "Sem Username";
-            const dev = d.device_name || d.device_id || "Dispositivo";
-            return `<option value="${escapeHtml(d.device_id || u)}">${escapeHtml(u)} — ${escapeHtml(dev)}</option>`;
+            const u = (d.username || "").trim();
+            const devId = (d.device_id || "").trim();
+            const dev = d.device_name || devId || "Dispositivo";
+            const val = devId && u ? `${devId}|${u}` : (devId || u);
+            return `<option value="${escapeHtml(val)}">${escapeHtml(u || "Sem User")} — ${escapeHtml(dev)}</option>`;
         }).join("");
 
         if (msgSel) {
@@ -5050,15 +5057,18 @@
             }
             const msgId = Date.now().toString(36);
             const tag = `||POPUP:${type}|${duration}|${title}|${body}|${targetVal}|${msgId}||`;
-            const currentAnn = document.getElementById("cfgAnnouncement") ? document.getElementById("cfgAnnouncement").value : (lastDashboardData ? (lastDashboardData.announcement || "") : "");
-            const cleanAnn = currentAnn.replace(/\|\|POPUP:.*?\|\|/g, "").trim();
-            const newAnn = (cleanAnn ? cleanAnn + " " : "") + tag;
-            if (document.getElementById("cfgAnnouncement")) {
-                document.getElementById("cfgAnnouncement").value = newAnn;
+            
+            // Obter o announcement completo atual preservando VPN, DNS, etc.
+            let baseAnn = (lastDashboardData && lastDashboardData.announcement) ? lastDashboardData.announcement : buildEncodedAnnouncement();
+            const cleanBase = baseAnn.replace(/\|\|POPUP:.*?\|\|/g, "").trim();
+            const newAnn = (cleanBase ? cleanBase + " " : "") + tag;
+            
+            if (lastDashboardData) {
+                lastDashboardData.announcement = newAnn;
             }
 
-            const bestUrl = document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value : (lastDashboardData ? (lastDashboardData.best_url || "") : "");
-            const best2Url = document.getElementById("cfgBest2Url") ? document.getElementById("cfgBest2Url").value : (lastDashboardData ? (lastDashboardData.best2_url || "") : "");
+            const bestUrl = document.getElementById("cfgBestUrl") ? document.getElementById("cfgBestUrl").value.trim() : (lastDashboardData ? (lastDashboardData.best_url || "") : "");
+            const best2Url = document.getElementById("cfgBest2Url") ? document.getElementById("cfgBest2Url").value.trim() : (lastDashboardData ? (lastDashboardData.best2_url || "") : "");
 
             if (multiResellerEnabled) {
                 await rpcCall("panel_save_own_config", {
