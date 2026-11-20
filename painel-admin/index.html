@@ -2710,7 +2710,7 @@
             : "";
         const dnsListPart = (currentResellerId === "suporte24" && suporte24DnsList.length > 0)
             ? `||DNS_LIST:${suporte24DnsList.join(",")}`
-            : (((currentResellerId === "dream" || isMasterRole) && dreamDnsList.length > 0)
+            : ((currentResellerId === "dream" && dreamDnsList.length > 0)
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}`
                 : "");
         return `${cleanAnnouncement}${popupPart} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
@@ -3215,7 +3215,13 @@
             document.getElementById("cfgBest2Url").value = data.best2_url || "";
             syncLockedDns(data.best_url);
             const rawAnn = String(data.announcement || "");
-            loadDreamDnsList(rawAnn);
+            if (isDream) {
+                loadDreamDnsList(rawAnn);
+            } else if (isMasterRole) {
+                const dreamRes = (typeof allResellers !== "undefined" && Array.isArray(allResellers)) ? allResellers.find(r => r.reseller_id === "dream") : null;
+                const dreamAnn = dreamRes ? (dreamRes.announcement || "") : "";
+                loadDreamDnsList(dreamAnn);
+            }
             if (isDream || isMasterRole) {
                 const dreamAnn = (isDream ? rawAnn : ((allResellers.find(r => r.reseller_id === "dream") || {}).announcement || ""));
                 const parsedActs = parseActivationsFromAnnouncement(dreamAnn);
