@@ -268,19 +268,7 @@
             transition: all 0.15s ease;
         }
 
-        /* REGRAS ESTRITAS DE ISOLAMENTO MASTER */
-        .master-only-item {
-            display: none !important;
-        }
-        body.is-master .master-only-item.tab-btn {
-            display: flex !important;
-        }
-        body.is-master .master-only-item.sidebar-section-title {
-            display: block !important;
-        }
-        body.is-master #masterAnalyticsSection.master-only-item {
-            display: block !important;
-        }
+        /* REGRAS ESTRITAS DE ISOLAMENTO: Ocultar itens Master em sessoes de revenda ou deslogado */
         body:not(.is-master) .master-only-item,
         body.is-reseller .master-only-item,
         body.is-reseller .sidebar,
@@ -290,6 +278,15 @@
         body:not(.is-master) .sidebar-backdrop,
         body:not(.is-master) .content-header {
             display: none !important;
+        }
+        body.is-master .sidebar-nav .tab-btn.master-only-item {
+            display: flex !important;
+        }
+        body.is-master .sidebar-section-title.master-only-item {
+            display: block !important;
+        }
+        body.is-master #masterAnalyticsSection.master-only-item {
+            display: block !important;
         }
         .sidebar-nav .tab-btn:hover {
             background: rgba(59, 130, 246, 0.08);
@@ -1635,7 +1632,7 @@
     </div>
 
     <!-- ABA 3: GESTÃO DE REVENDEDORES (Apenas Master) -->
-    <div id="tabContentResellers" class="master-only-item" style="display: none;">
+    <div id="tabContentResellers" style="display: none;">
         <div class="card">
             <div class="card-header">
                 <div>
@@ -1668,7 +1665,7 @@
     </div>
 
     <!-- ABA 4: LINKS DE DOWNLOAD DE REVENDAS (Apenas Master) -->
-    <div id="tabContentLinks" class="master-only-item" style="display: none;">
+    <div id="tabContentLinks" style="display: none;">
         <div class="card" style="margin-bottom: 20px;">
             <div class="card-header" style="flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;">
                 <div>
@@ -1706,7 +1703,7 @@
     </div>
 
     <!-- ABA 5: ENVIAR MENSAGENS PARA A BOX (Ottrun Send Message Style) -->
-    <div id="tabContentMessages" class="master-only-item" style="display: none;">
+    <div id="tabContentMessages" style="display: none;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
             <div class="card" style="margin-bottom: 0;">
                 <div class="card-header">
@@ -1807,7 +1804,7 @@
     </div>
 
     <!-- ABA 6: PIN PARENTAL REMOTO (Ottrun Parental Password Style) -->
-    <div id="tabContentParental" class="master-only-item" style="display: none;">
+    <div id="tabContentParental" style="display: none;">
         <div class="card" style="max-width: 680px; margin: 0 auto;">
             <div class="card-header">
                 <div>
@@ -1850,7 +1847,7 @@
     </div>
 
     <!-- ABA 7: VALIDADOR DE EPG (Ottrun EPG Validation Tool Style) -->
-    <div id="tabContentEpg" class="master-only-item" style="display: none;">
+    <div id="tabContentEpg" style="display: none;">
         <div class="card" style="margin-bottom: 24px;">
             <div class="card-header" style="flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
                 <div>
@@ -3101,14 +3098,6 @@
                 document.getElementById("roleBadge").textContent = "👑 SUPER ADMIN (MASTER)";
                 document.getElementById("masterTabs").style.display = "flex";
                 document.getElementById("tabBtnVpn").style.display = hasVpnInApp ? "flex" : "none";
-
-                document.querySelectorAll(".master-only-item").forEach(el => {
-                    if (el.tagName === "BUTTON") {
-                        el.style.setProperty("display", "flex", "important");
-                    } else {
-                        el.style.setProperty("display", "block", "important");
-                    }
-                });
             } else {
                 // NOS OUTROS TODOS (REVENDEDORES): TOTALMENTE LIVRE DE FERRAMENTAS E ABAS MASTER
                 document.body.classList.add("is-reseller");
