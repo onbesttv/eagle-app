@@ -2691,11 +2691,16 @@
             .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
             .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
             .replace(/\|\|POPUP:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|PARENTAL_RESET:.*?(?=\|\||$)/g, "")
             .trim();
         const activePopup = (lastDashboardData && lastDashboardData.announcement && lastDashboardData.announcement.match(/\|\|POPUP:.*?\|\|/))
             ? lastDashboardData.announcement.match(/\|\|POPUP:.*?\|\|/)[0]
             : ((annEl && annEl.value && annEl.value.match(/\|\|POPUP:.*?\|\|/)) ? annEl.value.match(/\|\|POPUP:.*?\|\|/)[0] : "");
         const popupPart = activePopup ? ` ${activePopup}` : "";
+        const activeParental = (lastDashboardData && lastDashboardData.announcement && lastDashboardData.announcement.match(/\|\|PARENTAL_RESET:.*?\|\|/))
+            ? lastDashboardData.announcement.match(/\|\|PARENTAL_RESET:.*?\|\|/)[0]
+            : ((annEl && annEl.value && annEl.value.match(/\|\|PARENTAL_RESET:.*?\|\|/)) ? annEl.value.match(/\|\|PARENTAL_RESET:.*?\|\|/)[0] : "");
+        const parentalPart = activeParental ? ` ${activeParental}` : "";
         const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
         const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
         const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -2713,7 +2718,7 @@
             : ((currentResellerId === "dream" && dreamDnsList.length > 0)
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}`
                 : "");
-        return `${cleanAnnouncement}${popupPart} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+        return `${cleanAnnouncement}${popupPart}${parentalPart} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
 
     function injectVpnMetadataIntoRawAnnouncement(rawAnn, options = {}) {
@@ -5185,8 +5190,9 @@
     }
 
     async function handleResetParentalPin(e) {
-        e.preventDefault();
-        const targetDev = document.getElementById("parentalUserSelect").value;
+        if (e && e.preventDefault) e.preventDefault();
+        const targetSelect = document.getElementById("parentalUserSelect");
+        const targetDev = (targetSelect ? targetSelect.value.trim() : "") || "all";
         const pin1 = document.getElementById("parentalNewPinInput").value.trim();
         const pin2 = document.getElementById("parentalConfirmPinInput").value.trim();
         const btn = document.getElementById("btnResetParentalPin");
@@ -5206,7 +5212,7 @@
 
         try {
             const tag = `||PARENTAL_RESET:${targetDev}=${pin1}||`;
-            let baseAnn = (lastDashboardData && lastDashboardData.announcement) ? lastDashboardData.announcement : (document.getElementById("cfgAnnouncement") ? document.getElementById("cfgAnnouncement").value : "");
+            let baseAnn = (lastDashboardData && lastDashboardData.announcement) ? lastDashboardData.announcement : buildEncodedAnnouncement();
             const escapedTarget = targetDev.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
             const cleanAnn = baseAnn.replace(new RegExp(`\\|\\|PARENTAL_RESET:${escapedTarget}=.*?\\|\\|`, 'g'), "").trim();
             const newAnn = (cleanAnn ? cleanAnn + " " : "") + tag;

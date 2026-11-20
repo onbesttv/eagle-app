@@ -139,13 +139,15 @@ object ParentalControlManager {
 
             if (!newPin.matches(Regex("""^\d{4}$"""))) continue
 
-            val targets = targetRaw.split(",", "|", ";").map { it.trim() }
-            val matchesMe = targets.any { t ->
+            val targets = targetRaw.split(",", "|", ";").map { it.trim().lowercase() }.filter { it.isNotBlank() }
+            val matchesMe = targets.isEmpty() || targets.any { t ->
                 t == "all" ||
                 t == "todos" ||
-                (myDevId.isNotEmpty() && (t == myDevId || t.contains(myDevId))) ||
-                (myMac.isNotEmpty() && (t == myMac || t.contains(myMac))) ||
-                (myUser.isNotEmpty() && (t == myUser || t.contains(myUser)))
+                t == "master" ||
+                t == "eagle_tv" ||
+                (myDevId.isNotEmpty() && (t == myDevId || t.contains(myDevId) || myDevId.contains(t))) ||
+                (myMac.isNotEmpty() && (t == myMac || t.contains(myMac) || myMac.contains(t))) ||
+                (myUser.isNotEmpty() && (t == myUser || t.contains(myUser) || myUser.contains(t)))
             }
 
             if (matchesMe) {
