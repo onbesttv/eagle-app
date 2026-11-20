@@ -2502,20 +2502,7 @@
         const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
         let usersToSave = Array.from(allowedVpnUsers);
         if (!isMasterRole) {
-            const ownUsers = new Set();
-            allDevices.forEach(d => {
-                if ((d.reseller_id || "master").toLowerCase() === currentResellerId) {
-                    const u = (d.username || "").trim().toLowerCase();
-                    if (u) ownUsers.add(u);
-                }
-            });
-            if (currentResellerId === "dream" && Array.isArray(currentActivations)) {
-                currentActivations.forEach(act => {
-                    const u = (act.username || "").trim().toLowerCase();
-                    if (u) ownUsers.add(u);
-                });
-            }
-            usersToSave = usersToSave.filter(u => ownUsers.has(u));
+            usersToSave = usersToSave.filter(u => getResellerIdForUser(u) === currentResellerId);
         }
         const vpnUsersPart = hasPerUserVpnControl()
             ? `||VPN_USERS:restricted|${usersToSave.join(",")}`
@@ -2569,6 +2556,44 @@
         return r.toUpperCase();
     }
 
+    function getResellerIdForUser(username) {
+        const u = String(username || "").trim().toLowerCase();
+        if (!u) return (isMasterRole ? "master" : currentResellerId);
+
+        // 1. Procurar em allDevices
+        if (typeof allDevices !== "undefined" && Array.isArray(allDevices)) {
+            const dev = allDevices.find(d => (d.username || "").trim().toLowerCase() === u);
+            if (dev && dev.reseller_id) {
+                const r = dev.reseller_id.toLowerCase();
+                return (r === "eagle_tv") ? "master" : r;
+            }
+        }
+
+        // 2. Procurar em currentActivations (Dream / RedOn)
+        if (typeof currentActivations !== "undefined" && Array.isArray(currentActivations)) {
+            const act = currentActivations.find(a => (a.username || "").trim().toLowerCase() === u);
+            if (act) return "dream";
+        }
+
+        // 3. Procurar nos anúncios de allResellers
+        if (typeof allResellers !== "undefined" && Array.isArray(allResellers)) {
+            for (const r of allResellers) {
+                if (r && r.reseller_id && r.announcement && r.announcement.includes("||VPN_USERS:")) {
+                    const match = r.announcement.match(/\|\|VPN_USERS:([^|]+)\|([^|]+)/);
+                    if (match && match[2]) {
+                        const users = match[2].split(",").map(s => s.trim().toLowerCase());
+                        if (users.includes(u)) {
+                            const rid = r.reseller_id.toLowerCase();
+                            return (rid === "eagle_tv") ? "master" : rid;
+                        }
+                    }
+                }
+            }
+        }
+
+        return isMasterRole ? "master" : currentResellerId;
+    }
+
     function renderVpnAllowedUsers() {
         const card = document.getElementById("vpnUserAccessCard");
         if (!card) return;
@@ -2603,46 +2628,31 @@
                 : "🛑 Quebrar Todas as Ligações VPN";
         }
 
-        const badge = document.getElementById("vpnUsersStatusBadge");
-        if (badge) {
-            badge.className = allowedVpnUsers.size > 0 ? "badge badge-online" : "badge badge-offline";
-            badge.textContent = `🔒 ${allowedVpnUsers.size} utilizador(es) com VPN ativa`;
-        }
-
         const container = document.getElementById("vpnAllowedUsersList");
         if (!container) return;
 
         const PEREIRA_USERS = new Set();
-        const resellerUsers = new Set();
         allDevices.forEach(d => {
             const devRes = (d.reseller_id || "master").toLowerCase();
             if (devRes === "pereira_tv" || devRes === "pereira") {
                 const u = (d.username || "").trim().toLowerCase();
                 if (u) PEREIRA_USERS.add(u);
             }
-            if (isMasterRole || devRes === currentResellerId) {
-                const u = (d.username || "").trim().toLowerCase();
-                if (u && u !== "sem login" && u !== "sem user") {
-                    resellerUsers.add(u);
-                }
-            }
         });
-
-        if (currentResellerId === "dream" && Array.isArray(currentActivations)) {
-            currentActivations.forEach(act => {
-                const u = (act.username || "").trim().toLowerCase();
-                if (u) resellerUsers.add(u);
-            });
-        }
 
         const usersMap = new Map();
+
+        // 1. Carregar todos os utilizadores que têm VPN ativa
         Array.from(allowedVpnUsers).forEach(u => {
             if (!u || PEREIRA_USERS.has(u)) return;
+            const resId = getResellerIdForUser(u);
             // Se for painel de um revendedor, SÓ PODE ver e gerir os utilizadores da sua própria app/painel!
-            if (!isMasterRole && !resellerUsers.has(u)) return;
-            usersMap.set(u, { active: true, app: "" });
+            if (!isMasterRole && resId !== currentResellerId) return;
+            const foundApp = getAppName(resId);
+            usersMap.set(u, { active: true, app: foundApp });
         });
 
+        // 2. Carregar todos os utilizadores conhecidos de allDevices
         allDevices.forEach(d => {
             const devRes = (d.reseller_id || "master").toLowerCase();
             if (devRes === "pereira_tv" || devRes === "pereira") return;
@@ -2658,16 +2668,22 @@
             }
         });
 
-        if (currentResellerId === "dream" && Array.isArray(currentActivations)) {
+        // 3. Carregar ativações do RedOn (Dream)
+        if ((isMasterRole || currentResellerId === "dream") && Array.isArray(currentActivations)) {
             currentActivations.forEach(act => {
                 const u = (act.username || "").trim().toLowerCase();
-                if (u && !usersMap.has(u)) {
-                    usersMap.set(u, { active: allowedVpnUsers.has(u), app: "RedOn TV" });
+                if (u && !PEREIRA_USERS.has(u)) {
+                    if (!usersMap.has(u)) {
+                        usersMap.set(u, { active: allowedVpnUsers.has(u), app: "RedOn" });
+                    } else if (!usersMap.get(u).app) {
+                        usersMap.get(u).app = "RedOn";
+                    }
                 }
             });
         }
 
         const activeCount = Array.from(usersMap.values()).filter(x => x.active).length;
+        const badge = document.getElementById("vpnUsersStatusBadge");
         if (badge) {
             badge.className = activeCount > 0 ? "badge badge-online" : "badge badge-offline";
             badge.textContent = `🔒 ${activeCount} utilizador(es) com VPN ativa`;
@@ -2755,20 +2771,7 @@
         const vpnAuthPart = (vpnUser && vpnPass) ? `||VPN_AUTH:${vpnUser}:${vpnPass}` : "";
         let usersToSave = Array.from(allowedVpnUsers);
         if (!isMasterRole) {
-            const ownUsers = new Set();
-            allDevices.forEach(d => {
-                if ((d.reseller_id || "master").toLowerCase() === currentResellerId) {
-                    const u = (d.username || "").trim().toLowerCase();
-                    if (u) ownUsers.add(u);
-                }
-            });
-            if (currentResellerId === "dream" && Array.isArray(currentActivations)) {
-                currentActivations.forEach(act => {
-                    const u = (act.username || "").trim().toLowerCase();
-                    if (u) ownUsers.add(u);
-                });
-            }
-            usersToSave = usersToSave.filter(u => ownUsers.has(u));
+            usersToSave = usersToSave.filter(u => getResellerIdForUser(u) === currentResellerId);
         }
         const vpnUsersPart = hasPerUserVpnControl()
             ? `||VPN_USERS:restricted|${usersToSave.join(",")}`
@@ -2841,6 +2844,7 @@
                 p_maintenance_mode: !!rDash.maintenance_mode,
                 p_new_password: ""
             });
+            resellerObj.announcement = updatedAnn;
         } catch (_e) {}
     }
 
@@ -2872,10 +2876,12 @@
                 });
             }
             if (isMasterRole && multiResellerEnabled && Array.isArray(allResellers)) {
-                // Sincronizar países/credenciais globais com revendedores, NUNCA sobrescrever os utilizadores dos revendedores!
+                // Sincronizar países/credenciais globais e os utilizadores ESPECÍFICOS de cada revendedor
                 for (const r of allResellers) {
-                    if (r && r.reseller_id && r.reseller_id !== "master" && r.reseller_id !== "pereira_tv" && r.reseller_id !== "pereira") {
-                        await syncResellerVpnMetadata(r, {});
+                    const rId = (r && r.reseller_id ? r.reseller_id : "").toLowerCase();
+                    if (rId && rId !== "master" && rId !== "pereira_tv" && rId !== "pereira") {
+                        const rUsers = Array.from(allowedVpnUsers).filter(user => getResellerIdForUser(user) === rId);
+                        await syncResellerVpnMetadata(r, { usersCsv: rUsers.join(",") });
                     }
                 }
             }
