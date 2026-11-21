@@ -132,6 +132,9 @@ $destApk = Join-Path $outDir "${cleanId}.apk"
 for ($retry = 0; $retry -lt 5; $retry++) {
     try {
         Copy-Item $srcApk -Destination $destApk -Force
+        if ($cleanId -eq "dream") {
+            Copy-Item $srcApk -Destination (Join-Path $outDir "RedOn.apk") -Force
+        }
         break
     } catch {
         Start-Sleep -Seconds 1
@@ -155,7 +158,7 @@ if ($Publicar) {
         throw "Nao foi possivel detetar versionName em app/build.gradle.kts"
     }
     $tag = "v$versionName"
-    Write-Host "`n[*] A publicar '$cleanId.apk' na Release Isolada $tag (prerelease) do GitHub..." -ForegroundColor Yellow
+    Write-Host "`n[*] A publicar '$cleanId.apk' na Release Isolada $tag do GitHub..." -ForegroundColor Yellow
 
     $credRaw = ("protocol=https`nhost=github.com`nusername=onbesttv`n`n" | git credential fill | Out-String)
     $token = ($credRaw -split "`n" | Where-Object { $_.Trim().StartsWith("password=") } | Select-Object -First 1).Trim().Substring(9).Trim()
@@ -173,29 +176,35 @@ if ($Publicar) {
     } catch {}
 
     if (-not $release) {
+        $relTitle = if ($cleanId -eq "dream") { "RedOn v$versionName" } else { "Versao $versionName" }
+        $relBody = if ($cleanId -eq "dream") { "RedOn (Dream / MyTvOnline) versao $versionName" } else { "" }
         $payload = @{
             tag_name   = $tag
-            name       = "Versao $versionName"
-            body       = ""
+            name       = $relTitle
+            body       = $relBody
             draft      = $false
             prerelease = $false
         } | ConvertTo-Json
         $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repoOwner/$repoName/releases" -Headers $headers -Method Post -Body $payload -ContentType "application/json"
     }
 
-    if ($release.assets) {
-        $oldAsset = $release.assets | Where-Object { $_.name -eq "${cleanId}.apk" }
-        if ($oldAsset) {
-            curl.exe -s -X DELETE -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" "https://api.github.com/repos/$repoOwner/$repoName/releases/assets/$($oldAsset.id)" | Out-Null
+    $assetNames = if ($cleanId -eq "dream") { @("RedOn.apk", "dream.apk") } else { @("${cleanId}.apk") }
+
+    foreach ($aName in $assetNames) {
+        if ($release.assets) {
+            $oldAsset = $release.assets | Where-Object { $_.name -eq $aName }
+            if ($oldAsset) {
+                curl.exe -s -X DELETE -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" "https://api.github.com/repos/$repoOwner/$repoName/releases/assets/$($oldAsset.id)" | Out-Null
+            }
         }
-    }
 
-    $uploadUrl = "https://uploads.github.com/repos/$repoOwner/$repoName/releases/$($release.id)/assets?name=${cleanId}.apk"
-    $uploadResp = curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@$srcApk" $uploadUrl | ConvertFrom-Json
+        $uploadUrl = "https://uploads.github.com/repos/$repoOwner/$repoName/releases/$($release.id)/assets?name=$aName"
+        $uploadResp = curl.exe -s -X POST -H "Authorization: token $token" -H "User-Agent: EagleApp-Publisher" -H "Content-Type: application/vnd.android.package-archive" --data-binary "@$srcApk" $uploadUrl | ConvertFrom-Json
 
-    if ($uploadResp.id) {
-        Write-Host "  -> Publicado com sucesso: $($uploadResp.browser_download_url)" -ForegroundColor Green
-    } else {
-        throw "Erro ao enviar ${cleanId}.apk para o GitHub."
+        if ($uploadResp.id) {
+            Write-Host "  -> Publicado com sucesso: $($uploadResp.browser_download_url)" -ForegroundColor Green
+        } else {
+            throw "Erro ao enviar $aName para o GitHub."
+        }
     }
 }
