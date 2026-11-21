@@ -23,6 +23,8 @@
             android:layout_height="52dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:paddingStart="8dp"
             android:paddingEnd="12dp">
 
@@ -30,6 +32,7 @@
                 android:id="@+id/btnBackEpg"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:padding="8dp"
                 android:background="@drawable/bg_icon_button"
                 android:foreground="@null"
                 android:defaultFocusHighlightEnabled="false"

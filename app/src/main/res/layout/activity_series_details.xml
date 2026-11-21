@@ -3,6 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:background="@drawable/bg_app_surface">
 
     <LinearLayout
@@ -130,6 +132,7 @@
         android:layout_height="48dp"
         android:layout_gravity="top|start"
         android:layout_margin="16dp"
+        android:padding="9dp"
         android:background="@drawable/bg_icon_button"
         android:foreground="@null"
         android:defaultFocusHighlightEnabled="false"

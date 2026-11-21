@@ -27,6 +27,8 @@
                 android:layout_width="220dp"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:background="#101827">
 
                 <!-- Barra Superior com Botão Sair/Voltar -->
@@ -35,6 +37,8 @@
                     android:layout_height="52dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     android:paddingStart="8dp"
                     android:paddingEnd="12dp">
 
@@ -42,6 +46,7 @@
                         android:id="@+id/btnBackLiveTv"
                         android:layout_width="40dp"
                         android:layout_height="40dp"
+                        android:padding="8dp"
                         android:background="@drawable/bg_icon_button"
                         android:foreground="@null"
                         android:defaultFocusHighlightEnabled="false"
@@ -148,6 +153,15 @@
                     app:surface_type="surface_view"
                     app:resize_mode="fit"
                     app:use_controller="false" />
+
+                <!-- Indicador de Carregamento / Buffering -->
+                <ProgressBar
+                    android:id="@+id/pbPlayerBuffering"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_centerInParent="true"
+                    android:indeterminate="true"
+                    android:visibility="gone" />
 
                 <!-- Toque para alternar ecrã inteiro / normal -->
                 <View
@@ -306,6 +320,8 @@
         android:layout_height="match_parent"
         android:layout_alignParentStart="true"
         android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:background="#E60A0F14"
         android:visibility="gone"
         android:clickable="true"
@@ -316,6 +332,8 @@
             android:layout_height="50dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:paddingStart="8dp"
             android:paddingEnd="16dp"
             android:background="#16202C">
@@ -324,6 +342,7 @@
                 android:id="@+id/btnBackOverlay"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:padding="8dp"
                 android:background="@drawable/bg_icon_button"
                 android:foreground="@null"
                 android:defaultFocusHighlightEnabled="false"

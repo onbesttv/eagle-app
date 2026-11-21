@@ -93,8 +93,8 @@ class MainActivity : BaseActivity() {
             val catchUpParams = cardCatchUp.layoutParams as? android.view.ViewGroup.MarginLayoutParams
             catchUpParams?.marginEnd = 0
             val d = resources.displayMetrics.density
-            catchUpParams?.width = (200 * d).toInt()
-            catchUpParams?.height = (48 * d).toInt()
+            catchUpParams?.width = (210 * d).toInt()
+            catchUpParams?.height = (50 * d).toInt()
             cardCatchUp.layoutParams = catchUpParams
         }
 
@@ -132,7 +132,8 @@ class MainActivity : BaseActivity() {
             interactiveViews.forEach { view ->
                 view.setOnFocusChangeListener { v, hasFocus ->
                     if (hasFocus) {
-                        v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
+                        val s = if (v == cardCatchUp) 1.04f else 1.06f
+                        v.animate().scaleX(s).scaleY(s).setDuration(140).start()
                     } else {
                         v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
                     }

@@ -9,6 +9,8 @@ import android.content.res.Configuration
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.util.Rational
 import android.view.KeyEvent
@@ -49,8 +51,10 @@ class LiveTvActivity : BaseActivity() {
     private val baseUrl: String get() = IptvServiceConfig.baseUrl(this)
     private val client = OkHttpClient()
     private val gson = Gson()
+    private val uiHandler = Handler(Looper.getMainLooper())
 
     private var player: ExoPlayer? = null
+    private var pbPlayerBuffering: ProgressBar? = null
     private lateinit var playerView: PlayerView
     private lateinit var rvCategories: RecyclerView
     private lateinit var rvChannels: RecyclerView
@@ -130,7 +134,7 @@ class LiveTvActivity : BaseActivity() {
             }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
                 } else {
                     v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }
@@ -171,7 +175,7 @@ class LiveTvActivity : BaseActivity() {
             }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
                 } else {
                     v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }
@@ -181,6 +185,7 @@ class LiveTvActivity : BaseActivity() {
         layoutLeftPanels = findViewById(R.id.layoutLeftPanels)
         layoutBottomEpg = findViewById(R.id.layoutBottomEpg)
         playerView = findViewById(R.id.miniPlayerView)
+        pbPlayerBuffering = findViewById(R.id.pbPlayerBuffering)
         viewPlayerClickTarget = findViewById(R.id.viewPlayerClickTarget)
 
         layoutChannelOverlay = findViewById(R.id.layoutChannelOverlay)
@@ -349,17 +354,53 @@ class LiveTvActivity : BaseActivity() {
         val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView, isLiveTv = true)
         player = p
         player?.addListener(object : androidx.media3.common.Player.Listener {
-            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                try {
-                    player?.stop()
-                } catch (_: Exception) {}
-                runOnUiThread {
-                    Toast.makeText(this@LiveTvActivity, "Falha na transmissão do canal. Prima CIMA/BAIXO para mudar.", Toast.LENGTH_SHORT).show()
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                when (playbackState) {
+                    androidx.media3.common.Player.STATE_BUFFERING -> {
+                        pbPlayerBuffering?.visibility = View.VISIBLE
+                    }
+                    androidx.media3.common.Player.STATE_READY -> {
+                        pbPlayerBuffering?.visibility = View.GONE
+                    }
+                    androidx.media3.common.Player.STATE_ENDED,
+                    androidx.media3.common.Player.STATE_IDLE -> {
+                        pbPlayerBuffering?.visibility = View.GONE
+                    }
                 }
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                runOnUiThread {
+                    pbPlayerBuffering?.visibility = View.GONE
+                    Toast.makeText(this@LiveTvActivity, "A restabelecer transmissão do canal...", Toast.LENGTH_SHORT).show()
+                }
+                val failedStreamId = currentStreamId
+                uiHandler.postDelayed({
+                    if (currentStreamId == failedStreamId && !isFinishing && !isDestroyed) {
+                        try {
+                            reiniciarPlayerSeNecessario()
+                            player?.prepare()
+                            player?.playWhenReady = true
+                        } catch (_: Exception) {}
+                    }
+                }, 1500L)
             }
         })
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
+    }
+
+    private fun reiniciarPlayerSeNecessario() {
+        if (player == null || player?.playerError != null) {
+            recriarPlayerCompleto()
+        }
+    }
+
+    private fun recriarPlayerCompleto() {
+        try {
+            player?.release()
+        } catch (_: Exception) {}
+        configurarPlayer()
     }
 
     private fun tocarNoMiniPlayer(canal: LiveStream) {
@@ -370,7 +411,11 @@ class LiveTvActivity : BaseActivity() {
                 .getString("stream_type", "MPEGTS") == "HLS") "m3u8" else "ts"
         val url = "$baseUrl/live/$user/$pass/${canal.streamId}.$extension"
         currentStreamUrl = url
+
+        pbPlayerBuffering?.visibility = View.VISIBLE
+
         try {
+            reiniciarPlayerSeNecessario()
             player?.stop()
             player?.clearMediaItems()
             player?.setMediaItem(MediaItem.fromUri(url))
@@ -378,6 +423,12 @@ class LiveTvActivity : BaseActivity() {
             player?.playWhenReady = true
         } catch (e: Exception) {
             e.printStackTrace()
+            recriarPlayerCompleto()
+            try {
+                player?.setMediaItem(MediaItem.fromUri(url))
+                player?.prepare()
+                player?.playWhenReady = true
+            } catch (_: Exception) {}
         }
 
         val posPrincipal = channelAdapter?.selecionarCanalPorId(canal.streamId) ?: -1
@@ -991,6 +1042,10 @@ class LiveTvActivity : BaseActivity() {
                     if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
                         return@setOnKeyListener true
                     }
+                }
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    focarCanalAtual()
+                    return@setOnKeyListener true
                 }
                 false
             }

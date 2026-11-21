@@ -96,7 +96,7 @@ class MovieDetailActivity : BaseActivity() {
             }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
                 } else {
                     v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }

@@ -10,6 +10,8 @@
         android:layout_width="250dp"
         android:layout_height="match_parent"
         android:background="#101827"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:orientation="vertical">
 
         <LinearLayout
@@ -17,6 +19,8 @@
             android:layout_height="54dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:paddingStart="8dp"
             android:paddingEnd="12dp">
 
@@ -24,6 +28,7 @@
                 android:id="@+id/btnBackCatchUp"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
+                android:padding="8dp"
                 android:background="@drawable/bg_icon_button"
                 android:foreground="@null"
                 android:defaultFocusHighlightEnabled="false"

@@ -114,7 +114,7 @@ class MoviesActivity : BaseActivity() {
             }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
                 } else {
                     v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }
@@ -379,6 +379,8 @@ class MoviesActivity : BaseActivity() {
     private fun tratarSelecaoCategoria(catId: String) {
         lastClickedMovieId = -1
         currentCategoryId = catId
+        (rvMovies.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(0, 0)
+        rvMovies.scrollToPosition(0)
         val isAll = (catId == "ALL_MOVIES")
         val searchParent = etSearch.parent as? View
         searchParent?.visibility = if (isAll) View.VISIBLE else View.GONE
@@ -598,6 +600,9 @@ class MoviesActivity : BaseActivity() {
 
         if (lastClickedMovieId != -1) {
             focarUltimoFilme()
+        } else {
+            (rvMovies.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(0, 0)
+            rvMovies.scrollToPosition(0)
         }
     }
 
@@ -793,6 +798,19 @@ class MoviesActivity : BaseActivity() {
                     if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
                         return@setOnKeyListener true
                     }
+                }
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    val targetPos = if (lastClickedMovieId != -1) {
+                        val p = movieAdapter?.getLista()?.indexOfFirst { it.streamId == lastClickedMovieId } ?: 0
+                        if (p >= 0) p else 0
+                    } else 0
+                    rvMovies.post {
+                        (rvMovies.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(targetPos, 0)
+                        rvMovies.postDelayed({
+                            rvMovies.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
+                        }, 60)
+                    }
+                    return@setOnKeyListener true
                 }
                 false
             }

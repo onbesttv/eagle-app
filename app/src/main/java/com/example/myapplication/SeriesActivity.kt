@@ -107,7 +107,7 @@ class SeriesActivity : BaseActivity() {
             }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
                 } else {
                     v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }
@@ -353,6 +353,8 @@ class SeriesActivity : BaseActivity() {
     private fun tratarSelecaoCategoria(catId: String) {
         lastClickedSeriesId = -1
         currentCategoryId = catId
+        (rvSeries.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(0, 0)
+        rvSeries.scrollToPosition(0)
         val isAll = (catId == "ALL_SERIES")
         etSearch.visibility = if (isAll) View.VISIBLE else View.GONE
 
@@ -515,6 +517,9 @@ class SeriesActivity : BaseActivity() {
 
         if (lastClickedSeriesId != -1) {
             focarUltimaSerie()
+        } else {
+            (rvSeries.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(0, 0)
+            rvSeries.scrollToPosition(0)
         }
     }
 
@@ -687,6 +692,19 @@ class SeriesActivity : BaseActivity() {
                     if (currentPos != RecyclerView.NO_POSITION && currentPos >= list.size - 1) {
                         return@setOnKeyListener true
                     }
+                }
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    val targetPos = if (lastClickedSeriesId != -1) {
+                        val p = seriesAdapter?.getLista()?.indexOfFirst { it.seriesId == lastClickedSeriesId } ?: 0
+                        if (p >= 0) p else 0
+                    } else 0
+                    rvSeries.post {
+                        (rvSeries.layoutManager as? GridLayoutManager)?.scrollToPositionWithOffset(targetPos, 0)
+                        rvSeries.postDelayed({
+                            rvSeries.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
+                        }, 60)
+                    }
+                    return@setOnKeyListener true
                 }
                 false
             }

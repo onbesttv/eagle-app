@@ -27,9 +27,10 @@ object ExoPlayerHelper {
         isLiveTv: Boolean = false
     ): Pair<ExoPlayer, DefaultTrackSelector> {
         val okHttpClient = OkHttpClient.Builder()
-            .connectTimeout(8, TimeUnit.SECONDS)
-            .readTimeout(10, TimeUnit.SECONDS)
-            .writeTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(12, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .followRedirects(true)
             .followSslRedirects(true)
             .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))
@@ -46,27 +47,28 @@ object ExoPlayerHelper {
         val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
         val mediaSourceFactory = DefaultMediaSourceFactory(context).setDataSourceFactory(dataSourceFactory)
 
-        // 1. Bitrate Forçado + Tunneling apenas em Live TV (em VOD tunneling causa ecra negro / falha de codec em ficheiros locais/HTTP mp4/mkv)
+        // 1. Bitrate Forçado sem Tunneling (Tunneling bloqueia decoders de hardware e causa ecrã negro em caso de queda de stream)
         val trackSelector = DefaultTrackSelector(context).apply {
             setParameters(
                 buildUponParameters()
                     .setForceHighestSupportedBitrate(true)
-                    .setTunnelingEnabled(isLiveTv)
+                    .setTunnelingEnabled(false)
             )
         }
 
         // 2. Descodificação direta por hardware com tolerância/fallback automático
         val renderersFactory = DefaultRenderersFactory(context).apply {
             setEnableDecoderFallback(true)
+            setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
         }
 
         // 3. Controlo de buffer suave e estável para transmissões
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                12_000, // minBufferMs (12s)
-                45_000, // maxBufferMs (45s)
-                2_000,  // bufferForPlaybackMs (2s)
-                4_000   // bufferForPlaybackAfterRebufferMs (4s)
+                15_000, // minBufferMs (15s)
+                60_000, // maxBufferMs (60s)
+                1_500,  // bufferForPlaybackMs (1.5s arranque rápido)
+                3_000   // bufferForPlaybackAfterRebufferMs (3s)
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
