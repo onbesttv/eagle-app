@@ -73,7 +73,11 @@ class MainActivity : BaseActivity() {
         }
 
         val resId = RemotePanelManager.getResellerId(this)
-        val hasSportsAndNews = resId.equals("master", ignoreCase = true) || resId.equals("tv_joker", ignoreCase = true) || resId.equals("joker", ignoreCase = true) || resId.equals("suporte24", ignoreCase = true)
+        val hasSportsAndNews = resId.equals("master", ignoreCase = true) ||
+                resId.equals("tv_fabio", ignoreCase = true) ||
+                resId.equals("tv_joker", ignoreCase = true) ||
+                resId.equals("joker", ignoreCase = true) ||
+                resId.equals("suporte24", ignoreCase = true)
         if (hasSportsAndNews) {
             cardSportsAgenda?.visibility = android.view.View.VISIBLE
             cardNewspapers?.visibility = android.view.View.VISIBLE
@@ -128,7 +132,7 @@ class MainActivity : BaseActivity() {
             interactiveViews.forEach { view ->
                 view.setOnFocusChangeListener { v, hasFocus ->
                     if (hasFocus) {
-                        val s = if (v == cardCatchUp) 1.04f else 1.06f
+                        val s = if (v == cardCatchUp || v == cardSportsAgenda || v == cardNewspapers) 1.04f else 1.06f
                         v.animate().scaleX(s).scaleY(s).setDuration(140).start()
                     } else {
                         v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
