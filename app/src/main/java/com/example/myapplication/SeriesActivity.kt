@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -41,8 +42,27 @@ class SeriesActivity : BaseActivity() {
 
     private var allSeriesInCat: List<SeriesItem> = emptyList()
     private val allSeriesCache = mutableListOf<SeriesItem>() // Cache geral para os Favoritos
+    private var seriesFavIdsCache: Set<String> = emptySet()
+    private var isFetchingAllSeries = false
     private var seriesAdapter: SeriesGridAdapter? = null
     private var lastClickedSeriesId: Int = -1
+
+    private fun carregarCacheDiscoSeExistir() {
+        if (allSeriesCache.isNotEmpty()) return
+        try {
+            val cacheFile = java.io.File(cacheDir, "vod_series_cache.json")
+            if (cacheFile.exists() && cacheFile.length() > 0) {
+                val type = object : TypeToken<List<SeriesItem>>() {}.type
+                val series: List<SeriesItem>? = java.io.FileReader(cacheFile).use { reader ->
+                    gson.fromJson(reader, type)
+                }
+                if (!series.isNullOrEmpty()) {
+                    allSeriesCache.clear()
+                    allSeriesCache.addAll(series)
+                }
+            }
+        } catch (_: Exception) {}
+    }
 
     private var currentCategoryId = ""
     private var categoriasCache: List<SeriesCategory> = emptyList()
@@ -73,10 +93,47 @@ class SeriesActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_series)
 
+        // Botão para sair da atividade e regressar ao menu principal (com foco limpo)
         findViewById<ImageButton>(R.id.btnBackSeries)?.apply {
             setOnClickListener { finish() }
-            isFocusable = false
+            isFocusable = true
             isFocusableInTouchMode = false
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }
+            }
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            rvCategories.post {
+                                rvCategories.scrollToPosition(0)
+                                rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            if (etSearch.visibility == View.VISIBLE) {
+                                etSearch.requestFocus()
+                            } else {
+                                rvSeries.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
+            }
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
@@ -87,9 +144,15 @@ class SeriesActivity : BaseActivity() {
         rvSeries = findViewById(R.id.rvSeriesGrid)
         etSearch = findViewById(R.id.etSearchSeries)
 
+        rvCategories.itemAnimator = null
+        rvSeries.itemAnimator = null
+        rvCategories.setHasFixedSize(true)
+        rvSeries.setHasFixedSize(true)
+
         rvCategories.layoutManager = LinearLayoutManager(this)
         rvSeries.layoutManager = GridLayoutManager(this, if (AppThemeColors.isPereiraTheme(this)) 6 else 5)
 
+        carregarCacheDiscoSeExistir()
         carregarCategoriasSeries()
 
         etSearch.addTextChangedListener(object : TextWatcher {
@@ -104,6 +167,8 @@ class SeriesActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        val favPrefs = getSharedPreferences("series_fav_prefs", Context.MODE_PRIVATE)
+        seriesFavIdsCache = favPrefs.getStringSet("fav_ids", emptySet()) ?: emptySet()
         when (currentCategoryId) {
             "ALL_SERIES" -> carregarTodasSeries()
             "FAVORITES" -> carregarFavoritosSeries()
@@ -186,20 +251,28 @@ class SeriesActivity : BaseActivity() {
     }
 
     private fun carregarContadoresSeries() {
+        if (isFetchingAllSeries) return
+        isFetchingAllSeries = true
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
+            override fun onFailure(call: Call, e: IOException) {
+                isFetchingAllSeries = false
+            }
             override fun onResponse(call: Call, response: Response) {
+                isFetchingAllSeries = false
                 val json = response.body?.string() ?: return
                 try {
                     val type = object : TypeToken<List<SeriesItem>>() {}.type
                     val series: List<SeriesItem> = gson.fromJson(json, type)
                     allSeriesCache.clear()
                     allSeriesCache.addAll(series)
+                    try {
+                        java.io.File(cacheDir, "vod_series_cache.json").writeText(json)
+                    } catch (_: Exception) {}
                     val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                     counts["ALL_SERIES"] = series.size
-                    counts["RECENT"] = minOf(40, series.size)
+                    counts["RECENT"] = minOf(100, series.size)
                     CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
                     runOnUiThread {
                         (rvCategories.adapter as? SeriesCategoryAdapter)?.atualizarTextosVisiveis()
@@ -336,55 +409,14 @@ class SeriesActivity : BaseActivity() {
                 compareByDescending<SeriesItem> {
                     maxOf(
                         parseTimestamp(it.lastModified),
-                        parseTimestamp(it.added),
-                        parseTimestamp(it.releaseDate)
+                        parseTimestamp(it.added)
                     )
                 }.thenByDescending { it.seriesId }
-            ).take(40)
+            ).take(100)
             allSeriesInCat = recentes
             aplicarFiltroPesquisa()
         } else {
-            val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_series"
-            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-
-            client.newCall(req).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread {
-                        Toast.makeText(this@SeriesActivity, "Erro ao carregar séries recentes", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    val json = response.body?.string() ?: return
-                    try {
-                        val type = object : TypeToken<List<SeriesItem>>() {}.type
-                        val series: List<SeriesItem> = gson.fromJson(json, type)
-
-                        runOnUiThread {
-                            allSeriesCache.clear()
-                            allSeriesCache.addAll(series)
-                            val counts = series.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
-                            counts["RECENT"] = minOf(40, series.size)
-                            CategoryCountHelper.saveSeriesCounts(this@SeriesActivity, counts)
-                            (rvCategories.adapter as? SeriesCategoryAdapter)?.atualizarTextosVisiveis()
-
-                            val recentes = series.sortedWith(
-                                compareByDescending<SeriesItem> {
-                                    maxOf(
-                                        parseTimestamp(it.lastModified),
-                                        parseTimestamp(it.added),
-                                        parseTimestamp(it.releaseDate)
-                                    )
-                                }.thenByDescending { it.seriesId }
-                            ).take(40)
-                            allSeriesInCat = recentes
-                            aplicarFiltroPesquisa()
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            })
+            carregarContadoresSeries()
         }
     }
 
@@ -577,7 +609,7 @@ class SeriesActivity : BaseActivity() {
                     favPrefs.getStringSet("fav_ids", emptySet())?.size ?: 0
                 }
                 "RECENT" -> {
-                    if (allSeriesCache.isNotEmpty()) minOf(40, allSeriesCache.size)
+                    if (allSeriesCache.isNotEmpty()) minOf(100, allSeriesCache.size)
                     else CategoryCountHelper.getSeriesCount(rvCategories.context, "RECENT")
                 }
                 else -> CategoryCountHelper.getSeriesCount(rvCategories.context, cat.categoryId)
@@ -646,6 +678,7 @@ class SeriesActivity : BaseActivity() {
                 if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                     val currentPos = holder.bindingAdapterPosition
                     if (currentPos == 0) {
+                        findViewById<ImageButton>(R.id.btnBackSeries)?.requestFocus()
                         return@setOnKeyListener true
                     }
                 }
@@ -705,6 +738,8 @@ class SeriesActivity : BaseActivity() {
             if (!s.cover.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)
                     .load(s.cover)
+                    .override(280, 420)
+                    .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.AUTOMATIC)
                     .centerCrop()
                     .into(holder.ivCover)
             } else {

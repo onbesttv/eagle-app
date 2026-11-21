@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -62,6 +63,20 @@ class NewspapersActivity : BaseActivity() {
         pbLoadingNewspapers = findViewById(R.id.pbLoadingNewspapers)
 
         btnBackNewspapers.setOnClickListener { finish() }
+        btnBackNewspapers.foreground = null
+        btnBackNewspapers.outlineProvider = null
+        btnBackNewspapers.elevation = 0f
+        btnBackNewspapers.stateListAnimator = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            btnBackNewspapers.defaultFocusHighlightEnabled = false
+        }
+        btnBackNewspapers.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+            }
+        }
 
         setupRecyclerViews()
         loadLocalNewspapers()

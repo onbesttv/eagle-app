@@ -234,11 +234,16 @@ object AppThemeColors {
             }
         }
 
-        // 6. Recursão nos filhos e listener para RecyclerViews / listas dinâmicas
+        // 6. Recursão nos filhos (não intercepta RecyclerViews para manter 60fps sem engasgos)
         if (view is ViewGroup) {
+            if (view is androidx.recyclerview.widget.RecyclerView) {
+                return
+            }
             view.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
                 override fun onChildViewAdded(parent: View?, child: View?) {
-                    applyToViewHierarchy(child, mapper)
+                    if (child !is androidx.recyclerview.widget.RecyclerView) {
+                        applyToViewHierarchy(child, mapper)
+                    }
                 }
                 override fun onChildViewRemoved(parent: View?, child: View?) {}
             })

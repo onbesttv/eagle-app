@@ -2,7 +2,9 @@ package com.example.myapplication
 
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -60,17 +62,44 @@ class EpgActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_epg)
 
-        // Botão para voltar ao Dashboard / Menu Principal
+        // Botão para voltar ao Dashboard / Menu Principal (sem quadrado cinzento)
         findViewById<ImageButton>(R.id.btnBackEpg)?.apply {
             setOnClickListener { finish() }
+            isFocusable = true
+            isFocusableInTouchMode = false
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
-                    v.elevation = dp(8).toFloat()
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
                 } else {
-                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                    v.elevation = 0f
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }
+            }
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            rvCategories.post {
+                                rvCategories.scrollToPosition(0)
+                                rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            rvChannels.post {
+                                rvChannels.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
             }
         }
 
@@ -268,6 +297,16 @@ class EpgActivity : BaseActivity() {
 
             holder.itemView.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
                 updateCatBg(hasFocus)
+            }
+
+            holder.itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    if (holder.bindingAdapterPosition == 0) {
+                        findViewById<ImageButton>(R.id.btnBackEpg)?.requestFocus()
+                        return@setOnKeyListener true
+                    }
+                }
+                false
             }
 
             holder.itemView.setOnClickListener {

@@ -27,6 +27,9 @@ object ExoPlayerHelper {
         isLiveTv: Boolean = false
     ): Pair<ExoPlayer, DefaultTrackSelector> {
         val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(8, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
             .followRedirects(true)
             .followSslRedirects(true)
             .connectionPool(ConnectionPool(10, 5, TimeUnit.MINUTES))

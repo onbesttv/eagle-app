@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -45,8 +46,27 @@ class MoviesActivity : BaseActivity() {
 
     private var allMoviesInCat = listOf<VodStream>()
     private val allMoviesCache = mutableListOf<VodStream>() // Cache geral para Favoritos e Histórico
+    private var movieFavIdsCache: Set<String> = emptySet()
+    private var isFetchingAllMovies = false
     private var movieAdapter: MovieGridAdapter? = null
     private var lastClickedMovieId: Int = -1
+
+    private fun carregarCacheDiscoSeExistir() {
+        if (allMoviesCache.isNotEmpty()) return
+        try {
+            val cacheFile = java.io.File(cacheDir, "vod_movies_cache.json")
+            if (cacheFile.exists() && cacheFile.length() > 0) {
+                val type = object : TypeToken<List<VodStream>>() {}.type
+                val filmes: List<VodStream>? = java.io.FileReader(cacheFile).use { reader ->
+                    gson.fromJson(reader, type)
+                }
+                if (!filmes.isNullOrEmpty()) {
+                    allMoviesCache.clear()
+                    allMoviesCache.addAll(filmes)
+                }
+            }
+        } catch (_: Exception) {}
+    }
 
     private var currentCategoryId = ""
     private var categoriasCache: List<VodCategory> = emptyList()
@@ -80,11 +100,47 @@ class MoviesActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_movies)
 
-        // Botão para sair da atividade e regressar ao menu principal
+        // Botão para sair da atividade e regressar ao menu principal (com foco limpo)
         findViewById<ImageButton>(R.id.btnBackMovies)?.apply {
             setOnClickListener { finish() }
-            isFocusable = false
+            isFocusable = true
             isFocusableInTouchMode = false
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }
+            }
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            rvCategories.post {
+                                rvCategories.scrollToPosition(0)
+                                rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            if (etSearch.visibility == View.VISIBLE) {
+                                etSearch.requestFocus()
+                            } else {
+                                btnSortOrder.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
+            }
         }
 
         val prefs = getSharedPreferences("iptv_login_prefs", Context.MODE_PRIVATE)
@@ -96,9 +152,15 @@ class MoviesActivity : BaseActivity() {
         etSearch = findViewById(R.id.etSearchMovie)
         btnSortOrder = findViewById(R.id.btnSortOrder)
 
+        rvCategories.itemAnimator = null
+        rvMovies.itemAnimator = null
+        rvCategories.setHasFixedSize(true)
+        rvMovies.setHasFixedSize(true)
+
         rvCategories.layoutManager = LinearLayoutManager(this)
         rvMovies.layoutManager = GridLayoutManager(this, if (AppThemeColors.isPereiraTheme(this)) 6 else 5)
 
+        carregarCacheDiscoSeExistir()
         carregarCategoriasFilmes()
 
         etSearch.addTextChangedListener(object : TextWatcher {
@@ -113,19 +175,25 @@ class MoviesActivity : BaseActivity() {
         btnSortOrder.setOnClickListener {
             abrirDialogoOrdenacao()
         }
+        btnSortOrder.foreground = null
+        btnSortOrder.outlineProvider = null
+        btnSortOrder.elevation = 0f
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            btnSortOrder.defaultFocusHighlightEnabled = false
+        }
         btnSortOrder.setOnFocusChangeListener { v, hasFocus ->
             if (hasFocus) {
-                v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(140).start()
-                v.elevation = dp(8).toFloat()
+                v.animate().scaleX(1.06f).scaleY(1.06f).setDuration(120).start()
             } else {
-                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                v.elevation = 0f
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
+        val favPrefs = getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
+        movieFavIdsCache = favPrefs.getStringSet("fav_ids", emptySet()) ?: emptySet()
         // Atualiza a vista ao regressar da reprodução ou dos detalhes
         when (currentCategoryId) {
             "ALL_MOVIES" -> carregarTodosFilmes()
@@ -209,20 +277,28 @@ class MoviesActivity : BaseActivity() {
     }
 
     private fun carregarContadoresFilmes() {
+        if (isFetchingAllMovies) return
+        isFetchingAllMovies = true
         val url = "$BASE_URL/player_api.php?username=$user&password=$pass&action=get_vod_streams"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
         client.newCall(req).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
+            override fun onFailure(call: Call, e: IOException) {
+                isFetchingAllMovies = false
+            }
             override fun onResponse(call: Call, response: Response) {
+                isFetchingAllMovies = false
                 val json = response.body?.string() ?: return
                 try {
                     val type = object : TypeToken<List<VodStream>>() {}.type
                     val filmes: List<VodStream> = gson.fromJson(json, type)
                     allMoviesCache.clear()
                     allMoviesCache.addAll(filmes)
+                    try {
+                        java.io.File(cacheDir, "vod_movies_cache.json").writeText(json)
+                    } catch (_: Exception) {}
                     val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
                     counts["ALL_MOVIES"] = filmes.size
-                    counts["RECENT"] = minOf(40, filmes.size)
+                    counts["RECENT"] = minOf(100, filmes.size)
                     CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
                     runOnUiThread {
                         (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
@@ -360,46 +436,11 @@ class MoviesActivity : BaseActivity() {
             val filmesOrdenados = allMoviesCache.sortedWith(
                 compareByDescending<VodStream> { parseTimestamp(it.added) }
                     .thenByDescending { it.streamId }
-            ).take(40)
+            ).take(100)
             allMoviesInCat = filmesOrdenados
             aplicarFiltroEOrdenacao()
         } else {
-            val url = "$BASE_URL/player_api.php?username=$user&password=$pass&action=get_vod_streams"
-            val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
-
-            client.newCall(req).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    runOnUiThread {
-                        Toast.makeText(this@MoviesActivity, "Erro ao carregar filmes recentes", Toast.LENGTH_SHORT).show()
-                    }
-                }
-
-                override fun onResponse(call: Call, response: Response) {
-                    val json = response.body?.string() ?: return
-                    try {
-                        val type = object : TypeToken<List<VodStream>>() {}.type
-                        val filmes: List<VodStream> = gson.fromJson(json, type)
-
-                        runOnUiThread {
-                            allMoviesCache.clear()
-                            allMoviesCache.addAll(filmes)
-                            val counts = filmes.mapNotNull { it.categoryId }.groupingBy { it }.eachCount().toMutableMap()
-                            counts["RECENT"] = minOf(40, filmes.size)
-                            CategoryCountHelper.saveVodCounts(this@MoviesActivity, counts)
-                            (rvCategories.adapter as? MovieCategoryAdapter)?.atualizarTextosVisiveis()
-
-                            val filmesOrdenados = filmes.sortedWith(
-                                compareByDescending<VodStream> { parseTimestamp(it.added) }
-                                    .thenByDescending { it.streamId }
-                            ).take(40)
-                            allMoviesInCat = filmesOrdenados
-                            aplicarFiltroEOrdenacao()
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
-            })
+            carregarContadoresFilmes()
         }
     }
 
@@ -592,6 +633,7 @@ class MoviesActivity : BaseActivity() {
         }
 
         favPrefs.edit().putStringSet("fav_ids", setAtual).apply()
+        movieFavIdsCache = setAtual
 
         if (currentCategoryId == "FAVORITES") {
             carregarFavoritos()
@@ -742,6 +784,7 @@ class MoviesActivity : BaseActivity() {
                 if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                     val currentPos = holder.bindingAdapterPosition
                     if (currentPos == 0) {
+                        findViewById<ImageButton>(R.id.btnBackMovies)?.requestFocus()
                         return@setOnKeyListener true
                     }
                 }
@@ -799,9 +842,7 @@ class MoviesActivity : BaseActivity() {
             val movie = list[position]
             holder.tvTitle.text = movie.name
 
-            val favPrefs = holder.itemView.context.getSharedPreferences("movie_fav_prefs", Context.MODE_PRIVATE)
-            val favIds = favPrefs.getStringSet("fav_ids", emptySet()) ?: emptySet()
-            val isFav = favIds.contains(movie.streamId.toString())
+            val isFav = movieFavIdsCache.contains(movie.streamId.toString())
 
             holder.ivFavStar.visibility = if (isFav) View.VISIBLE else View.GONE
             holder.ivFavStar.setImageResource(if (isFav) android.R.drawable.btn_star_big_on else android.R.drawable.btn_star_big_off)
@@ -809,6 +850,8 @@ class MoviesActivity : BaseActivity() {
             if (!movie.streamIcon.isNullOrEmpty()) {
                 Glide.with(holder.itemView.context)
                     .load(movie.streamIcon)
+                    .override(280, 420)
+                    .diskCacheStrategy(com.bumptech.glide.load.engine.DiskCacheStrategy.AUTOMATIC)
                     .centerCrop()
                     .into(holder.ivPoster)
             } else {

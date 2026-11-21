@@ -119,13 +119,63 @@ class LiveTvActivity : BaseActivity() {
         // 1. Botão de voltar ao Dashboard principal (canto superior esquerdo)
         findViewById<ImageButton>(R.id.btnBackLiveTv)?.apply {
             setOnClickListener { finish() }
-            isFocusable = false
+            isFocusable = true
             isFocusableInTouchMode = false
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }
+            }
+            setOnKeyListener { _, keyCode, event ->
+                if (event.action == KeyEvent.ACTION_DOWN) {
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            rvCategories.post {
+                                rvCategories.scrollToPosition(0)
+                                rvCategories.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                            }
+                            return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            focarCanalAtual()
+                            return@setOnKeyListener true
+                        }
+                    }
+                }
+                false
+            }
         }
 
         // 2. Botão para fechar a lista flutuante em Fullscreen
-        findViewById<ImageButton>(R.id.btnBackOverlay)?.setOnClickListener {
-            fecharGavetaFullscreen()
+        findViewById<ImageButton>(R.id.btnBackOverlay)?.apply {
+            setOnClickListener {
+                fecharGavetaFullscreen()
+            }
+            isFocusable = true
+            isFocusableInTouchMode = false
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }
+            }
         }
 
         layoutLeftPanels = findViewById(R.id.layoutLeftPanels)
@@ -197,10 +247,30 @@ class LiveTvActivity : BaseActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT &&
-            !isFullScreen && (rvChannels.hasFocus() || rvCategories.hasFocus())) {
-            focarPastaSelecionada()
-            return true
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            if (isFullScreen) {
+                if (layoutChannelOverlay.visibility != View.VISIBLE) {
+                    when (event.keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> {
+                            mudarCanalRelativo(-1)
+                            return true
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> {
+                            mudarCanalRelativo(1)
+                            return true
+                        }
+                        KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MENU -> {
+                            abrirGavetaFullscreen()
+                            return true
+                        }
+                    }
+                }
+            } else {
+                if (event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT && (rvChannels.hasFocus() || rvCategories.hasFocus())) {
+                    focarPastaSelecionada()
+                    return true
+                }
+            }
         }
 
         val isOkKey = event.keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
@@ -215,6 +285,17 @@ class LiveTvActivity : BaseActivity() {
             return true
         }
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun mudarCanalRelativo(delta: Int) {
+        val lista = channelAdapter?.getLista() ?: return
+        if (lista.isEmpty()) return
+        val currentIdx = lista.indexOfFirst { it.streamId == currentStreamId }
+        val n = lista.size
+        val nextIdx = if (currentIdx == -1) 0 else ((currentIdx + delta) % n + n) % n
+        val nextCanal = lista[nextIdx]
+        tocarNoMiniPlayer(nextCanal)
+        Toast.makeText(this, "${nextCanal.num ?: (nextIdx + 1)} - ${nextCanal.name}", Toast.LENGTH_SHORT).show()
     }
 
     private fun alternarFullscreen() {
@@ -248,6 +329,15 @@ class LiveTvActivity : BaseActivity() {
     private fun abrirGavetaFullscreen() {
         layoutChannelOverlay.visibility = View.VISIBLE
         viewOverlayDismissArea.visibility = View.VISIBLE
+        val pos = overlayAdapter?.selecionarCanalPorId(currentStreamId) ?: -1
+        if (pos >= 0) {
+            rvOverlayChannels.post {
+                rvOverlayChannels.scrollToPosition(pos)
+                rvOverlayChannels.postDelayed({
+                    rvOverlayChannels.findViewHolderForAdapterPosition(pos)?.itemView?.requestFocus()
+                }, 80)
+            }
+        }
     }
 
     private fun fecharGavetaFullscreen() {
@@ -256,8 +346,18 @@ class LiveTvActivity : BaseActivity() {
     }
 
     private fun configurarPlayer() {
-        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView)
+        val (p, _) = ExoPlayerHelper.buildOptimizedPlayer(this, playerView, isLiveTv = true)
         player = p
+        player?.addListener(object : androidx.media3.common.Player.Listener {
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                try {
+                    player?.stop()
+                } catch (_: Exception) {}
+                runOnUiThread {
+                    Toast.makeText(this@LiveTvActivity, "Falha na transmissão do canal. Prima CIMA/BAIXO para mudar.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
         player?.volume = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
             .getInt("player_volume", 100).coerceIn(0, 100) / 100f
     }
@@ -270,10 +370,14 @@ class LiveTvActivity : BaseActivity() {
                 .getString("stream_type", "MPEGTS") == "HLS") "m3u8" else "ts"
         val url = "$baseUrl/live/$user/$pass/${canal.streamId}.$extension"
         currentStreamUrl = url
-        player?.apply {
-            setMediaItem(MediaItem.fromUri(url))
-            prepare()
-            playWhenReady = true
+        try {
+            player?.stop()
+            player?.clearMediaItems()
+            player?.setMediaItem(MediaItem.fromUri(url))
+            player?.prepare()
+            player?.playWhenReady = true
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         val posPrincipal = channelAdapter?.selecionarCanalPorId(canal.streamId) ?: -1
@@ -878,6 +982,7 @@ class LiveTvActivity : BaseActivity() {
                 if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                     val currentPos = holder.bindingAdapterPosition
                     if (currentPos == 0) {
+                        findViewById<ImageButton>(R.id.btnBackLiveTv)?.requestFocus()
                         return@setOnKeyListener true
                     }
                 }
@@ -907,6 +1012,8 @@ class LiveTvActivity : BaseActivity() {
         private var list: List<LiveStream>,
         private val onClick: (LiveStream) -> Unit
     ) : RecyclerView.Adapter<ChannelAdapter.ViewHolder>() {
+
+        fun getLista(): List<LiveStream> = list
 
         private var selectedPosition = RecyclerView.NO_POSITION
 

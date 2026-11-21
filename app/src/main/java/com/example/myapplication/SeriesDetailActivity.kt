@@ -3,6 +3,7 @@ package com.example.myapplication
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -90,13 +91,18 @@ class SeriesDetailActivity : BaseActivity() {
 
         findViewById<ImageButton>(R.id.btnBackSeriesDetail)?.apply {
             setOnClickListener { finish() }
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
             setOnFocusChangeListener { v, hasFocus ->
                 if (hasFocus) {
-                    v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(140).start()
-                    v.elevation = dp(8).toFloat()
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
                 } else {
-                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(140).start()
-                    v.elevation = 0f
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
                 }
             }
         }

@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -59,6 +60,20 @@ class SportsAgendaActivity : BaseActivity() {
         pbLoadingSports = findViewById(R.id.pbLoadingSports)
 
         btnBackSports.setOnClickListener { finish() }
+        btnBackSports.foreground = null
+        btnBackSports.outlineProvider = null
+        btnBackSports.elevation = 0f
+        btnBackSports.stateListAnimator = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            btnBackSports.defaultFocusHighlightEnabled = false
+        }
+        btnBackSports.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+            }
+        }
 
         setupRecyclerViews()
         carregarAgenda(forceOnline = false)

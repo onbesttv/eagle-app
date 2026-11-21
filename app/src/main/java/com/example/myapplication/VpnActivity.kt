@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -121,13 +122,18 @@ class VpnActivity : BaseActivity() {
     }
 
     private fun configurarFoco(view: View, scale: Float) {
+        view.foreground = null
+        view.outlineProvider = null
+        view.elevation = 0f
+        view.stateListAnimator = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            view.defaultFocusHighlightEnabled = false
+        }
         view.setOnFocusChangeListener { v, hasFocus ->
             if (hasFocus) {
                 v.animate().scaleX(scale).scaleY(scale).setDuration(120).start()
-                v.elevation = dp(8).toFloat()
             } else {
                 v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
-                v.elevation = 0f
             }
         }
     }

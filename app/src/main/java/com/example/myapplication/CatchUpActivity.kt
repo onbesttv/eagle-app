@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -59,7 +60,23 @@ class CatchUpActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_catch_up)
 
-        findViewById<ImageButton>(R.id.btnBackCatchUp).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.btnBackCatchUp)?.apply {
+            setOnClickListener { finish() }
+            foreground = null
+            outlineProvider = null
+            elevation = 0f
+            stateListAnimator = null
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                defaultFocusHighlightEnabled = false
+            }
+            setOnFocusChangeListener { v, hasFocus ->
+                if (hasFocus) {
+                    v.animate().scaleX(1.12f).scaleY(1.12f).setDuration(120).start()
+                } else {
+                    v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                }
+            }
+        }
         rvChannels = findViewById(R.id.rvCatchUpChannels)
         rvPrograms = findViewById(R.id.rvCatchUpPrograms)
         dayContainer = findViewById(R.id.layoutCatchUpDays)

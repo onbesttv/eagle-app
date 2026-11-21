@@ -83,17 +83,30 @@ data class SeriesCategory(
 
 // Item da Série na grelha
 data class SeriesItem(
-    @SerializedName("num") val num: Any?,
-    @SerializedName("name") val name: String,
-    @SerializedName("series_id") val seriesId: Int,
-    @SerializedName("cover") val cover: String?,
-    @SerializedName("plot") val plot: String?,
-    @SerializedName("rating") val rating: String?,
-    @SerializedName("category_id") val categoryId: String?,
+    @SerializedName("num") val num: Any? = null,
+    @SerializedName("name") val name: String = "",
+    @SerializedName("series_id") private val rawSeriesId: Any? = null,
+    @SerializedName("cover") val cover: String? = null,
+    @SerializedName("plot") val plot: String? = null,
+    @SerializedName("rating") private val rawRating: Any? = null,
+    @SerializedName("category_id") val categoryId: String? = null,
     @SerializedName("last_modified") val lastModified: String? = null,
     @SerializedName("added") val added: String? = null,
     @SerializedName("releaseDate") val releaseDate: String? = null
-)
+) {
+    val seriesId: Int
+        get() = when (val s = rawSeriesId) {
+            is Number -> s.toInt()
+            is String -> s.toIntOrNull() ?: 0
+            else -> 0
+        }
+    val rating: String?
+        get() = when (val r = rawRating) {
+            null -> null
+            is String -> r
+            else -> r.toString()
+        }
+}
 
 // Episódio individual
 data class EpisodeItem(
