@@ -318,16 +318,25 @@ class LiveTvActivity : BaseActivity() {
     }
 
     private fun focarCanalAtual() {
-        if (currentStreamId == -1) return
-        val pos = channelAdapter?.selecionarCanalPorId(currentStreamId) ?: -1
-        if (pos >= 0) {
-            rvChannels.post {
-                rvChannels.scrollToPosition(pos)
-                rvChannels.postDelayed({
-                    val vh = rvChannels.findViewHolderForAdapterPosition(pos)
-                    vh?.itemView?.requestFocus()
-                }, 80)
-            }
+        val total = channelAdapter?.itemCount ?: 0
+        if (total == 0) return
+        val foundPos = if (currentStreamId != -1) (channelAdapter?.selecionarCanalPorId(currentStreamId) ?: -1) else -1
+        val targetPos = if (foundPos >= 0) {
+            foundPos
+        } else {
+            val sel = channelAdapter?.posicaoSelecionada() ?: 0
+            if (sel in 0 until total) sel else 0
+        }
+        rvChannels.post {
+            (rvChannels.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager)?.scrollToPositionWithOffset(targetPos, 0)
+                ?: rvChannels.scrollToPosition(targetPos)
+            rvChannels.postDelayed({
+                val vh = rvChannels.findViewHolderForAdapterPosition(targetPos)
+                if (vh?.itemView?.requestFocus() != true) {
+                    val child = rvChannels.layoutManager?.findViewByPosition(targetPos)
+                    child?.requestFocus()
+                }
+            }, 60)
         }
     }
 
@@ -789,7 +798,7 @@ class LiveTvActivity : BaseActivity() {
         }
     }
 
-    private fun carregarCanaisDaCategoria(catId: String, iniciarReproducao: Boolean = false, targetStreamId: Int = -1) {
+    private fun carregarCanaisDaCategoria(catId: String, iniciarReproducao: Boolean = false, targetStreamId: Int = -1, focarAposCarregar: Boolean = false) {
         val requestId = ++categoryLoadRequestId
         val url = "$baseUrl/player_api.php?username=$user&password=$pass&action=get_live_streams&category_id=$catId"
         val req = Request.Builder().url(url).header("User-Agent", "IPTVSmartersPro/3.1.5").build()
@@ -871,6 +880,8 @@ class LiveTvActivity : BaseActivity() {
                             } else {
                                 tocarNoMiniPlayer(canalInicial)
                             }
+                            focarCanalAtual()
+                        } else if (focarAposCarregar && canais.isNotEmpty()) {
                             focarCanalAtual()
                         }
                     }
@@ -1044,7 +1055,24 @@ class LiveTvActivity : BaseActivity() {
                     }
                 }
                 if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
-                    focarCanalAtual()
+                    val catPos = holder.bindingAdapterPosition
+                    if (catPos != RecyclerView.NO_POSITION && currentCategoryId != cat.categoryId) {
+                        if (ParentalControlManager.isParentalControlEnabled(this@LiveTvActivity) &&
+                            ParentalControlManager.isAdultCategory(cat.categoryName) &&
+                            !ParentalControlManager.isCategoryUnlocked(cat.categoryId)
+                        ) {
+                            holder.itemView.performClick()
+                            return@setOnKeyListener true
+                        }
+                        val prev = selectedPosition
+                        selectedPosition = catPos
+                        if (prev != RecyclerView.NO_POSITION) notifyItemChanged(prev)
+                        notifyItemChanged(selectedPosition)
+                        currentCategoryId = cat.categoryId
+                        carregarCanaisDaCategoria(cat.categoryId, iniciarReproducao = false, focarAposCarregar = true)
+                    } else {
+                        focarCanalAtual()
+                    }
                     return@setOnKeyListener true
                 }
                 false
@@ -1071,6 +1099,8 @@ class LiveTvActivity : BaseActivity() {
         fun getLista(): List<LiveStream> = list
 
         private var selectedPosition = RecyclerView.NO_POSITION
+
+        fun posicaoSelecionada(): Int = selectedPosition
 
         fun selecionarCanalPorId(streamId: Int): Int {
             val index = list.indexOfFirst { it.streamId == streamId }

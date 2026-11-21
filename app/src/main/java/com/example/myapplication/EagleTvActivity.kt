@@ -1775,6 +1775,7 @@ class EagleTvActivity : BaseActivity() {
                             rvLiveChannels.scrollToPosition(pos)
                             rvLiveChannels.post {
                                 rvLiveChannels.findViewHolderForAdapterPosition(pos)?.itemView?.requestFocus()
+                                    ?: focarRecyclerViewPosicao(rvLiveChannels, pos)
                             }
                             return true
                         }
