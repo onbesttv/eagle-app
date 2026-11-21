@@ -619,6 +619,9 @@
                         android:layout_height="0dp"
                         android:layout_weight="1"
                         android:clipToPadding="false"
+                        android:descendantFocusability="afterDescendants"
+                        android:nextFocusUp="@id/rvLiveGroups"
+                        android:nextFocusDown="@id/rvLiveGroups"
                         android:paddingVertical="4dp" />
                 </LinearLayout>
 
@@ -672,6 +675,11 @@
                         android:layout_height="0dp"
                         android:layout_weight="1"
                         android:clipToPadding="false"
+                        android:descendantFocusability="afterDescendants"
+                        android:nextFocusLeft="@id/rvLiveChannels"
+                        android:nextFocusRight="@id/rvLiveChannels"
+                        android:nextFocusUp="@id/rvLiveChannels"
+                        android:nextFocusDown="@id/rvLiveChannels"
                         android:paddingVertical="4dp" />
                 </LinearLayout>
 

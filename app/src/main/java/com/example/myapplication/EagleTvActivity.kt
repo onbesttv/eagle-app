@@ -406,7 +406,7 @@ class EagleTvActivity : BaseActivity() {
 
         val targetPos = pos + direcao
         if (targetPos < 0) {
-            // Bloqueado no topo (primeiro item): não salta para a TV nem para cima
+            // Bloqueado no topo (primeiro item): não salta para a TV nem para cima nem para outra coluna
             return true
         }
         if (targetPos >= totalItems) {
@@ -414,7 +414,7 @@ class EagleTvActivity : BaseActivity() {
             return true
         }
 
-        // Tenta mover o foco para a próxima vista dentro da RecyclerView (fluido, nativo, sem saltos)
+        // 1. Tenta mover o foco para a próxima vista diretamente visível na RecyclerView
         val nextFocus = android.view.FocusFinder.getInstance().findNextFocus(
             rv,
             containingView,
@@ -426,19 +426,65 @@ class EagleTvActivity : BaseActivity() {
             return true
         }
 
-        // Se o próximo item ainda não estiver carregado na janela, faz scroll suave nativo e foca
-        rv.smoothScrollToPosition(targetPos)
+        val directView = rv.layoutManager?.findViewByPosition(targetPos)
+        if (directView != null) {
+            directView.requestFocus()
+            return true
+        }
+
+        // 2. Se não está visível na janela, faz scroll imediato com offset para garantir visibilidade e foca
+        (rv.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(targetPos, if (direcao > 0) rv.height / 3 else 0)
+            ?: rv.scrollToPosition(targetPos)
+
         rv.post {
             val vh = rv.findViewHolderForAdapterPosition(targetPos)
             if (vh != null) {
                 vh.itemView.requestFocus()
             } else {
-                rv.postDelayed({
-                    rv.findViewHolderForAdapterPosition(targetPos)?.itemView?.requestFocus()
-                }, 40)
+                val child = rv.layoutManager?.findViewByPosition(targetPos)
+                if (child != null) {
+                    child.requestFocus()
+                } else {
+                    focarRecyclerViewPosicao(rv, targetPos, 10)
+                }
             }
         }
         return true
+    }
+
+    inner class TvSafeLinearLayoutManager(context: Context) : LinearLayoutManager(context) {
+
+        override fun onInterceptFocusSearch(focused: View, direction: Int): View? {
+            val count = itemCount
+            if (count > 0) {
+                val child = findContainingItemView(focused) ?: focused
+                val pos = getPosition(child)
+                if (direction == View.FOCUS_DOWN && pos >= count - 1) {
+                    return focused
+                }
+                if (direction == View.FOCUS_UP && pos <= 0) {
+                    return focused
+                }
+            }
+            return super.onInterceptFocusSearch(focused, direction)
+        }
+
+        override fun onFocusSearchFailed(
+            focused: View,
+            focusDirection: Int,
+            recycler: RecyclerView.Recycler,
+            state: RecyclerView.State
+        ): View? {
+            val nextView = super.onFocusSearchFailed(focused, focusDirection, recycler, state)
+            if (nextView != null) {
+                return nextView
+            }
+            // Bloqueia fuga lateral para as outras colunas (grupos ou epg) durante navegação vertical
+            if (focusDirection == View.FOCUS_DOWN || focusDirection == View.FOCUS_UP) {
+                return focused
+            }
+            return null
+        }
     }
 
     private fun isViewDescendantOf(child: View, parent: ViewGroup): Boolean {
@@ -857,25 +903,25 @@ class EagleTvActivity : BaseActivity() {
 
         tvNumericZapOsd = findViewById(R.id.tvNumericZapOsd)
 
-        rvLiveGroups.layoutManager = LinearLayoutManager(this)
+        rvLiveGroups.layoutManager = TvSafeLinearLayoutManager(this)
         rvLiveGroups.itemAnimator = null
         rvLiveGroups.setHasFixedSize(true)
         rvLiveGroups.setItemViewCacheSize(15)
 
-        rvLiveChannels.layoutManager = LinearLayoutManager(this)
+        rvLiveChannels.layoutManager = TvSafeLinearLayoutManager(this)
         rvLiveChannels.itemAnimator = null
         rvLiveChannels.setHasFixedSize(true)
         rvLiveChannels.setItemViewCacheSize(20)
 
-        rvChannelSchedule.layoutManager = LinearLayoutManager(this)
+        rvChannelSchedule.layoutManager = TvSafeLinearLayoutManager(this)
         rvChannelSchedule.itemAnimator = null
         rvChannelSchedule.setHasFixedSize(true)
 
-        rvOverlayGroups.layoutManager = LinearLayoutManager(this)
+        rvOverlayGroups.layoutManager = TvSafeLinearLayoutManager(this)
         rvOverlayGroups.itemAnimator = null
         rvOverlayGroups.setHasFixedSize(true)
 
-        rvOverlayChannels.layoutManager = LinearLayoutManager(this)
+        rvOverlayChannels.layoutManager = TvSafeLinearLayoutManager(this)
         rvOverlayChannels.itemAnimator = null
         rvOverlayChannels.setHasFixedSize(true)
 
