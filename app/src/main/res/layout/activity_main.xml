@@ -29,9 +29,9 @@
 
     <ImageView
         android:id="@+id/ivLogo"
-        android:layout_width="104dp"
+        android:layout_width="96dp"
         android:layout_height="96dp"
-        android:layout_marginTop="2dp"
+        android:layout_marginTop="15dp"
         android:scaleType="fitCenter"
         android:src="@drawable/eagle_wordmark"
         app:layout_constraintEnd_toEndOf="parent"

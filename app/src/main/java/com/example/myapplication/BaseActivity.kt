@@ -20,6 +20,16 @@ open class BaseActivity : AppCompatActivity() {
         super.attachBaseContext(LocaleHelper.applyLocale(newBase))
     }
 
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        overridePendingTransition(0, 0)
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(0, 0)
+    }
+
     override fun setContentView(layoutResID: Int) {
         super.setContentView(layoutResID)
         AppThemeColors.applyToActivity(this)
@@ -33,7 +43,7 @@ open class BaseActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         heartbeatHandler.removeCallbacks(heartbeatRunnable)
-        heartbeatHandler.post(heartbeatRunnable)
+        heartbeatHandler.postDelayed(heartbeatRunnable, 4_000L)
     }
 
     override fun onPause() {

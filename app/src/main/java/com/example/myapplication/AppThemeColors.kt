@@ -166,7 +166,7 @@ object AppThemeColors {
 
     fun applyToActivity(activity: Activity) {
         val mapper = resolveMapper(activity) ?: return
-        val root = activity.window?.decorView ?: return
+        val root = activity.findViewById<View>(android.R.id.content) ?: activity.window?.decorView ?: return
         applyToViewHierarchy(root, mapper)
     }
 
@@ -239,14 +239,6 @@ object AppThemeColors {
             if (view is androidx.recyclerview.widget.RecyclerView) {
                 return
             }
-            view.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
-                override fun onChildViewAdded(parent: View?, child: View?) {
-                    if (child !is androidx.recyclerview.widget.RecyclerView) {
-                        applyToViewHierarchy(child, mapper)
-                    }
-                }
-                override fun onChildViewRemoved(parent: View?, child: View?) {}
-            })
             for (i in 0 until view.childCount) {
                 applyToViewHierarchy(view.getChildAt(i), mapper)
             }

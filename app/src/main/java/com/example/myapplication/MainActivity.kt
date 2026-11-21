@@ -22,7 +22,7 @@ class MainActivity : BaseActivity() {
             if (!isFinishing && !isDestroyed) {
                 AppUpdateManager.checkForUpdates(this, manual = false)
             }
-        }, 600L)
+        }, 3500L)
 
         val ivLogo = findViewById<ImageView>(R.id.ivLogo)
 
@@ -54,26 +54,22 @@ class MainActivity : BaseActivity() {
         val savedUser = prefs.getString("SAVED_USER", "").orEmpty()
         val savedPass = prefs.getString("SAVED_PASS", "").orEmpty()
 
-        // Cliques nos cartões
+        // Cliques instantâneos nos cartões
         cardLiveTv.setOnClickListener {
-            val intent = Intent(this, LiveTvActivity::class.java)
-            startActivity(intent)
+            abrirEcra(Intent(this, LiveTvActivity::class.java))
         }
 
         cardTvGuide.setOnClickListener {
-            val intent = Intent(this, EpgActivity::class.java)
-            startActivity(intent)
+            abrirEcra(Intent(this, EpgActivity::class.java))
         }
         cardMovies.setOnClickListener {
-            val intent = Intent(this, MoviesActivity::class.java)
-            startActivity(intent)
+            abrirEcra(Intent(this, MoviesActivity::class.java))
         }
         cardSeries.setOnClickListener {
-            val intent = Intent(this, SeriesActivity::class.java)
-            startActivity(intent)
+            abrirEcra(Intent(this, SeriesActivity::class.java))
         }
         cardCatchUp.setOnClickListener {
-            startActivity(Intent(this, CatchUpActivity::class.java))
+            abrirEcra(Intent(this, CatchUpActivity::class.java))
         }
 
         val resId = RemotePanelManager.getResellerId(this)
@@ -82,10 +78,10 @@ class MainActivity : BaseActivity() {
             cardSportsAgenda?.visibility = android.view.View.VISIBLE
             cardNewspapers?.visibility = android.view.View.VISIBLE
             cardSportsAgenda?.setOnClickListener {
-                startActivity(Intent(this, SportsAgendaActivity::class.java))
+                abrirEcra(Intent(this, SportsAgendaActivity::class.java))
             }
             cardNewspapers?.setOnClickListener {
-                startActivity(Intent(this, NewspapersActivity::class.java))
+                abrirEcra(Intent(this, NewspapersActivity::class.java))
             }
         } else {
             cardSportsAgenda?.visibility = android.view.View.GONE
@@ -142,7 +138,7 @@ class MainActivity : BaseActivity() {
         }
 
         btnSettings.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
+            abrirEcra(Intent(this, SettingsActivity::class.java))
         }
 
         btnUpdateService.setOnClickListener { button ->
@@ -152,21 +148,24 @@ class MainActivity : BaseActivity() {
         val extrasBtn = findViewById<android.view.View?>(R.id.btnExtras)
         extrasBtn?.setOnClickListener {
             try {
-                startActivity(Intent(this, ExtrasActivity::class.java))
+                abrirEcra(Intent(this, ExtrasActivity::class.java))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
-        // Foco inicial direto no LIVE TV ao abrir a aplicação; a home já está visível
-        // quando começa a verificação automática de atualizações.
+        // Foco inicial direto no LIVE TV ao abrir a aplicação
         cardLiveTv.post {
             cardLiveTv.requestFocus()
-            AppUpdateManager.checkForUpdates(this, manual = false)
         }
 
         // Verificar expiração da subscrição/linha (alerta se faltarem 5 dias ou menos)
         AccountExpirationAlert.checkAndShow(this)
+    }
+
+    private fun abrirEcra(intent: Intent) {
+        startActivity(intent)
+        overridePendingTransition(0, 0)
     }
 
     private val periodicSyncRunnable = object : Runnable {
@@ -180,8 +179,6 @@ class MainActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        RemotePanelManager.syncAndEnforce(this)
-        AppUpdateManager.checkForUpdates(this, manual = false)
         window.decorView.removeCallbacks(periodicSyncRunnable)
         window.decorView.postDelayed(periodicSyncRunnable, 30_000L)
         // Atualiza os títulos caso o idioma tenha sido alterado nas Definições
