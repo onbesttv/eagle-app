@@ -98,24 +98,29 @@ async function main() {
 
     // Format channel nicely
     cleanCanal = cleanCanal
-      .replace(/sport\.tv\s*1/i, 'Sport TV 1')
-      .replace(/sport\.tv\s*2/i, 'Sport TV 2')
-      .replace(/sport\.tv\s*3/i, 'Sport TV 3')
-      .replace(/sport\.tv\s*4/i, 'Sport TV 4')
-      .replace(/sport\.tv\s*5/i, 'Sport TV 5')
-      .replace(/sport\.tv\s*6/i, 'Sport TV 6')
-      .replace(/dazn\s*1/i, 'DAZN 1')
-      .replace(/dazn\s*2/i, 'DAZN 2')
-      .replace(/dazn\s*3/i, 'DAZN 3')
-      .replace(/dazn\s*4/i, 'DAZN 4')
-      .replace(/dazn\s*5/i, 'DAZN 5')
-      .replace(/dazn\s*6/i, 'DAZN 6')
+      .replace(/sport[.\s]*tv\s*1/i, 'Sport TV 1')
+      .replace(/sport[.\s]*tv\s*2/i, 'Sport TV 2')
+      .replace(/sport[.\s]*tv\s*3/i, 'Sport TV 3')
+      .replace(/sport[.\s]*tv\s*4/i, 'Sport TV 4')
+      .replace(/sport[.\s]*tv\s*5/i, 'Sport TV 5')
+      .replace(/sport[.\s]*tv\s*6/i, 'Sport TV 6')
+      .replace(/sport[.\s]*tv\s*\+/i, 'Sport TV +')
+      .replace(/sport[.\s]*tv(?!\s*\d|\s*\+)/i, 'Sport TV 1')
+      .replace(/dazn\s*1|eleven\s*1/i, 'DAZN 1')
+      .replace(/dazn\s*2|eleven\s*2/i, 'DAZN 2')
+      .replace(/dazn\s*3|eleven\s*3/i, 'DAZN 3')
+      .replace(/dazn\s*4|eleven\s*4/i, 'DAZN 4')
+      .replace(/dazn\s*5|eleven\s*5/i, 'DAZN 5')
+      .replace(/dazn\s*6|eleven\s*6/i, 'DAZN 6')
+      .replace(/\bdazn(?!\s*\d)|\beleven(?!\s*\d)/i, 'DAZN 1')
       .replace(/canal\s*11/i, 'Canal 11')
-      .replace(/benfica\s*tv|btv/i, 'BTV 1')
-      .replace(/porto\s*canal/i, 'Porto Canal')
+      .replace(/benfica[.\s]*tv|btv/i, 'BTV 1')
+      .replace(/porto[.\s]*canal/i, 'Porto Canal')
+      .replace(/sporting[.\s]*tv/i, 'Sporting TV')
       .replace(/rtp\s*1/i, 'RTP 1')
-      .replace(/sic/i, 'SIC')
-      .replace(/tvi/i, 'TVI');
+      .replace(/rtp\s*2/i, 'RTP 2')
+      .replace(/\bsic\b/i, 'SIC')
+      .replace(/\btvi\b/i, 'TVI');
 
     if (!cleanCanal || cleanCanal.toLowerCase().includes('betano') || cleanCanal.toLowerCase().includes('livestream')) {
       cleanCanal = 'A anunciar';

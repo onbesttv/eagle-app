@@ -2133,9 +2133,8 @@ class EagleTvActivity : BaseActivity() {
                     CategoryCountHelper.saveLiveCounts(this@EagleTvActivity, counts)
                     val targetName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
                     val matchedByTarget = if (!targetName.isNullOrBlank()) {
-                        val clean = targetName.replace(" ", "").lowercase()
-                        streams.firstOrNull { it.name.replace(" ", "").lowercase().contains(clean) }
-                            ?: streams.firstOrNull { clean.contains(it.name.replace(" ", "").lowercase()) }
+                        val prefer1080 = intent.getBooleanExtra("PREFER_1080", true)
+                        ChannelMatcher.encontrarCanalAlvo(streams, targetName, allLiveCategories, prefer1080 = prefer1080)
                     } else null
                     val lastId = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getInt("last_live_stream_id", -1)
                     val matchedStream = if (currentStreamId == -1 && lastId != -1) {
@@ -2315,8 +2314,8 @@ class EagleTvActivity : BaseActivity() {
         if (iniciarCanal && currentStreamId == -1 && canais.isNotEmpty()) {
             val targetName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
             val byTarget = if (!targetName.isNullOrBlank()) {
-                val clean = targetName.replace(" ", "").lowercase()
-                canais.firstOrNull { it.name.replace(" ", "").lowercase().contains(clean) }
+                val prefer1080 = intent.getBooleanExtra("PREFER_1080", true)
+                ChannelMatcher.encontrarCanalAlvo(canais, targetName, allLiveCategories, prefer1080 = prefer1080)
             } else null
 
             val lastId = getSharedPreferences("app_settings", Context.MODE_PRIVATE).getInt("last_live_stream_id", -1)

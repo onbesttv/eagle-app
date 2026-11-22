@@ -577,64 +577,12 @@ class LiveTvActivity : BaseActivity() {
     }
 
     private fun expandirNomesCanal(nome: String): List<String> {
-        val results = mutableListOf<String>()
-        results.add(nome)
-        if (nome.contains("/") || nome.contains(",") || nome.contains("+") || nome.contains("|")) {
-            nome.split('/', ',', '+', '|').map { it.trim() }.filter { it.isNotBlank() }.forEach { results.add(it) }
-        }
-        val lower = nome.lowercase()
-        if (lower.contains("btv") || lower.contains("benfica")) {
-            results.add("Benfica TV 1")
-            results.add("Benfica TV")
-            results.add("BTV 1")
-            results.add("BTV")
-        }
-        if (lower.contains("dazn") || lower.contains("eleven")) {
-            val num = Regex("\\d+").find(lower)?.value ?: "1"
-            results.add("DAZN $num")
-            results.add("Eleven Sports $num")
-            results.add("Eleven $num")
-        }
-        if (lower.contains("sport") && lower.contains("tv")) {
-            val num = Regex("\\d+").find(lower)?.value
-            if (num != null) {
-                results.add("Sport TV $num")
-                results.add("SportTV $num")
-                results.add("Sport.TV $num")
-                results.add("SPT $num")
-            } else if (lower.contains("+") || lower.contains("mais")) {
-                results.add("Sport TV +")
-                results.add("Sport TV Mais")
-                results.add("SportTV +")
-            }
-        }
-        return results.distinct()
+        return ChannelMatcher.expandirVariantesCanal(nome)
     }
 
-    private fun encontrarCanalAlvo(streams: List<LiveStream>, targetChannelName: String): LiveStream? {
-        val variantes = expandirNomesCanal(targetChannelName)
-        for (variante in variantes) {
-            val clean = variante.replace(Regex("[^a-zA-Z0-9 ]"), "").trim().lowercase()
-            val tokens = clean.split(Regex("\\s+")).filter { it.isNotBlank() }
-            if (tokens.isEmpty()) continue
-
-            // 1. Prioridade: todos os tokens aparecem no nome do canal (com correspondência exata de números)
-            val regexTokens = tokens.map { t ->
-                if (t.all { it.isDigit() }) "(?<!\\d)$t(?!\\d)" else "\\b$t\\b"
-            }
-            val regex = Regex("(?i)" + regexTokens.joinToString(".*"))
-            val matchA = streams.firstOrNull { regex.containsMatchIn(it.name) }
-            if (matchA != null) return matchA
-
-            // 2. Sem espaços
-            val noSpaces = clean.replace(" ", "")
-            val matchB = streams.firstOrNull {
-                val streamClean = it.name.replace(Regex("[^a-zA-Z0-9]"), "").lowercase()
-                streamClean.contains(noSpaces)
-            }
-            if (matchB != null) return matchB
-        }
-        return null
+    private fun encontrarCanalAlvo(streams: List<LiveStream>, targetChannelName: String, categorias: List<LiveCategory>? = null): LiveStream? {
+        val prefer1080 = intent.getBooleanExtra("PREFER_1080", true)
+        return ChannelMatcher.encontrarCanalAlvo(streams, targetChannelName, categorias ?: categoriasCache, prefer1080 = prefer1080)
     }
 
     private fun carregarCategorias() {
@@ -728,7 +676,7 @@ class LiveTvActivity : BaseActivity() {
                     val counts = streams.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
                     CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, counts)
 
-                    val canalAlvo = encontrarCanalAlvo(streams, targetChannelName)
+                    val canalAlvo = encontrarCanalAlvo(streams, targetChannelName, categorias)
                     runOnUiThread {
                         (rvCategories.adapter as? CategoryAdapter)?.atualizarTextosVisiveis()
                         if (canalAlvo != null && !canalAlvo.categoryId.isNullOrBlank()) {
@@ -858,9 +806,8 @@ class LiveTvActivity : BaseActivity() {
                             } else {
                                 val targetChannelName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
                                 val selectedByTarget = if (!targetChannelName.isNullOrBlank()) {
-                                    val cleanTarget = targetChannelName.replace(" ", "").lowercase()
-                                    canais.firstOrNull { it.name.replace(" ", "").lowercase().contains(cleanTarget) }
-                                        ?: canais.firstOrNull { cleanTarget.contains(it.name.replace(" ", "").lowercase()) }
+                                    val prefer1080 = intent.getBooleanExtra("PREFER_1080", true)
+                                    ChannelMatcher.encontrarCanalAlvo(canais, targetChannelName, categoriasCache, prefer1080 = prefer1080)
                                 } else null
 
                                 val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)

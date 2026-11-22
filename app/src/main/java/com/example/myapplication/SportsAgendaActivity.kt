@@ -90,8 +90,10 @@ class SportsAgendaActivity : BaseActivity() {
         matchAdapter = MatchAdapter(displayedMatches) { match ->
             if (match.canal.isNotBlank() && !match.canal.contains("anunciar", ignoreCase = true)) {
                 Toast.makeText(this, "A sintonizar ${match.canal}...", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, LiveTvActivity::class.java).apply {
+                val targetClass = if (EagleTvConfig.isEagleTvEdition(this)) EagleTvActivity::class.java else LiveTvActivity::class.java
+                val intent = Intent(this, targetClass).apply {
                     putExtra("TARGET_CHANNEL_NAME", match.canal)
+                    putExtra("PREFER_1080", true)
                 }
                 startActivity(intent)
             } else {
