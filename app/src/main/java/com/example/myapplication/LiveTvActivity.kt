@@ -123,7 +123,8 @@ class LiveTvActivity : BaseActivity() {
         // 1. Botão de voltar ao Dashboard principal (canto superior esquerdo)
         findViewById<ImageButton>(R.id.btnBackLiveTv)?.apply {
             setOnClickListener { finish() }
-            isFocusable = true
+            isFocusable = false
+            postDelayed({ if (!isFinishing && !isDestroyed) isFocusable = true }, 800)
             isFocusableInTouchMode = false
             foreground = null
             outlineProvider = null
@@ -676,7 +677,11 @@ class LiveTvActivity : BaseActivity() {
                     val counts = streams.mapNotNull { it.categoryId }.groupingBy { it }.eachCount()
                     CategoryCountHelper.saveLiveCounts(this@LiveTvActivity, counts)
 
-                    val canalAlvo = encontrarCanalAlvo(streams, targetChannelName, categorias)
+                    val canalAlvo = try {
+                        encontrarCanalAlvo(streams, targetChannelName, categorias)
+                    } catch (_: Throwable) {
+                        null
+                    }
                     runOnUiThread {
                         (rvCategories.adapter as? CategoryAdapter)?.atualizarTextosVisiveis()
                         if (canalAlvo != null && !canalAlvo.categoryId.isNullOrBlank()) {
@@ -694,14 +699,24 @@ class LiveTvActivity : BaseActivity() {
                         }
                         // Fallback se não encontrar o canal específico
                         if (categorias.isNotEmpty()) {
-                            carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                            val fallbackCat = categorias.firstOrNull {
+                                val c = it.categoryName.lowercase()
+                                c.contains("portugal") || c.contains("desporto") || c.startsWith("pt")
+                            } ?: categorias[0]
+                            (rvCategories.adapter as? CategoryAdapter)?.selecionarCategoriaPorId(fallbackCat.categoryId)
+                            carregarCanaisDaCategoria(fallbackCat.categoryId, iniciarReproducao = true)
                             rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
                         }
                     }
-                } catch (_: Exception) {
+                } catch (_: Throwable) {
                     runOnUiThread {
                         if (categorias.isNotEmpty()) {
-                            carregarCanaisDaCategoria(categorias[0].categoryId, iniciarReproducao = true)
+                            val fallbackCat = categorias.firstOrNull {
+                                val c = it.categoryName.lowercase()
+                                c.contains("portugal") || c.contains("desporto") || c.startsWith("pt")
+                            } ?: categorias[0]
+                            (rvCategories.adapter as? CategoryAdapter)?.selecionarCategoriaPorId(fallbackCat.categoryId)
+                            carregarCanaisDaCategoria(fallbackCat.categoryId, iniciarReproducao = true)
                             rvCategories.postDelayed({ focarPastaSelecionada() }, 100)
                         }
                     }
@@ -807,7 +822,11 @@ class LiveTvActivity : BaseActivity() {
                                 val targetChannelName = intent.getStringExtra("TARGET_CHANNEL_NAME")?.trim()
                                 val selectedByTarget = if (!targetChannelName.isNullOrBlank()) {
                                     val prefer1080 = intent.getBooleanExtra("PREFER_1080", true)
-                                    ChannelMatcher.encontrarCanalAlvo(canais, targetChannelName, categoriasCache, prefer1080 = prefer1080)
+                                    try {
+                                        ChannelMatcher.encontrarCanalAlvo(canais, targetChannelName, categoriasCache, prefer1080 = prefer1080)
+                                    } catch (_: Throwable) {
+                                        null
+                                    }
                                 } else null
 
                                 val appSettings = getSharedPreferences("app_settings", Context.MODE_PRIVATE)

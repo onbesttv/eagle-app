@@ -4109,12 +4109,18 @@ class EagleTvActivity : BaseActivity() {
     }
 
     private fun abrirCanalPorNome(nome: String) {
-        val clean = nome.replace(" ", "").lowercase()
-        val canal = allLiveStreamsCache.firstOrNull { it.name.replace(" ", "").lowercase().contains(clean) }
-            ?: allLiveStreamsCache.firstOrNull {
-                val n = it.name.replace(" ", "").lowercase()
-                n.length > 2 && clean.contains(n)
-            }
+        val canal = try {
+            ChannelMatcher.encontrarCanalAlvo(allLiveStreamsCache, nome, allLiveCategories, prefer1080 = true)
+        } catch (_: Throwable) {
+            null
+        } ?: run {
+            val clean = nome.replace(" ", "").lowercase()
+            allLiveStreamsCache.firstOrNull { it.name.replace(" ", "").lowercase().contains(clean) }
+                ?: allLiveStreamsCache.firstOrNull {
+                    val n = it.name.replace(" ", "").lowercase()
+                    n.length > 2 && clean.contains(n)
+                }
+        }
         if (canal == null) {
             Toast.makeText(this, "Canal \"$nome\" não encontrado na tua lista.", Toast.LENGTH_SHORT).show()
             return

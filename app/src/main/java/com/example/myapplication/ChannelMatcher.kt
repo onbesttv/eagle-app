@@ -1,15 +1,14 @@
 package com.example.myapplication
 
-import java.util.regex.Pattern
-
 object ChannelMatcher {
 
     /**
      * Encontra o melhor canal na lista de streams para o canal alvo requisitado.
      * Regras estritas:
-     * - Apenas pastas de Portugal (ex: "Portugal", "Portugal FHD", "Desporto", "PT | Desporto").
-     * - Rejeita totalmente pastas estrangeiras (ES, BR, FR, UK, USA, etc.).
-     * - Rejeita qualidade HD (720p) - prioriza 1080 / FHD / Full HD.
+     * 1. Apenas pastas de Portugal (ex: "Portugal", "Portugal FHD", "Desporto", "PT | Desporto").
+     * 2. Rejeita totalmente pastas e prefixos estrangeiros (ES, BR, FR, UK, USA, etc.).
+     * 3. Prioriza 1080 / FHD antes de qualidade normal; rejeita canais puramente HD (720p).
+     * 4. Se não existir versão 1080 nem normal disponível, recorre como último recurso à lista disponível.
      */
     fun encontrarCanalAlvo(
         streams: List<LiveStream>,
@@ -19,13 +18,17 @@ object ChannelMatcher {
     ): LiveStream? {
         if (streams.isEmpty() || targetChannelName.isBlank()) return null
 
-        val catMap = categorias?.associate { it.categoryId to it.categoryName } ?: emptyMap()
+        val catMap = try {
+            categorias?.associate { (it.categoryId ?: "") to (it.categoryName ?: "") } ?: emptyMap()
+        } catch (_: Throwable) {
+            emptyMap()
+        }
 
         // 1. Desmembrar múltiplos canais (ex: "RTP 1 / Sport TV 1", "SIC, DAZN 1")
         val subCanais = extrairSubCanais(targetChannelName)
         if (subCanais.isEmpty()) return null
 
-        // 2. Tentar primeiro encontrar canal em 1080/FHD para qualquer um dos sub-canais dentro das pastas de Portugal
+        // 2. Tentar primeiro encontrar canal em 1080/FHD dentro de pastas de Portugal
         if (prefer1080) {
             for (subCanal in subCanais) {
                 val match1080 = encontrarCandidato(streams, subCanal, catMap, apenas1080 = true, rejeitarHd = true)
@@ -33,7 +36,7 @@ object ChannelMatcher {
             }
         }
 
-        // 3. Fallback: procurar canal em pastas válidas de Portugal, ainda rejeitando HD
+        // 3. Fallback: procurar canal em pastas válidas de Portugal sem 1080, mas ainda rejeitando HD
         for (subCanal in subCanais) {
             val matchNormal = encontrarCandidato(streams, subCanal, catMap, apenas1080 = false, rejeitarHd = true)
             if (matchNormal != null) return matchNormal
@@ -68,6 +71,7 @@ object ChannelMatcher {
     fun expandirVariantesCanal(subCanal: String): List<String> {
         val results = mutableListOf<String>()
         val cleanSub = subCanal.trim()
+        if (cleanSub.isBlank()) return emptyList()
         results.add(cleanSub)
 
         val lower = cleanSub.lowercase()
@@ -177,21 +181,23 @@ object ChannelMatcher {
         rejeitarHd: Boolean
     ): LiveStream? {
         val variantes = expandirVariantesCanal(subCanal)
+        if (variantes.isEmpty()) return null
+
         val candidatos = mutableListOf<Pair<LiveStream, Int>>()
 
         for (stream in streams) {
-            val sName = stream.name
+            val sName = stream.name ?: continue
             if (sName.isBlank()) continue
 
             val catName = stream.categoryId?.let { catMap[it] }
 
-            // 1. Rejeitar canais com prefixo estrangeiro
+            // 1. Rejeitar canais com prefixo estrangeiro no próprio nome
             if (isStreamEstrangeiro(sName)) continue
 
-            // 2. Rejeitar pastas estrangeiras e pastas que não sejam de Portugal / Desporto
-            if (!isPastaValidaPortugal(catName)) continue
+            // 2. Rejeitar pastas estrangeiras e pastas não permitidas
+            if (!isPastaValidaPortugal(catName, rejeitarHd)) continue
 
-            // 3. Se rejeitarHd estiver ativo, não aceitar streams nem pastas com qualidade puramente HD (720p)
+            // 3. Se rejeitarHd estiver ativo, não aceitar streams com qualidade puramente HD (720p)
             if (rejeitarHd && isStreamHdRejeitado(sName, catName)) continue
 
             // 4. Se apenas1080 estiver ativo, exigir qualidade 1080p / FHD
@@ -201,14 +207,14 @@ object ChannelMatcher {
             // 5. Verificar correspondência com alguma das variantes do canal
             var matchedVariant = false
             for (variante in variantes) {
-                if (streamCorresponde(stream, variante)) {
+                if (streamCorresponde(sName, variante)) {
                     matchedVariant = true
                     break
                 }
             }
 
             if (matchedVariant) {
-                val score = pontuarCandidato(stream, catName, is1080)
+                val score = pontuarCandidato(sName, catName, is1080)
                 candidatos.add(Pair(stream, score))
             }
         }
@@ -218,55 +224,81 @@ object ChannelMatcher {
     }
 
     /**
-     * Valida se a pasta/categoria pertence a Portugal, Portugal FHD ou Desporto português
+     * Valida se a pasta/categoria pertence a Portugal, Portugal FHD ou Desporto
      */
-    fun isPastaValidaPortugal(categoryName: String?): Boolean {
-        if (categoryName.isNullOrBlank()) return true // Sem pasta mapeada, validação fica no stream
+    fun isPastaValidaPortugal(categoryName: String?, rejeitarHd: Boolean = true): Boolean {
+        if (categoryName.isNullOrBlank()) return true // Sem categoria mapeada, decisão baseada no stream
 
         val cat = categoryName.trim().lowercase()
 
         // 1. Excluir pastas explicitamente estrangeiras
         if (isPastaEstrangeira(cat)) return false
 
-        // 2. Excluir pastas puramente "HD" se não forem FHD (ex: "Portugal HD", "PT | Desporto HD")
-        val hasFhd = cat.contains("fhd") || cat.contains("full hd") || cat.contains("fullhd") || cat.contains("1080")
-        val hasPureHd = Regex("(?<!f|full\\s*)hd\\b").containsMatchIn(cat)
-        if (hasPureHd && !hasFhd) {
-            return false
+        // 2. Se rejeitarHd estiver ativo, excluir pastas que sejam puramente "HD" (sem FHD/1080)
+        if (rejeitarHd) {
+            val hasFhd = cat.contains("fhd") || cat.contains("full hd") || cat.contains("fullhd") || cat.contains("1080")
+            if (!hasFhd && contemPalavraHd(cat)) {
+                return false
+            }
         }
 
-        // 3. Pastas permitidas: Portugal, Portugal FHD, Desporto, PT
+        // 3. Pastas permitidas de Portugal / Desporto
         val isPortugal = cat.contains("portugal") || cat.contains("nacionais")
-        val isDesporto = cat.contains("desporto")
+        val isDesporto = cat.contains("desporto") || cat.contains("sports") || cat.contains("sport")
         val isPtPrefix = cat.startsWith("pt") || cat.contains("pt |") || cat.contains("pt:") || cat.contains("pt -") || cat.contains("[pt]")
+        val isAllowedSpecial = cat.contains("premium") || cat.contains("generalistas") ||
+                cat.contains("dazn") || cat.contains("eleven") || cat.contains("benfica") || cat.contains("btv")
 
-        return isPortugal || isDesporto || isPtPrefix
+        return isPortugal || isDesporto || isPtPrefix || isAllowedSpecial
     }
 
     /**
      * Deteta se uma pasta é estrangeira (Espanha, Brasil, França, UK, USA, etc.)
+     * Verifica prefixos e palavras de fronteira completas, sem falsos positivos em preposições ("de", "es").
      */
     fun isPastaEstrangeira(catLower: String): Boolean {
         val foreignPrefixes = listOf(
-            "es|", "es:", "es -", "es ", "esp|", "esp:", "esp ", "españa", "espanha", "spain",
-            "br|", "br:", "br -", "br ", "bra|", "bra:", "bra ", "brasil", "brazil",
-            "fr|", "fr:", "fr -", "fr ", "fra|", "fra:", "france", "frança",
-            "uk|", "uk:", "uk -", "uk ", "england", "united kingdom",
-            "de|", "de:", "de -", "de ", "germany", "deutschland", "alemanha",
-            "it|", "it:", "it -", "it ", "ita|", "ita:", "italia", "itália", "italy",
-            "us|", "us:", "us -", "us ", "usa|", "usa:", "usa ", "united states",
-            "nl|", "nl:", "netherlands", "holanda",
-            "pl|", "poland", "polonia", "polónia",
-            "tr|", "turkey", "turquia",
-            "ar|", "arabic", "arabia",
-            "ro|", "romania",
-            "al|", "albania"
+            "es|", "es:", "es -", "[es]", "esp|", "esp:", "esp -",
+            "br|", "br:", "br -", "[br]", "bra|", "bra:", "bra -",
+            "fr|", "fr:", "fr -", "[fr]", "fra|", "fra:",
+            "uk|", "uk:", "uk -", "[uk]",
+            "us|", "us:", "us -", "[us]", "usa|", "usa:", "usa -",
+            "de|", "de:", "de -", "[de]", "ger|", "ger:",
+            "it|", "it:", "it -", "[it]", "ita|", "ita:",
+            "nl|", "nl:", "[nl]",
+            "pl|", "pl:", "[pl]",
+            "tr|", "tr:", "[tr]",
+            "ar|", "ar:", "[ar]",
+            "ro|", "ro:", "[ro]",
+            "al|", "al:", "[al]"
         )
+
         for (prefix in foreignPrefixes) {
             if (catLower.startsWith(prefix) || catLower.contains("|$prefix") || catLower.contains(" $prefix")) {
                 return true
             }
         }
+
+        // Palavras de países estrangeiros (isoladas)
+        val foreignWords = listOf(
+            "españa", "espanha", "spain",
+            "brasil", "brazil",
+            "france", "frança",
+            "united kingdom", "england",
+            "united states",
+            "deutschland", "germany", "alemanha",
+            "italia", "itália", "italy",
+            "netherlands", "holanda",
+            "poland", "polonia", "polónia",
+            "turkey", "turquia",
+            "arabic", "arabia",
+            "romania", "albania"
+        )
+
+        for (w in foreignWords) {
+            if (catLower.contains(w)) return true
+        }
+
         return false
     }
 
@@ -276,85 +308,48 @@ object ChannelMatcher {
     fun isStreamEstrangeiro(streamName: String): Boolean {
         val sLower = streamName.trim().lowercase()
         val foreignPrefixes = listOf(
-            "es:", "es|", "es -", "esp:", "[es]",
-            "br:", "br|", "br -", "bra:", "[br]",
-            "fr:", "fr|", "fr -", "fra:", "[fr]",
+            "es:", "es|", "es -", "esp:", "esp|", "[es]",
+            "br:", "br|", "br -", "bra:", "bra|", "[br]",
+            "fr:", "fr|", "fr -", "fra:", "fra|", "[fr]",
             "uk:", "uk|", "uk -", "[uk]",
+            "us:", "us|", "us -", "usa:", "usa|", "[us]",
             "de:", "de|", "de -", "ger:", "[de]",
             "it:", "it|", "it -", "ita:", "[it]",
-            "us:", "us|", "us -", "usa:", "[us]"
+            "nl:", "pl:", "tr:", "ar:"
         )
         return foreignPrefixes.any { sLower.startsWith(it) }
     }
 
     /**
-     * Deteta se um stream é de qualidade puramente HD (720p) e deve ser rejeitado
+     * Deteta se um stream ou categoria é puramente HD (720p) e deve ser rejeitado
      */
     fun isStreamHdRejeitado(streamName: String, categoryName: String?): Boolean {
         val nameLower = streamName.lowercase()
         val catLower = (categoryName ?: "").lowercase()
 
+        // Se tem 1080p, FHD ou Full HD, NUNCA é rejeitado como HD
         val isFhd = nameLower.contains("fhd") || nameLower.contains("full hd") || nameLower.contains("fullhd") || nameLower.contains("1080") ||
                 catLower.contains("fhd") || catLower.contains("full hd") || catLower.contains("fullhd") || catLower.contains("1080")
 
         if (isFhd) return false
 
-        val nameHasHd = Regex("(?<!f|full\\s*)hd\\b").containsMatchIn(nameLower)
-        val catHasHd = Regex("(?<!f|full\\s*)hd\\b").containsMatchIn(catLower)
+        val nameHasHd = contemPalavraHd(nameLower)
+        val catHasHd = contemPalavraHd(catLower)
 
         return nameHasHd || catHasHd
     }
 
     /**
-     * Verifica se o stream corresponde à variante de canal pesquisada
+     * Verifica com segurança (sem lookbehind) se o texto contém "hd", "720" ou "720p" como token isolado
      */
-    private fun streamCorresponde(stream: LiveStream, variante: String): Boolean {
-        val sName = stream.name.lowercase()
-        val cleanVariant = variante.replace(Regex("[^a-zA-Z0-9 ]"), " ").trim().lowercase()
-        val tokens = cleanVariant.split(Regex("\\s+")).filter { it.isNotBlank() }
-        if (tokens.isEmpty()) return false
-
-        // 1. Validação por tokens com isolamento estrito de dígitos
-        val regexTokens = tokens.map { t ->
-            if (t.all { it.isDigit() }) "(?<!\\d)$t(?!\\d)" else "\\b${Pattern.quote(t)}\\b"
+    fun contemPalavraHd(text: String): Boolean {
+        if (text.isBlank()) return false
+        val tokens = text.split(Regex("[^a-zA-Z0-9]+")).filter { it.isNotBlank() }
+        for (t in tokens) {
+            if (t == "hd" || t == "720" || t == "720p") {
+                return true
+            }
         }
-        val regex = Regex("(?i)" + regexTokens.joinToString(".*"))
-        val matchedTokens = regex.containsMatchIn(stream.name)
-
-        if (matchedTokens) {
-            // Regras de exclusão para evitar colisões
-            if (tokens.size == 1 && tokens[0] == "sic") {
-                val excluidos = listOf("noticias", "notícias", "mulher", "radical", "caras", "novelas", "esperanca", "esperança", "internacional", "k")
-                if (excluidos.any { sName.contains(it) }) return false
-            }
-            if (tokens.size == 1 && tokens[0] == "tvi") {
-                val excluidos = listOf("ficcao", "ficção", "reality", "internacional", "afrika", "áfrica")
-                if (excluidos.any { sName.contains(it) }) return false
-            }
-            if (tokens.contains("rtp") && tokens.contains("1")) {
-                val excluidos = listOf("memoria", "memória", "madeira", "acores", "açores", "africa", "áfrica")
-                if (excluidos.any { sName.contains(it) }) return false
-            }
-            if (tokens.contains("sport") && tokens.contains("tv") && !tokens.contains("+") && !tokens.contains("mais")) {
-                if (sName.contains("sport tv +") || sName.contains("sporttv +") || sName.contains("sport tv mais") || sName.contains("sporttv mais")) {
-                    return false
-                }
-            }
-            return true
-        }
-
-        // 2. Correspondência sem espaços (ex: "SportTV1" em "Sport TV 1")
-        val noSpaces = cleanVariant.replace(" ", "")
-        val streamClean = sName.replace(Regex("[^a-zA-Z0-9]"), "")
-        if (streamClean.contains(noSpaces)) {
-            val digitsInVariant = Regex("\\d+").findAll(cleanVariant).map { it.value }.toList()
-            for (d in digitsInVariant) {
-                val dRegex = Regex("(?<!\\d)$d(?!\\d)")
-                if (!dRegex.containsMatchIn(stream.name)) return false
-            }
-            return true
-        }
-
         return false
     }
 
@@ -362,30 +357,81 @@ object ChannelMatcher {
      * Deteta se o stream é de qualidade 1080 (1080p, FHD, Full HD) pelo nome ou categoria
      */
     fun is1080Stream(stream: LiveStream, catMap: Map<String, String>): Boolean {
-        val nameLower = stream.name.lowercase()
-        val catLower = stream.categoryId?.let { catMap[it] }?.lowercase().orEmpty()
+        val nameLower = (stream.name ?: "").lowercase()
+        val catLower = (stream.categoryId?.let { catMap[it] } ?: "").lowercase()
 
-        val name1080 = nameLower.contains("1080") ||
+        return nameLower.contains("1080") ||
                 nameLower.contains("fhd") ||
                 nameLower.contains("full hd") ||
                 nameLower.contains("full-hd") ||
-                nameLower.contains("fullhd")
-
-        val cat1080 = catLower.contains("1080") ||
+                nameLower.contains("fullhd") ||
+                catLower.contains("1080") ||
                 catLower.contains("fhd") ||
                 catLower.contains("full hd") ||
                 catLower.contains("full-hd") ||
                 catLower.contains("fullhd")
+    }
 
-        return name1080 || cat1080
+    /**
+     * Verifica de forma rápida, robusta e sem recompilar Regex em loop se o stream corresponde à variante
+     */
+    fun streamCorresponde(streamName: String, variante: String): Boolean {
+        val sLower = streamName.lowercase()
+        val cleanVariant = variante.replace(Regex("[^a-zA-Z0-9 ]"), " ").trim().lowercase()
+        val variantTokens = cleanVariant.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (variantTokens.isEmpty()) return false
+
+        // Extrai números da variante
+        val variantDigits = variantTokens.filter { it.all { c -> c.isDigit() } }
+        // Extrai palavras da variante
+        val variantWords = variantTokens.filter { !it.all { c -> c.isDigit() } }
+
+        // Extrai todos os números presentes no nome do stream
+        val streamTokens = sLower.split(Regex("[^a-zA-Z0-9]+")).filter { it.isNotBlank() }
+        val streamDigits = streamTokens.filter { it.all { c -> c.isDigit() } }
+
+        // 1. Cada número específico da variante deve existir exatamente no stream (exclui conflito 1 com 11, etc.)
+        for (d in variantDigits) {
+            if (!streamDigits.contains(d)) {
+                return false
+            }
+        }
+
+        // 2. Cada palavra da variante deve existir no nome do stream
+        for (w in variantWords) {
+            if (!sLower.contains(w)) {
+                return false
+            }
+        }
+
+        // 3. Regras estritas de exclusão para evitar colisões
+        if (variantWords.size == 1 && variantWords[0] == "sic") {
+            val excluidos = listOf("noticias", "notícias", "mulher", "radical", "caras", "novelas", "esperanca", "esperança", "internacional", "k")
+            if (excluidos.any { sLower.contains(it) }) return false
+        }
+        if (variantWords.size == 1 && variantWords[0] == "tvi") {
+            val excluidos = listOf("ficcao", "ficção", "reality", "internacional", "afrika", "áfrica")
+            if (excluidos.any { sLower.contains(it) }) return false
+        }
+        if (variantWords.contains("rtp") && variantDigits.contains("1")) {
+            val excluidos = listOf("memoria", "memória", "madeira", "acores", "açores", "africa", "áfrica")
+            if (excluidos.any { sLower.contains(it) }) return false
+        }
+        if (variantWords.contains("sport") && variantWords.contains("tv") && !cleanVariant.contains("+") && !cleanVariant.contains("mais")) {
+            if (sLower.contains("sport tv +") || sLower.contains("sporttv +") || sLower.contains("sport tv mais") || sLower.contains("sporttv mais")) {
+                return false
+            }
+        }
+
+        return true
     }
 
     /**
      * Calcula pontuação de preferência para ordenar candidatos
      */
-    private fun pontuarCandidato(stream: LiveStream, categoryName: String?, is1080: Boolean): Int {
+    private fun pontuarCandidato(streamName: String, categoryName: String?, is1080: Boolean): Int {
         var score = 0
-        val nameLower = stream.name.lowercase()
+        val nameLower = streamName.lowercase()
         val catLower = (categoryName ?: "").lowercase()
 
         if (is1080) {
