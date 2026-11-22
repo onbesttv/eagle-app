@@ -1,6 +1,483 @@
 {
-  "updated_at": "2026-11-08 16:20",
+  "updated_at": "2026-11-22 15:18",
   "jornais": [
+    {
+      "id": "a_aurora_do_lima_20261119",
+      "nome": "A Aurora do Lima",
+      "categoria": "Generalistas",
+      "data": "19 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261119_PT__A_Aurora_do_Lima.pdf"
+    },
+    {
+      "id": "di_rio_do_minho_20261119",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "19 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261119_PT__Dia_rio_do_Minho.pdf"
+    },
+    {
+      "id": "jornal_do_fund_o_20261119",
+      "nome": "Jornal do Fundão",
+      "categoria": "Generalistas",
+      "data": "19 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261119_PT__Jornal_do_Funda_o.pdf"
+    },
+    {
+      "id": "alto_alentejo_20261118",
+      "nome": "Alto Alentejo",
+      "categoria": "Generalistas",
+      "data": "18 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261118_PT__Alto_Alentejo.pdf"
+    },
+    {
+      "id": "cidade_hoje_20261118",
+      "nome": "Cidade Hoje",
+      "categoria": "Generalistas",
+      "data": "18 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261118_PT__Cidade_Hoje.pdf"
+    },
+    {
+      "id": "di_rio_do_minho_20261118",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "18 Nov",
+      "pais": "PT",
+      "paginas": 40,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261118_PT__Dia_rio_do_Minho.pdf"
+    },
+    {
+      "id": "di_rio_insular_20261118",
+      "nome": "Diário Insular",
+      "categoria": "Generalistas",
+      "data": "18 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261118_PT__Dia_rio_Insular.pdf"
+    },
+    {
+      "id": "o_com_rcio_de_guimar_es_20261118",
+      "nome": "O Comércio de Guimarães",
+      "categoria": "Generalistas",
+      "data": "18 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261118_PT__O_Come_rcio_de_Guimara_es.pdf"
+    },
+    {
+      "id": "o_povo_famalicense_20261118",
+      "nome": "O Povo Famalicense",
+      "categoria": "Generalistas",
+      "data": "18 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261118_PT__O_Povo_Famalicense.pdf"
+    },
+    {
+      "id": "as_beiras_20261117",
+      "nome": "As Beiras",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__As_Beiras.pdf"
+    },
+    {
+      "id": "correio_de_azem_is_20261117",
+      "nome": "Correio de Azeméis",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__Correio_de_Azeme_is.pdf"
+    },
+    {
+      "id": "desportivo_de_guimar_es_20261117",
+      "nome": "Desportivo de Guimarães",
+      "categoria": "Desporto",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__Desportivo_de_Guimara_es.pdf"
+    },
+    {
+      "id": "di_rio_de_aveiro_20261117",
+      "nome": "Diário de Aveiro",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__Di_rio_de_Aveiro_261117_112044.pdf"
+    },
+    {
+      "id": "di_rio_de_coimbra_20261117",
+      "nome": "Diário de Coimbra",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__Di_rio_de_Coimbra_261117_112020.pdf"
+    },
+    {
+      "id": "di_rio_de_viseu_20261117",
+      "nome": "Diário de Viseu",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__Di_rio_de_Viseu.pdf"
+    },
+    {
+      "id": "jornal_nordeste_20261117",
+      "nome": "Jornal Nordeste",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 36,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261117_PT__Jornal_Nordeste.pdf"
+    },
+    {
+      "id": "di_rio_insular_20261117",
+      "nome": "Diário Insular",
+      "categoria": "Generalistas",
+      "data": "17 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/Di_rio_Insular_17.11.2026.pdf"
+    },
+    {
+      "id": "as_beiras_20261116",
+      "nome": "As Beiras",
+      "categoria": "Generalistas",
+      "data": "16 Nov",
+      "pais": "PT",
+      "paginas": 25,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261116_PT__As_Beiras.pdf"
+    },
+    {
+      "id": "di_rio_de_aveiro_20261116",
+      "nome": "Diário de Aveiro",
+      "categoria": "Generalistas",
+      "data": "16 Nov",
+      "pais": "PT",
+      "paginas": 20,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261116_PT__Dia_rio_de_Aveiro.pdf"
+    },
+    {
+      "id": "di_rio_de_coimbra_20261116",
+      "nome": "Diário de Coimbra",
+      "categoria": "Generalistas",
+      "data": "16 Nov",
+      "pais": "PT",
+      "paginas": 28,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261116_PT__Dia_rio_de_Coimbra.pdf"
+    },
+    {
+      "id": "di_rio_de_leiria_20261116",
+      "nome": "Diário de Leiria",
+      "categoria": "Generalistas",
+      "data": "16 Nov",
+      "pais": "PT",
+      "paginas": 20,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261116_PT__Dia_rio_de_Leiria.pdf"
+    },
+    {
+      "id": "di_rio_de_viseu_20261116",
+      "nome": "Diário de Viseu",
+      "categoria": "Generalistas",
+      "data": "16 Nov",
+      "pais": "PT",
+      "paginas": 20,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261116_PT__Dia_rio_de_Viseu.pdf"
+    },
+    {
+      "id": "di_rio_do_minho_20261116",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "16 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261116_PT__Dia_rio_do_Minho.pdf"
+    },
+    {
+      "id": "a_ores_a_oriano_oriental_20261115",
+      "nome": "Açores Açoriano Oriental",
+      "categoria": "Generalistas",
+      "data": "15 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261115_PT__Ac_ores_Ac_oriano_Oriental.pdf"
+    },
+    {
+      "id": "di_rio_de_aveiro_20261115",
+      "nome": "Diário de Aveiro",
+      "categoria": "Generalistas",
+      "data": "15 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261115_PT__Dia_rio_de_Aveiro.pdf"
+    },
+    {
+      "id": "di_rio_do_minho_20261115",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "15 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261115_PT__Dia_rio_do_Minho.pdf"
+    },
+    {
+      "id": "as_beiras_20261114",
+      "nome": "As Beiras",
+      "categoria": "Generalistas",
+      "data": "14 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261114_PT__As_Beiras.pdf"
+    },
+    {
+      "id": "ataque_jn_20261114",
+      "nome": "Ataque JN",
+      "categoria": "Desporto",
+      "data": "14 Nov",
+      "pais": "PT",
+      "paginas": 8,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261114_PT__Ataque_JN.pdf"
+    },
+    {
+      "id": "di_rio_de_aveiro_20261114",
+      "nome": "Diário de Aveiro",
+      "categoria": "Generalistas",
+      "data": "14 Nov",
+      "pais": "PT",
+      "paginas": 20,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261114_PT__Dia_rio_de_Aveiro.pdf"
+    },
+    {
+      "id": "di_rio_do_minho_20261114",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "14 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261114_PT__Dia_rio_do_Minho.pdf"
+    },
+    {
+      "id": "di_rio_insular_20261114",
+      "nome": "Diário Insular",
+      "categoria": "Generalistas",
+      "data": "14 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/Dia_rio_Insular_14.11.2026.pdf"
+    },
+    {
+      "id": "correio_de_sintra_20261113",
+      "nome": "Correio de Sintra",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__Correio_de_Sintra__2_.pdf"
+    },
+    {
+      "id": "correio_de_sintra_20261113",
+      "nome": "Correio de Sintra",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__Correio_de_Sintra.pdf"
+    },
+    {
+      "id": "di_rio_do_minho_20261113",
+      "nome": "Diário do Minho",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__Dia_rio_do_Minho.pdf"
+    },
+    {
+      "id": "imediato_pnf_20261113",
+      "nome": "Imediato PNF",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__Imediato_PNF.pdf"
+    },
+    {
+      "id": "jornal_de_sintra_20261113",
+      "nome": "Jornal de Sintra",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__Jornal_de_Sintra.pdf"
+    },
+    {
+      "id": "o_benfica_20261113",
+      "nome": "O Benfica",
+      "categoria": "Desporto",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__O_Benfica.pdf"
+    },
+    {
+      "id": "o_diabo_20261113",
+      "nome": "O Diabo",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__O_Diabo.pdf"
+    },
+    {
+      "id": "voz_da_f_tima_20261113",
+      "nome": "Voz da Fátima",
+      "categoria": "Generalistas",
+      "data": "13 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261113_PT__Voz_da_Fa_tima.pdf"
+    },
+    {
+      "id": "correio_de_coimbra_20261112",
+      "nome": "Correio de Coimbra",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 31,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Correio_de_Coimbra.pdf"
+    },
+    {
+      "id": "di_rio_de_aveiro_20261112",
+      "nome": "Diário de Aveiro",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Dia_rio_de_Aveiro.pdf"
+    },
+    {
+      "id": "di_rio_de_viseu_20261112",
+      "nome": "Diário de Viseu",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Dia_rio_de_Viseu.pdf"
+    },
+    {
+      "id": "jornal_do_fund_o_20261112",
+      "nome": "Jornal do Fundão",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 36,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Jornal_do_Funda_o.pdf"
+    },
+    {
+      "id": "labor_pt_20261112",
+      "nome": "Labor.PT",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 20,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Labor.PT.pdf"
+    },
+    {
+      "id": "mensageiro_de_bragan_a_20261112",
+      "nome": "Mensageiro de Bragança",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 40,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Mensageiro_de_Braganc_a.pdf"
+    },
+    {
+      "id": "reconquista_20261112",
+      "nome": "Reconquista",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Reconquista.pdf"
+    },
+    {
+      "id": "regi_o_de_cister_20261112",
+      "nome": "Região de Cister",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 20,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Regia_o_de_Cister.pdf"
+    },
+    {
+      "id": "regi_o_de_leiria_20261112",
+      "nome": "Região de Leiria",
+      "categoria": "Generalistas",
+      "data": "12 Nov",
+      "pais": "PT",
+      "paginas": 40,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261112_PT__Regia_o_de_Leiria.pdf"
+    },
+    {
+      "id": "gazeta_do_interior_20261111",
+      "nome": "Gazeta do Interior",
+      "categoria": "Generalistas",
+      "data": "11 Nov",
+      "pais": "PT",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261111_PT__Gazeta_do_Interior.pdf"
+    },
+    {
+      "id": "jornal_das_caldas_20261111",
+      "nome": "Jornal das Caldas",
+      "categoria": "Generalistas",
+      "data": "11 Nov",
+      "pais": "PT",
+      "paginas": 32,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261111_PT__Jornal_das_Caldas.pdf"
+    },
+    {
+      "id": "mais_guimar_es_20261111",
+      "nome": "Mais Guimarães",
+      "categoria": "Generalistas",
+      "data": "11 Nov",
+      "pais": "PT",
+      "paginas": 45,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261111_PT__Mais_Guimara_es.pdf"
+    },
+    {
+      "id": "o_com_rcio_de_guimar_es_20261111",
+      "nome": "O Comércio de Guimarães",
+      "categoria": "Generalistas",
+      "data": "11 Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261111_PT__O_Come_rcio_de_Guimara_es.pdf"
+    },
+    {
+      "id": "ponto_final_20261103",
+      "nome": "Ponto Final",
+      "categoria": "Internacionais",
+      "data": "3 Nov",
+      "pais": "MO",
+      "paginas": 16,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261103_MO__Ponto_Final.pdf"
+    },
     {
       "id": "desportivo_de_guimar_es_20261103",
       "nome": "Desportivo de Guimarães",
@@ -20,13 +497,49 @@
       "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261103_PT__Di_rio_do_Minho.pdf"
     },
     {
-      "id": "ponto_final_20261103",
-      "nome": "Ponto Final",
-      "categoria": "Internacionais",
-      "data": "3 Nov",
-      "pais": "MO",
+      "id": "ensino_jovem_20261100",
+      "nome": "Ensino Jovem",
+      "categoria": "Revistas",
+      "data": "Edição Nov",
+      "pais": "PT",
+      "paginas": 4,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261100_PT__Ensino_Jovem.pdf"
+    },
+    {
+      "id": "ensino_magazine_20261100",
+      "nome": "Ensino Magazine",
+      "categoria": "Revistas",
+      "data": "Edição Nov",
+      "pais": "PT",
+      "paginas": 28,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261100_PT__Ensino_Magazine.pdf"
+    },
+    {
+      "id": "portugal_global_20261100",
+      "nome": "Portugal Global",
+      "categoria": "Revistas",
+      "data": "Edição Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261100_PT__Portugal_Global.pdf"
+    },
+    {
+      "id": "viver_serpa_20261100",
+      "nome": "Viver Serpa",
+      "categoria": "Generalistas",
+      "data": "Edição Nov",
+      "pais": "PT",
       "paginas": 16,
-      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261103_MO__Ponto_Final.pdf"
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261100_PT__Viver_Serpa.pdf"
+    },
+    {
+      "id": "voz_das_miseric_rdias_20261100",
+      "nome": "Voz das Misericórdias",
+      "categoria": "Generalistas",
+      "data": "Edição Nov",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20261100_PT__Voz_das_Miserico_rdias.pdf"
     },
     {
       "id": "ataque_jn_20261003",
@@ -101,7 +614,7 @@
       "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20260920_PT__Noti_cias_Magazine_JN.pdf"
     },
     {
-      "id": "nova_gente___2016_a_2026_20260919",
+      "id": "nova_gente_2016_a_2026_20260919",
       "nome": "Nova Gente - 2016 a 2026",
       "categoria": "Revistas",
       "data": "19 Set",
@@ -227,7 +740,16 @@
       "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20260900_PT__Agenda_Almada.pdf"
     },
     {
-      "id": "__ribatejo_20260900",
+      "id": "comunica_es_20260900",
+      "nome": "Comunicações",
+      "categoria": "Revistas",
+      "data": "Edição Set",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20260900_PT__Comunicac_o_es.pdf"
+    },
+    {
+      "id": "ribatejo_20260900",
       "nome": "É Ribatejo",
       "categoria": "Generalistas",
       "data": "Edição Set",
@@ -252,6 +774,15 @@
       "pais": "PT",
       "paginas": 48,
       "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20260900_PT__Mais_Guimara_es.pdf"
+    },
+    {
+      "id": "m_os_unidas_20260900",
+      "nome": "Mãos Unidas",
+      "categoria": "Generalistas",
+      "data": "Edição Set",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20260900_PT__Ma_os_Unidas.pdf"
     },
     {
       "id": "not_cias_matosinhos_20260900",
@@ -288,6 +819,15 @@
       "pais": "PT",
       "paginas": 12,
       "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20260815_PT__Noti_cias_Matosinhos.pdf"
+    },
+    {
+      "id": "o_alvai_zerense_20250930",
+      "nome": "O Alvaiázerense",
+      "categoria": "Generalistas",
+      "data": "30 Set",
+      "pais": "PT",
+      "paginas": 24,
+      "pdf_url": "https://github.com/onbesttv/eagle-app/releases/latest/download/_20250930_PT__O_Alvaia_zerense.pdf"
     }
   ]
 }
