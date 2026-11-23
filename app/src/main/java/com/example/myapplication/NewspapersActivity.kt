@@ -1,12 +1,16 @@
 package com.example.myapplication
 
+import android.app.Dialog
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
+import android.view.Window
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -28,6 +32,7 @@ import java.io.IOException
 class NewspapersActivity : BaseActivity() {
 
     private lateinit var btnBackNewspapers: ImageButton
+    private lateinit var tvSubtitleNewspapers: TextView
     private lateinit var rvNewspaperTabs: RecyclerView
     private lateinit var rvNewspapers: RecyclerView
     private lateinit var tvNewspaperCountBadge: TextView
@@ -35,15 +40,28 @@ class NewspapersActivity : BaseActivity() {
     private lateinit var pbLoadingNewspapers: ProgressBar
 
     private val allNewspapers = mutableListOf<Newspaper>()
+    private val allRssNews = mutableListOf<Newspaper>()
     private val displayedNewspapers = mutableListOf<Newspaper>()
     private var selectedCategory: String = "🌟 Todos"
 
-    private val categoriesList = listOf(
+    private var isEagleXciptv: Boolean = false
+
+    private val defaultCategories = listOf(
         "🌟 Todos",
         "⚽ Desporto",
         "📰 Generalistas",
         "✨ Revistas",
         "🌍 Internacionais"
+    )
+
+    private val eagleCategories = listOf(
+        "⚡ Ao Minuto",
+        "⚽ Desporto em Direto",
+        "🔴 Notícias RTP",
+        "📄 Jornais em PDF",
+        "⚽ Desporto (PDF)",
+        "📰 Generalistas (PDF)",
+        "✨ Revistas (PDF)"
     )
 
     private val client = OkHttpClient()
@@ -55,12 +73,23 @@ class NewspapersActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_newspapers)
 
+        val resId = RemotePanelManager.getResellerId(this)
+        isEagleXciptv = resId.equals("master", ignoreCase = true)
+
         btnBackNewspapers = findViewById(R.id.btnBackNewspapers)
+        tvSubtitleNewspapers = findViewById(R.id.tvSubtitleNewspapers)
         rvNewspaperTabs = findViewById(R.id.rvNewspaperTabs)
         rvNewspapers = findViewById(R.id.rvNewspapers)
         tvNewspaperCountBadge = findViewById(R.id.tvNewspaperCountBadge)
         tvEmptyNewspapers = findViewById(R.id.tvEmptyNewspapers)
         pbLoadingNewspapers = findViewById(R.id.pbLoadingNewspapers)
+
+        if (isEagleXciptv) {
+            tvSubtitleNewspapers.text = "Edições do Dia em PDF & Notícias em Tempo Real"
+            selectedCategory = eagleCategories[0]
+        } else {
+            selectedCategory = defaultCategories[0]
+        }
 
         btnBackNewspapers.setOnClickListener { finish() }
         btnBackNewspapers.foreground = null
@@ -81,10 +110,16 @@ class NewspapersActivity : BaseActivity() {
         setupRecyclerViews()
         loadLocalNewspapers()
         fetchRemoteNewspapers()
+
+        if (isEagleXciptv) {
+            fetchRssNews()
+        }
     }
 
     private fun setupRecyclerViews() {
-        categoryTabAdapter = CategoryTabAdapter(categoriesList) { cat ->
+        val categories = if (isEagleXciptv) eagleCategories else defaultCategories
+
+        categoryTabAdapter = CategoryTabAdapter(categories) { cat ->
             selectedCategory = cat
             filterNewspapers()
         }
@@ -92,7 +127,9 @@ class NewspapersActivity : BaseActivity() {
         rvNewspaperTabs.adapter = categoryTabAdapter
 
         newspaperAdapter = NewspaperAdapter(displayedNewspapers) { newspaper ->
-            if (newspaper.pdfUrl.isNotBlank()) {
+            if (newspaper.isRss) {
+                showNewsArticleDialog(newspaper)
+            } else if (newspaper.pdfUrl.isNotBlank()) {
                 val intent = Intent(this, PdfViewerActivity::class.java).apply {
                     putExtra(PdfViewerActivity.EXTRA_PDF_URL, newspaper.pdfUrl)
                     putExtra(PdfViewerActivity.EXTRA_NEWSPAPER_TITLE, "${newspaper.nome} (${newspaper.data})")
@@ -154,21 +191,119 @@ class NewspapersActivity : BaseActivity() {
         })
     }
 
+    private fun fetchRssNews() {
+        pbLoadingNewspapers.visibility = View.VISIBLE
+        RssNewsManager.fetchAllFeeds { newsList ->
+            pbLoadingNewspapers.visibility = View.GONE
+            allRssNews.clear()
+            allRssNews.addAll(newsList)
+            filterNewspapers()
+        }
+    }
+
     private fun filterNewspapers() {
         displayedNewspapers.clear()
-        if (selectedCategory == "🌟 Todos") {
-            displayedNewspapers.addAll(allNewspapers)
+
+        if (isEagleXciptv) {
+            when (selectedCategory) {
+                "⚡ Ao Minuto" -> {
+                    displayedNewspapers.addAll(allRssNews.filter { it.categoria == "Ao Minuto" })
+                }
+                "⚽ Desporto em Direto" -> {
+                    displayedNewspapers.addAll(allRssNews.filter { it.categoria == "Desporto" })
+                }
+                "🔴 Notícias RTP" -> {
+                    displayedNewspapers.addAll(allRssNews.filter { it.categoria == "Nacional" })
+                }
+                "📄 Jornais em PDF" -> {
+                    displayedNewspapers.addAll(allNewspapers)
+                }
+                "⚽ Desporto (PDF)" -> {
+                    displayedNewspapers.addAll(allNewspapers.filter {
+                        it.categoria.contains("Desporto", ignoreCase = true)
+                    })
+                }
+                "📰 Generalistas (PDF)" -> {
+                    displayedNewspapers.addAll(allNewspapers.filter {
+                        it.categoria.contains("Generalistas", ignoreCase = true)
+                    })
+                }
+                "✨ Revistas (PDF)" -> {
+                    displayedNewspapers.addAll(allNewspapers.filter {
+                        it.categoria.contains("Revistas", ignoreCase = true)
+                    })
+                }
+                else -> {
+                    displayedNewspapers.addAll(allNewspapers)
+                }
+            }
         } else {
-            val cleanSelected = selectedCategory.replace(Regex("[^a-zA-Z ]"), "").trim().lowercase()
-            displayedNewspapers.addAll(allNewspapers.filter { newspaper ->
-                val cleanCat = newspaper.categoria.replace(Regex("[^a-zA-Z ]"), "").trim().lowercase()
-                cleanCat.contains(cleanSelected) || cleanSelected.contains(cleanCat)
-            })
+            if (selectedCategory == "🌟 Todos") {
+                displayedNewspapers.addAll(allNewspapers)
+            } else {
+                val cleanSelected = selectedCategory.replace(Regex("[^a-zA-Z ]"), "").trim().lowercase()
+                displayedNewspapers.addAll(allNewspapers.filter { newspaper ->
+                    val cleanCat = newspaper.categoria.replace(Regex("[^a-zA-Z ]"), "").trim().lowercase()
+                    cleanCat.contains(cleanSelected) || cleanSelected.contains(cleanCat)
+                })
+            }
         }
 
         newspaperAdapter.notifyDataSetChanged()
-        tvNewspaperCountBadge.text = "${displayedNewspapers.size} Jornais"
+
+        val isRssTab = isEagleXciptv && (selectedCategory.contains("Minuto") || selectedCategory.contains("Direto") || selectedCategory.contains("RTP"))
+        val label = if (isRssTab) "Notícias" else "Jornais"
+        tvNewspaperCountBadge.text = "${displayedNewspapers.size} $label"
         tvEmptyNewspapers.visibility = if (displayedNewspapers.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun showNewsArticleDialog(article: Newspaper) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_news_article)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.85).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+
+        val ivImage = dialog.findViewById<ImageView>(R.id.ivDialogNewsImage)
+        val ivPlaceholder = dialog.findViewById<ImageView>(R.id.ivDialogNewsPlaceholder)
+        val tvSource = dialog.findViewById<TextView>(R.id.tvDialogNewsSource)
+        val tvDate = dialog.findViewById<TextView>(R.id.tvDialogNewsDate)
+        val tvTitle = dialog.findViewById<TextView>(R.id.tvDialogNewsTitle)
+        val tvDesc = dialog.findViewById<TextView>(R.id.tvDialogNewsDesc)
+        val btnClose = dialog.findViewById<Button>(R.id.btnDialogNewsClose)
+
+        tvSource.text = article.sourceName.uppercase()
+        tvDate.text = article.data
+        tvTitle.text = article.nome
+        tvDesc.text = if (article.description.isNotBlank()) article.description else "Para ver a notícia completa, consulta a fonte original."
+
+        if (article.capaUrl.isNotBlank()) {
+            ivImage.visibility = View.VISIBLE
+            ivPlaceholder.visibility = View.GONE
+            Glide.with(this)
+                .load(article.capaUrl)
+                .into(ivImage)
+        } else {
+            ivImage.visibility = View.GONE
+            ivPlaceholder.visibility = View.VISIBLE
+        }
+
+        btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+        btnClose.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                v.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start()
+            } else {
+                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+            }
+        }
+        btnClose.requestFocus()
+
+        dialog.show()
     }
 
     // --- ADAPTER DE TABS DE CATEGORIAS ---
@@ -257,10 +392,10 @@ class NewspapersActivity : BaseActivity() {
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val newspaper = list[position]
             holder.tvNewspaperName.text = newspaper.nome
-            holder.tvCoverPlaceholderTitle.text = newspaper.nome.uppercase()
+            holder.tvCoverPlaceholderTitle.text = newspaper.nome.take(20).uppercase()
             holder.tvNewspaperDate.text = newspaper.data
-            holder.tvNewspaperPages.text = if (newspaper.paginas > 0) "${newspaper.paginas} pág." else "PDF"
-            holder.tvNewspaperBadge.text = newspaper.pais.uppercase()
+            holder.tvNewspaperPages.text = if (newspaper.isRss) "EM DIRETO" else if (newspaper.paginas > 0) "${newspaper.paginas} pág." else "PDF"
+            holder.tvNewspaperBadge.text = if (newspaper.isRss) newspaper.sourceName.uppercase() else newspaper.pais.uppercase()
 
             if (newspaper.capaUrl.isNotBlank()) {
                 holder.ivNewspaperCover.visibility = View.VISIBLE

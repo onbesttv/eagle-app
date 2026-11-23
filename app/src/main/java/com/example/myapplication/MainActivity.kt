@@ -81,6 +81,9 @@ class MainActivity : BaseActivity() {
         if (hasSportsAndNews) {
             cardSportsAgenda?.visibility = android.view.View.VISIBLE
             cardNewspapers?.visibility = android.view.View.VISIBLE
+            if (resId.equals("master", ignoreCase = true)) {
+                findViewById<TextView>(R.id.tvNewspapersTitle)?.text = "Jornais & Notícias"
+            }
             cardSportsAgenda?.setOnClickListener {
                 abrirEcra(Intent(this, SportsAgendaActivity::class.java))
             }

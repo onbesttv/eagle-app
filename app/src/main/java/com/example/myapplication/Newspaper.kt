@@ -15,5 +15,8 @@ data class Newspaper(
     @SerializedName("pais") val pais: String = "PT",
     @SerializedName("paginas") val paginas: Int = 0,
     @SerializedName("capa_url") val capaUrl: String = "",
-    @SerializedName("pdf_url") val pdfUrl: String = ""
+    @SerializedName("pdf_url") val pdfUrl: String = "",
+    val description: String = "",
+    val isRss: Boolean = false,
+    val sourceName: String = ""
 )
