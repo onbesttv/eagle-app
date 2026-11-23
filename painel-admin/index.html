@@ -1348,6 +1348,104 @@
     <div id="tabContentMain" class="grid-2col">
         <!-- SECÇÃO EXCLUSIVA REDON TV (DREAM): DOWNLOAD E ATIVAÇÃO DE DISPOSITIVOS -->
         <div id="dreamSection" style="grid-column: 1 / -1; display: none;">
+
+            <!-- CARTÃO: APLICAÇÃO OFICIAL DO DREAM & DOWNLOAD -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header" style="margin-bottom: 16px; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                            <span id="dreamAppCardIcon" style="font-size: 22px;">🔴</span>
+                            <span id="dreamAppCardTitle">Aplicação Oficial: RedOn (Dream TV)</span>
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            Link oficial e permanente para descarregar via <strong>Downloader</strong> na TV Box / Firestick dos teus clientes.
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span id="dreamAppTypeBadge" class="badge badge-mytvonline">MyTvOnline (Ativação MAC)</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                    <!-- Bloco do Link no Downloader -->
+                    <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Link para Downloader / TV:</span>
+                            <span style="font-size: 11px; color: #10b981; font-weight: 600;">Permanente</span>
+                        </div>
+                        <div style="display: flex; align-items: center; background: #070b13; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px; gap: 8px;">
+                            <span id="dreamAppShortUrl" style="color: #60a5fa; font-family: monospace; font-size: 14px; font-weight: 700; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                eaglepanel.site/dream.apk
+                            </span>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="copyDreamAppLink(this)" title="Copiar URL completo" style="padding: 4px 10px; font-size: 11px; white-space: nowrap;">
+                                📋 Copiar
+                            </button>
+                        </div>
+                        <div id="dreamAppFeatures" style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+                            Layout MyTvOnline • Ativação Direta por MAC / Key • DNS Remoto
+                        </div>
+                    </div>
+
+                    <!-- Bloco de Ações Rápidas -->
+                    <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">⚡ Ações Rápidas para Clientes:</div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-outline btn-sm" onclick="copyDreamAppInstallMsg(this)" style="flex: 1; min-width: 140px; font-size: 12px; padding: 9px 12px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                💬 Msg p/ Cliente
+                            </button>
+                            <a id="dreamAppDownloadBtn" href="https://eaglepanel.site/dream.apk" download class="btn btn-primary btn-sm" style="flex: 1; min-width: 140px; font-size: 12px; padding: 9px 12px; display: flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;">
+                                ⬇️ Baixar APK
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secção de Alterar / Escolher Aplicação -->
+                <div style="padding: 14px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border); border-radius: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <span style="font-size: 12px; font-weight: 700; color: var(--accent);">🔄 Mudar Aplicação do Painel:</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">Podes escolher que app queres fornecer aos teus clientes</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <select id="dreamAppSelect" onchange="onDreamAppChange()" style="flex: 1; min-width: 230px; font-size: 13px; font-weight: 600; padding: 8px 12px;">
+                            <option value="dream">🔴 RedOn / Dream TV (MyTvOnline - Padrão)</option>
+                            <option value="eagle_tv">🦅 Eagle TV (MyTvOnline Oficial)</option>
+                            <option value="master">🦅 Eagle TV Oficial (XCIPTV Grid)</option>
+                            <option value="suporte24">▶️ PlayTV (XCIPTV)</option>
+                            <option value="appstreamplay">📺 StreamPlay TV (XCIPTV)</option>
+                            <option value="tv_joker">🃏 TV do Joker (XCIPTV)</option>
+                            <option value="pereira_tv">📺 PereiraTV (XCIPTV)</option>
+                            <option value="godinho_tv">📺 GodinhoTV (XCIPTV)</option>
+                            <option value="tv_fabio">📺 Fpinto TV (XCIPTV)</option>
+                            <option value="custom">🌐 URL Personalizado (outro APK)</option>
+                        </select>
+                        <input type="text" id="dreamAppCustomUrlInput" placeholder="https://eaglepanel.site/outra.apk" style="display: none; flex: 1.5; min-width: 240px; font-size: 13px; padding: 8px 12px;">
+                        <button type="button" class="btn btn-outline btn-sm" id="btnSaveDreamApp" onclick="saveDreamAppChoice()" style="padding: 8px 16px; font-weight: 600;">
+                            💾 Aplicar App
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARTÃO: ALTERAR SENHA DO PAINEL DREAM -->
+            <div class="card" style="margin-bottom: 24px; padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">🔒</span>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px;">Alterar Senha do Painel</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">Muda a palavra-passe de acesso ao teu painel de revendedor</div>
+                        </div>
+                    </div>
+                </div>
+                <form id="dreamChangePasswordForm" onsubmit="handleDreamPasswordChange(event)" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="password" id="dreamNewPasswordInput" placeholder="Nova Senha do Painel" required style="flex: 1; min-width: 200px; font-size: 13px; padding: 8px 12px;">
+                    <button type="submit" class="btn btn-outline btn-sm" id="btnDreamChangePass" style="padding: 8px 16px; font-weight: 600;">
+                        💾 Alterar Senha
+                    </button>
+                </form>
+            </div>
+
             <!-- CARTÃO: ADICIONAR NOVO DISPOSITIVO (FORMULÁRIO RÁPIDO) -->
             <div class="card" style="margin-bottom: 24px;">
                 <div class="card-header" style="margin-bottom: 16px;">
@@ -2091,6 +2189,274 @@
         return isMasterRole || currentResellerId === "godinho_tv" || currentResellerId === "tv_joker" || currentResellerId === "joker" || currentResellerId === "dream" || currentResellerId === "suporte24";
     }
 
+    const DREAM_AVAILABLE_APPS = [
+        {
+            id: "dream",
+            name: "RedOn (Dream TV)",
+            type: "MyTvOnline (Ativação MAC)",
+            badgeClass: "badge-mytvonline",
+            apk: "dream.apk",
+            url: "https://eaglepanel.site/dream.apk",
+            shortUrl: "eaglepanel.site/dream.apk",
+            features: "Layout MyTvOnline • Ativação Direta por MAC / Key • DNS Remoto",
+            icon: "🔴"
+        },
+        {
+            id: "eagle_tv",
+            name: "Eagle TV",
+            type: "MyTvOnline Oficial",
+            badgeClass: "badge-mytvonline",
+            apk: "eagle_tv.apk",
+            url: "https://eaglepanel.site/eagle_tv.apk",
+            shortUrl: "eaglepanel.site/eagle_tv.apk",
+            features: "Layout MyTvOnline Oficial • Jogos do Dia • Jornais em PDF",
+            icon: "🦅"
+        },
+        {
+            id: "master",
+            name: "Eagle TV Oficial",
+            type: "XCIPTV / Grid",
+            badgeClass: "badge-xciptv",
+            apk: "eagle.apk",
+            url: "https://eaglepanel.site/eagle.apk",
+            shortUrl: "eaglepanel.site/eagle.apk",
+            features: "Layout Grid Tradicional • Login User/Pass Direto",
+            icon: "🦅"
+        },
+        {
+            id: "suporte24",
+            name: "PlayTV",
+            type: "XCIPTV PlayTV",
+            badgeClass: "badge-xciptv",
+            apk: "PlayTV.apk",
+            url: "https://eaglepanel.site/PlayTV.apk",
+            shortUrl: "eaglepanel.site/PlayTV.apk",
+            features: "Layout PlayTV Personalizado • Login User/Pass Direto",
+            icon: "▶️"
+        },
+        {
+            id: "appstreamplay",
+            name: "StreamPlay TV",
+            type: "XCIPTV StreamPlay",
+            badgeClass: "badge-xciptv",
+            apk: "appstreamplay.apk",
+            url: "https://eaglepanel.site/appstreamplay.apk",
+            shortUrl: "eaglepanel.site/appstreamplay.apk",
+            features: "Layout StreamPlay • Login User/Pass Direto",
+            icon: "📺"
+        },
+        {
+            id: "tv_joker",
+            name: "TV do Joker",
+            type: "XCIPTV Joker",
+            badgeClass: "badge-xciptv",
+            apk: "tv_joker.apk",
+            url: "https://eaglepanel.site/tv_joker.apk",
+            shortUrl: "eaglepanel.site/tv_joker.apk",
+            features: "Tema Preto & Dourado Joker",
+            icon: "🃏"
+        },
+        {
+            id: "pereira_tv",
+            name: "PereiraTV",
+            type: "XCIPTV Pereira",
+            badgeClass: "badge-xciptv",
+            apk: "pereira_tv.apk",
+            url: "https://eaglepanel.site/pereira_tv.apk",
+            shortUrl: "eaglepanel.site/pereira_tv.apk",
+            features: "Tema Azul Royal PereiraTV",
+            icon: "📺"
+        },
+        {
+            id: "godinho_tv",
+            name: "GodinhoTV",
+            type: "XCIPTV Godinho",
+            badgeClass: "badge-xciptv",
+            apk: "godinho_tv.apk",
+            url: "https://eaglepanel.site/godinho_tv.apk",
+            shortUrl: "eaglepanel.site/godinho_tv.apk",
+            features: "Tema Preto & Vermelho GodinhoTV",
+            icon: "📺"
+        },
+        {
+            id: "tv_fabio",
+            name: "Fpinto TV",
+            type: "XCIPTV Carbon",
+            badgeClass: "badge-xciptv",
+            apk: "tv_fabio.apk",
+            url: "https://eaglepanel.site/tv_fabio.apk",
+            shortUrl: "eaglepanel.site/tv_fabio.apk",
+            features: "Tema Carbon Gold Fpinto",
+            icon: "📺"
+        }
+    ];
+
+    let dreamActiveAppId = "dream";
+    let dreamCustomAppUrl = "";
+
+    function getDreamActiveAppInfo() {
+        if (dreamActiveAppId === "custom" && dreamCustomAppUrl) {
+            const short = dreamCustomAppUrl.replace(/^https?:\/\//, "");
+            return {
+                id: "custom",
+                name: "App Personalizada",
+                type: "Personalizada",
+                badgeClass: "badge-reseller",
+                apk: dreamCustomAppUrl.split("/").pop() || "app.apk",
+                url: dreamCustomAppUrl,
+                shortUrl: short,
+                features: "Aplicação com link externo configurado",
+                icon: "🌐"
+            };
+        }
+        const found = DREAM_AVAILABLE_APPS.find(a => a.id.toLowerCase() === (dreamActiveAppId || "dream").toLowerCase());
+        return found || DREAM_AVAILABLE_APPS[0];
+    }
+
+    function renderDreamAppCard() {
+        const app = getDreamActiveAppInfo();
+        const iconEl = document.getElementById("dreamAppCardIcon");
+        const titleEl = document.getElementById("dreamAppCardTitle");
+        const badgeEl = document.getElementById("dreamAppTypeBadge");
+        const shortUrlEl = document.getElementById("dreamAppShortUrl");
+        const dlBtn = document.getElementById("dreamAppDownloadBtn");
+        const featEl = document.getElementById("dreamAppFeatures");
+        const sel = document.getElementById("dreamAppSelect");
+        const customInp = document.getElementById("dreamAppCustomUrlInput");
+
+        if (iconEl) iconEl.textContent = app.icon;
+        if (titleEl) titleEl.textContent = `Aplicação Oficial: ${app.name}`;
+        if (badgeEl) {
+            badgeEl.className = `badge ${app.badgeClass || 'badge-mytvonline'}`;
+            badgeEl.textContent = app.type;
+        }
+        if (shortUrlEl) shortUrlEl.textContent = app.shortUrl;
+        if (dlBtn) {
+            dlBtn.href = app.url;
+            dlBtn.setAttribute("download", app.apk || "app.apk");
+        }
+        if (featEl) featEl.textContent = app.features;
+        if (sel) sel.value = (dreamActiveAppId === "custom") ? "custom" : app.id;
+        if (customInp) {
+            customInp.style.display = (sel && sel.value === "custom") ? "block" : "none";
+            if (dreamCustomAppUrl) customInp.value = dreamCustomAppUrl;
+        }
+    }
+
+    function onDreamAppChange() {
+        const sel = document.getElementById("dreamAppSelect");
+        const customInp = document.getElementById("dreamAppCustomUrlInput");
+        if (!sel) return;
+        if (sel.value === "custom") {
+            if (customInp) customInp.style.display = "block";
+        } else {
+            if (customInp) customInp.style.display = "none";
+            dreamActiveAppId = sel.value;
+            renderDreamAppCard();
+        }
+    }
+
+    async function saveDreamAppChoice() {
+        const sel = document.getElementById("dreamAppSelect");
+        const customInp = document.getElementById("dreamAppCustomUrlInput");
+        if (!sel) return;
+        const chosen = sel.value;
+        if (chosen === "custom") {
+            const val = (customInp ? customInp.value.trim() : "");
+            if (!val || (!val.startsWith("http://") && !val.startsWith("https://"))) {
+                showToast("Por favor insere um link completo (ex: https://dominio.com/app.apk).", true);
+                return;
+            }
+            dreamActiveAppId = "custom";
+            dreamCustomAppUrl = val;
+            localStorage.setItem("dream_custom_app_url", val);
+        } else {
+            dreamActiveAppId = chosen;
+        }
+        localStorage.setItem("dream_active_app", dreamActiveAppId);
+        renderDreamAppCard();
+        showToast("✔ Aplicação alterada com sucesso!");
+        if (typeof saveActivationsToBackend === "function") {
+            await saveActivationsToBackend(currentActivations);
+        }
+    }
+
+    function copyDreamAppLink(btnEl = null) {
+        const app = getDreamActiveAppInfo();
+        copyText(app.url, "Link copiado!");
+    }
+
+    function copyDreamAppInstallMsg(btnEl = null) {
+        const app = getDreamActiveAppInfo();
+        const shortUrl = app.shortUrl;
+        const msg = `📺 *Instalação da App ${app.name}* 📺\n\n` +
+            `1️⃣ Abre a aplicação *Downloader* na tua TV Box ou Firestick;\n` +
+            `2️⃣ Escreve exatamente este link:\n👉 *${shortUrl}*\n` +
+            `3️⃣ Clica em *Go* / *Baixar* e depois em *Instalar*;\n` +
+            `4️⃣ Abre a aplicação e indica-me o teu *Device ID / MAC* para ativar!\n\n` +
+            `Qualquer dúvida avisa! 👍`;
+        copyText(msg, "Mensagem para cliente copiada!");
+    }
+
+    function loadDreamAppConfig(rawAnnouncement) {
+        if (rawAnnouncement && rawAnnouncement.includes("||DREAM_APP:")) {
+            const rawVal = rawAnnouncement.split("||DREAM_APP:")[1].split("||")[0].trim();
+            if (rawVal) dreamActiveAppId = rawVal;
+        } else {
+            const stored = localStorage.getItem("dream_active_app");
+            if (stored) dreamActiveAppId = stored;
+            else dreamActiveAppId = "dream";
+        }
+        if (rawAnnouncement && rawAnnouncement.includes("||DREAM_APP_URL:")) {
+            const rawUrl = rawAnnouncement.split("||DREAM_APP_URL:")[1].split("||")[0].trim();
+            if (rawUrl) dreamCustomAppUrl = decodeURIComponent(rawUrl);
+        } else {
+            const storedUrl = localStorage.getItem("dream_custom_app_url");
+            if (storedUrl) dreamCustomAppUrl = storedUrl;
+        }
+        renderDreamAppCard();
+    }
+
+    async function handleDreamPasswordChange(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const inp = document.getElementById("dreamNewPasswordInput");
+        if (!inp) return;
+        const newPass = inp.value.trim();
+        if (!newPass) {
+            showToast("Insere uma senha válida.", true);
+            return;
+        }
+        if (newPass.length < 4) {
+            showToast("A senha deve ter pelo menos 4 caracteres.", true);
+            return;
+        }
+        const btn = document.getElementById("btnDreamChangePass");
+        if (btn) { btn.disabled = true; btn.textContent = "A alterar..."; }
+        try {
+            const curBest = (lastDashboardData && lastDashboardData.best_url) || "http://thedreamtv.site:80";
+            const curBest2 = (lastDashboardData && lastDashboardData.best2_url) || curBest;
+            const curAnn = (lastDashboardData && lastDashboardData.announcement) || "";
+            await rpcCall("panel_save_own_config", {
+                p_reseller_id: "dream",
+                p_password: adminPassword,
+                p_best_url: curBest,
+                p_best2_url: curBest2,
+                p_announcement: curAnn,
+                p_maintenance_mode: false,
+                p_new_password: newPass
+            });
+            adminPassword = newPass;
+            sessionStorage.setItem("eagle_admin_pass", newPass);
+            inp.value = "";
+            showToast("✅ Senha do painel alterada com sucesso!");
+        } catch (err) {
+            console.error("Erro ao alterar senha do dream:", err);
+            showToast("Erro ao alterar senha. Tenta novamente.", true);
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = "💾 Alterar Senha"; }
+        }
+    }
+
     let dreamDnsList = [
         { name: "Dream TV (Principal)", url: "http://thedreamtv.site:80" }
     ];
@@ -2753,6 +3119,8 @@
         const cleanAnnouncement = (annEl ? annEl.value : "")
             .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
             .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|DREAM_APP:.*?(?=\|\||$)/g, "")
+            .replace(/\|\|DREAM_APP_URL:.*?(?=\|\||$)/g, "")
             .replace(/\|\|POPUP:.*?(?=\|\||$)/g, "")
             .replace(/\|\|PARENTAL_RESET:.*?(?=\|\||$)/g, "")
             .trim();
@@ -2785,7 +3153,9 @@
             : ((currentResellerId === "dream" && dreamDnsList.length > 0)
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}`
                 : "");
-        return `${cleanAnnouncement}${popupPart}${parentalPart} ${actPart} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+        const dreamAppPart = (currentResellerId === "dream" && dreamActiveAppId) ? `||DREAM_APP:${dreamActiveAppId}` : "";
+        const dreamAppUrlPart = (currentResellerId === "dream" && dreamActiveAppId === "custom" && dreamCustomAppUrl) ? `||DREAM_APP_URL:${encodeURIComponent(dreamCustomAppUrl)}` : "";
+        return `${cleanAnnouncement}${popupPart}${parentalPart} ${actPart} ${dnsListPart} ${dreamAppPart} ${dreamAppUrlPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
     }
 
     function injectVpnMetadataIntoRawAnnouncement(rawAnn, options = {}) {
@@ -3292,10 +3662,12 @@
             const rawAnn = String(data.announcement || "");
             if (isDream) {
                 loadDreamDnsList(rawAnn);
+                loadDreamAppConfig(rawAnn);
             } else if (isMasterRole) {
                 const dreamRes = (typeof allResellers !== "undefined" && Array.isArray(allResellers)) ? allResellers.find(r => r.reseller_id === "dream") : null;
                 const dreamAnn = dreamRes ? (dreamRes.announcement || "") : "";
                 loadDreamDnsList(dreamAnn);
+                loadDreamAppConfig(dreamAnn);
             }
             if (isDream || isMasterRole) {
                 const dreamAnn = (isDream ? rawAnn : ((allResellers.find(r => r.reseller_id === "dream") || {}).announcement || ""));
@@ -3311,6 +3683,8 @@
             const cleanNotice = (vpnSplit[0] || "")
                 .replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "")
                 .replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "")
+                .replace(/\|\|DREAM_APP:.*?(?=\|\||$)/g, "")
+                .replace(/\|\|DREAM_APP_URL:.*?(?=\|\||$)/g, "")
                 .trim();
             document.getElementById("cfgAnnouncement").value = cleanNotice;
 
@@ -4360,7 +4734,7 @@
         const actString = buildActivationsString(listToSave);
         if (currentResellerId === "dream") {
             const annEl = document.getElementById("cfgAnnouncement");
-            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim() : "";
+            const currentAnn = annEl ? annEl.value.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|DREAM_APP:.*?(?=\|\||$)/g, "").replace(/\|\|DREAM_APP_URL:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim() : "";
             const vpnCsv = AVAILABLE_VPN_COUNTRIES.map(c => c.id).filter(id => selectedVpnCountries.has(id)).join(",");
             const defaultAcc = VPN_ACCOUNTS[currentResellerId] || VPN_ACCOUNTS.master;
             const vpnUser = (document.getElementById("cfgVpnUser") && document.getElementById("cfgVpnUser").value.trim()) || defaultAcc.user;
@@ -4387,7 +4761,9 @@
             const dnsListPart = dreamDnsList.length > 0 
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
                 : "";
-            const newAnn = `${currentAnn} ${actString} ${dnsListPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
+            const dreamAppPart = dreamActiveAppId ? `||DREAM_APP:${dreamActiveAppId}` : "";
+            const dreamAppUrlPart = (dreamActiveAppId === "custom" && dreamCustomAppUrl) ? `||DREAM_APP_URL:${encodeURIComponent(dreamCustomAppUrl)}` : "";
+            const newAnn = `${currentAnn} ${actString} ${dnsListPart} ${dreamAppPart} ${dreamAppUrlPart} ||VPN:${vpnCsv}${vpnAuthPart}${vpnUsersPart}${vpnKillPart}`.trim();
             let resellerMainDns = (document.getElementById("cfgBestUrl") && document.getElementById("cfgBestUrl").value.trim()) || (lastDashboardData && lastDashboardData.best_url ? lastDashboardData.best_url.trim() : "") || "http://thedreamtv.site:80";
             if (resellerMainDns.toLowerCase().includes("topnextplay.online")) {
                 resellerMainDns = "http://thedreamtv.site:80";
@@ -4416,11 +4792,13 @@
             let dreamRes = allResellers.find(r => r.reseller_id === "dream");
             const prevAnn = dreamRes ? (dreamRes.announcement || "") : "";
             const vpnPart = prevAnn.includes("||VPN:") ? ("||VPN:" + prevAnn.split("||VPN:")[1].trim()) : "";
-            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim();
+            const cleanAnn = prevAnn.replace(/\|\|ACTIVATIONS:.*?(?=\|\||$)/g, "").replace(/\|\|DNS_LIST:.*?(?=\|\||$)/g, "").replace(/\|\|DREAM_APP:.*?(?=\|\||$)/g, "").replace(/\|\|DREAM_APP_URL:.*?(?=\|\||$)/g, "").replace(/\|\|VPN:.*?(?=\|\||$)/g, "").trim();
             const dnsListPart = dreamDnsList.length > 0 
                 ? `||DNS_LIST:${dreamDnsList.map(d => (typeof d === 'object' && d.name && d.name !== d.url) ? `${d.name}|${d.url}` : (typeof d === 'object' ? d.url : d)).join(",")}` 
                 : "";
-            const newAnn = `${cleanAnn} ${actString} ${dnsListPart} ${vpnPart}`.trim();
+            const dreamAppPart = dreamActiveAppId ? `||DREAM_APP:${dreamActiveAppId}` : "";
+            const dreamAppUrlPart = (dreamActiveAppId === "custom" && dreamCustomAppUrl) ? `||DREAM_APP_URL:${encodeURIComponent(dreamCustomAppUrl)}` : "";
+            const newAnn = `${cleanAnn} ${actString} ${dnsListPart} ${dreamAppPart} ${dreamAppUrlPart} ${vpnPart}`.trim();
             let resellerMainDns = (dreamRes ? (dreamRes.best_url || "http://thedreamtv.site:80") : "http://thedreamtv.site:80");
             if (resellerMainDns.toLowerCase().includes("topnextplay.online")) {
                 resellerMainDns = "http://thedreamtv.site:80";
