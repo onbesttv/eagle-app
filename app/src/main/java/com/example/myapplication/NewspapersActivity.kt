@@ -40,7 +40,6 @@ class NewspapersActivity : BaseActivity() {
     private lateinit var pbLoadingNewspapers: ProgressBar
 
     private val allNewspapers = mutableListOf<Newspaper>()
-    private val allRssNews = mutableListOf<Newspaper>()
     private val displayedNewspapers = mutableListOf<Newspaper>()
     private var selectedCategory: String = "🌟 Todos"
 
@@ -56,8 +55,10 @@ class NewspapersActivity : BaseActivity() {
 
     private val eagleCategories = listOf(
         "⚡ Ao Minuto",
+        "📺 TV Notícias",
         "⚽ Desporto em Direto",
-        "🔴 Notícias RTP",
+        "📰 Grandes Jornais",
+        "💶 Economia",
         "📄 Jornais em PDF",
         "⚽ Desporto (PDF)",
         "📰 Generalistas (PDF)",
@@ -111,9 +112,8 @@ class NewspapersActivity : BaseActivity() {
         loadLocalNewspapers()
         fetchRemoteNewspapers()
 
-        if (isEagleXciptv) {
-            fetchRssNews()
-        }
+        // Carrega o primeiro separador
+        filterNewspapers()
     }
 
     private fun setupRecyclerViews() {
@@ -152,7 +152,9 @@ class NewspapersActivity : BaseActivity() {
                 if (feed != null && feed.jornais.isNotEmpty()) {
                     allNewspapers.clear()
                     allNewspapers.addAll(feed.jornais)
-                    filterNewspapers()
+                    if (selectedCategory.contains("PDF") || !isEagleXciptv) {
+                        filterNewspapers()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -179,7 +181,9 @@ class NewspapersActivity : BaseActivity() {
                                 runOnUiThread {
                                     allNewspapers.clear()
                                     allNewspapers.addAll(feed.jornais)
-                                    filterNewspapers()
+                                    if (selectedCategory.contains("PDF") || !isEagleXciptv) {
+                                        filterNewspapers()
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
@@ -191,53 +195,43 @@ class NewspapersActivity : BaseActivity() {
         })
     }
 
-    private fun fetchRssNews() {
-        pbLoadingNewspapers.visibility = View.VISIBLE
-        RssNewsManager.fetchAllFeeds { newsList ->
-            pbLoadingNewspapers.visibility = View.GONE
-            allRssNews.clear()
-            allRssNews.addAll(newsList)
-            filterNewspapers()
-        }
-    }
-
     private fun filterNewspapers() {
-        displayedNewspapers.clear()
-
         if (isEagleXciptv) {
-            when (selectedCategory) {
-                "⚡ Ao Minuto" -> {
-                    displayedNewspapers.addAll(allRssNews.filter { it.categoria == "Ao Minuto" })
-                }
-                "⚽ Desporto em Direto" -> {
-                    displayedNewspapers.addAll(allRssNews.filter { it.categoria == "Desporto" })
-                }
-                "🔴 Notícias RTP" -> {
-                    displayedNewspapers.addAll(allRssNews.filter { it.categoria == "Nacional" })
-                }
-                "📄 Jornais em PDF" -> {
-                    displayedNewspapers.addAll(allNewspapers)
-                }
-                "⚽ Desporto (PDF)" -> {
-                    displayedNewspapers.addAll(allNewspapers.filter {
-                        it.categoria.contains("Desporto", ignoreCase = true)
-                    })
-                }
-                "📰 Generalistas (PDF)" -> {
-                    displayedNewspapers.addAll(allNewspapers.filter {
-                        it.categoria.contains("Generalistas", ignoreCase = true)
-                    })
-                }
-                "✨ Revistas (PDF)" -> {
-                    displayedNewspapers.addAll(allNewspapers.filter {
-                        it.categoria.contains("Revistas", ignoreCase = true)
-                    })
+            when {
+                selectedCategory.contains("PDF") -> {
+                    pbLoadingNewspapers.visibility = View.GONE
+                    displayedNewspapers.clear()
+                    when (selectedCategory) {
+                        "📄 Jornais em PDF" -> displayedNewspapers.addAll(allNewspapers)
+                        "⚽ Desporto (PDF)" -> displayedNewspapers.addAll(allNewspapers.filter {
+                            it.categoria.contains("Desporto", ignoreCase = true)
+                        })
+                        "📰 Generalistas (PDF)" -> displayedNewspapers.addAll(allNewspapers.filter {
+                            it.categoria.contains("Generalistas", ignoreCase = true)
+                        })
+                        "✨ Revistas (PDF)" -> displayedNewspapers.addAll(allNewspapers.filter {
+                            it.categoria.contains("Revistas", ignoreCase = true)
+                        })
+                        else -> displayedNewspapers.addAll(allNewspapers)
+                    }
+                    updateUiState("Jornais")
                 }
                 else -> {
-                    displayedNewspapers.addAll(allNewspapers)
+                    // Carregamento inteligente sob demanda por categoria (com cache em memória)
+                    pbLoadingNewspapers.visibility = View.VISIBLE
+                    val currentCat = selectedCategory
+                    RssNewsManager.fetchFeedsForCategory(currentCat) { newsList ->
+                        if (selectedCategory == currentCat) {
+                            pbLoadingNewspapers.visibility = View.GONE
+                            displayedNewspapers.clear()
+                            displayedNewspapers.addAll(newsList)
+                            updateUiState("Notícias")
+                        }
+                    }
                 }
             }
         } else {
+            displayedNewspapers.clear()
             if (selectedCategory == "🌟 Todos") {
                 displayedNewspapers.addAll(allNewspapers)
             } else {
@@ -247,13 +241,13 @@ class NewspapersActivity : BaseActivity() {
                     cleanCat.contains(cleanSelected) || cleanSelected.contains(cleanCat)
                 })
             }
+            updateUiState("Jornais")
         }
+    }
 
+    private fun updateUiState(itemUnit: String) {
         newspaperAdapter.notifyDataSetChanged()
-
-        val isRssTab = isEagleXciptv && (selectedCategory.contains("Minuto") || selectedCategory.contains("Direto") || selectedCategory.contains("RTP"))
-        val label = if (isRssTab) "Notícias" else "Jornais"
-        tvNewspaperCountBadge.text = "${displayedNewspapers.size} $label"
+        tvNewspaperCountBadge.text = "${displayedNewspapers.size} $itemUnit"
         tvEmptyNewspapers.visibility = if (displayedNewspapers.isEmpty()) View.VISIBLE else View.GONE
     }
 

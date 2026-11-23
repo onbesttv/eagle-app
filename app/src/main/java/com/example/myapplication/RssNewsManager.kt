@@ -1,7 +1,9 @@
 package com.example.myapplication
 
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.text.Html
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.OkHttpClient
@@ -11,60 +13,79 @@ import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.IOException
 import java.io.StringReader
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 object RssNewsManager {
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(8, TimeUnit.SECONDS)
+        .connectTimeout(7, TimeUnit.SECONDS)
         .readTimeout(8, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
         .build()
 
     private val mainHandler = Handler(Looper.getMainLooper())
-
-    private val feedSources = listOf(
-        FeedConfig(
-            url = "https://www.noticiasaominuto.com/rss/ultima-hora",
-            sourceName = "Ao Minuto",
-            category = "Ao Minuto"
-        ),
-        FeedConfig(
-            url = "https://www.noticiasaominuto.com/rss/desporto",
-            sourceName = "Desporto",
-            category = "Desporto"
-        ),
-        FeedConfig(
-            url = "https://www.record.pt/rss",
-            sourceName = "Record",
-            category = "Desporto"
-        ),
-        FeedConfig(
-            url = "https://maisfutebol.iol.pt/rss",
-            sourceName = "MaisFutebol",
-            category = "Desporto"
-        ),
-        FeedConfig(
-            url = "https://www.rtp.pt/noticias/rss",
-            sourceName = "RTP",
-            category = "Nacional"
-        )
-    )
+    private val categoryCache = ConcurrentHashMap<String, List<Newspaper>>()
 
     data class FeedConfig(
         val url: String,
-        val sourceName: String,
-        val category: String
+        val sourceName: String
     )
 
-    fun fetchAllFeeds(onResult: (List<Newspaper>) -> Unit) {
-        val collectedItems = mutableListOf<Newspaper>()
-        val pendingCount = AtomicInteger(feedSources.size)
+    // Configuração dos canais e jornais por categoria
+    private val categoryFeeds = mapOf(
+        "⚡ Ao Minuto" to listOf(
+            FeedConfig("https://www.noticiasaominuto.com/rss/ultima-hora", "Ao Minuto"),
+            FeedConfig("https://observador.pt/feed/", "Observador")
+        ),
+        "📺 TV Notícias" to listOf(
+            FeedConfig("https://www.rtp.pt/noticias/rss", "RTP"),
+            FeedConfig("https://cnnportugal.iol.pt/rss", "CNN Portugal"),
+            FeedConfig("https://www.cmjornal.pt/rss", "CMTV / CM")
+        ),
+        "⚽ Desporto em Direto" to listOf(
+            FeedConfig("https://www.record.pt/rss", "Record"),
+            FeedConfig("https://maisfutebol.iol.pt/rss", "MaisFutebol"),
+            FeedConfig("https://www.noticiasaominuto.com/rss/desporto", "Desporto"),
+            FeedConfig("https://sportinforma.sapo.pt/rss", "SAPO Desporto")
+        ),
+        "📰 Grandes Jornais" to listOf(
+            FeedConfig("https://www.cmjornal.pt/rss", "Correio da Manhã"),
+            FeedConfig("https://feeds.feedburner.com/jn-ultimas", "Jornal de Notícias"),
+            FeedConfig("https://feeds.feedburner.com/PublicoRSS", "Público"),
+            FeedConfig("https://feeds.feedburner.com/tsf-ultimas", "TSF")
+        ),
+        "💶 Economia" to listOf(
+            FeedConfig("https://eco.sapo.pt/feed/", "ECO"),
+            FeedConfig("https://www.jornaldenegocios.pt/rss", "Negócios")
+        )
+    )
 
-        for (cfg in feedSources) {
+    fun fetchFeedsForCategory(category: String, forceRefresh: Boolean = false, onResult: (List<Newspaper>) -> Unit) {
+        if (!forceRefresh) {
+            val cached = categoryCache[category]
+            if (cached != null && cached.isNotEmpty()) {
+                mainHandler.post { onResult(cached) }
+                return
+            }
+        }
+
+        val feeds = categoryFeeds[category]
+        if (feeds.isNullOrEmpty()) {
+            mainHandler.post { onResult(emptyList()) }
+            return
+        }
+
+        val collectedItems = mutableListOf<Newspaper>()
+        val pendingCount = AtomicInteger(feeds.size)
+
+        for (cfg in feeds) {
             val req = Request.Builder()
                 .url(cfg.url)
-                .header("User-Agent", "Mozilla/5.0 (Android; Mobile)")
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept", "application/rss+xml, application/xml, text/xml, */*")
                 .build()
 
             client.newCall(req).enqueue(object : Callback {
@@ -76,7 +97,7 @@ object RssNewsManager {
                     response.use {
                         if (response.isSuccessful) {
                             val body = response.body?.string().orEmpty()
-                            val parsed = parseXml(body, cfg.sourceName, cfg.category)
+                            val parsed = parseXml(body, cfg.sourceName, category)
                             synchronized(collectedItems) {
                                 collectedItems.addAll(parsed)
                             }
@@ -87,17 +108,17 @@ object RssNewsManager {
 
                 private fun checkFinished() {
                     if (pendingCount.decrementAndGet() == 0) {
-                        // Deduplicar e ordenar
                         val seenTitles = mutableSetOf<String>()
                         val unique = mutableListOf<Newspaper>()
                         synchronized(collectedItems) {
                             for (item in collectedItems) {
-                                val norm = item.nome.trim().lowercase()
+                                val norm = item.nome.trim().lowercase().take(50)
                                 if (norm.length > 5 && seenTitles.add(norm)) {
                                     unique.add(item)
                                 }
                             }
                         }
+                        categoryCache[category] = unique
                         mainHandler.post {
                             onResult(unique)
                         }
@@ -199,16 +220,18 @@ object RssNewsManager {
 
     private fun cleanHtml(raw: String): String {
         if (raw.isBlank()) return ""
-        var s = raw.replace(Regex("<!\\[CDATA\\[(.*?)\\]\\]>", RegexOption.DOT_MATCHES_ALL)) { it.groupValues[1] }
-        s = s.replace(Regex("<[^>]*>"), " ")
-        s = s.replace("&quot;", "\"")
-            .replace("&amp;", "&")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&#39;", "'")
-            .replace("&apos;", "'")
-            .replace("&nbsp;", " ")
-        return s.replace(Regex("\\s+"), " ").trim()
+        val unCdata = raw.replace(Regex("<!\\[CDATA\\[(.*?)\\]\\]>", RegexOption.DOT_MATCHES_ALL)) { it.groupValues[1] }
+        val decoded = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                Html.fromHtml(unCdata, Html.FROM_HTML_MODE_LEGACY).toString()
+            } else {
+                @Suppress("DEPRECATION")
+                Html.fromHtml(unCdata).toString()
+            }
+        } catch (_: Exception) {
+            unCdata.replace(Regex("<[^>]*>"), " ")
+        }
+        return decoded.replace(Regex("\\s+"), " ").trim()
     }
 
     private fun extractImageFromHtml(html: String): String {
@@ -224,7 +247,6 @@ object RssNewsManager {
 
     private fun formatPubDate(rawDate: String): String {
         if (rawDate.isBlank()) return "Em Direto"
-        // Tentar encontrar HH:mm
         val timeMatcher = Regex("\\b(\\d{1,2}:\\d{2})\\b")
         val timeMatch = timeMatcher.find(rawDate)
         return if (timeMatch != null) {
