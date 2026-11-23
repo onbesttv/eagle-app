@@ -168,10 +168,7 @@ class PdfViewerActivity : BaseActivity() {
             return
         }
 
-        var normalizedUrl = url.trim()
-        if (normalizedUrl.contains("github.com/onbesttv/eagle-app/releases/download/v")) {
-            normalizedUrl = normalizedUrl.replace(Regex("/releases/download/v[^/]+/"), "/releases/latest/download/")
-        }
+        val normalizedUrl = url.trim()
 
         if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
             val cacheKey = hashString(normalizedUrl) + ".pdf"
@@ -181,7 +178,7 @@ class PdfViewerActivity : BaseActivity() {
             if (cachedFile.exists() && cachedFile.length() > 10_000) {
                 initRenderer(cachedFile)
             } else {
-                downloadPdf(normalizedUrl, cachedFile)
+                downloadPdf(normalizedUrl, cachedFile, 0)
             }
         } else {
             val localFile = File(url)
@@ -194,7 +191,27 @@ class PdfViewerActivity : BaseActivity() {
         }
     }
 
-    private fun downloadPdf(url: String, destFile: File) {
+    private val fallbackTags = listOf("v9.3", "v9.2", "v9.1", "v9.0", "v8.8")
+
+    private fun tryNextFallback(originalUrl: String, destFile: File, fallbackIndex: Int) {
+        if (fallbackIndex < fallbackTags.size) {
+            val tag = fallbackTags[fallbackIndex]
+            val fileName = originalUrl.substringAfterLast("/")
+            val fallbackUrl = "https://github.com/onbesttv/eagle-app/releases/download/$tag/$fileName"
+            runOnUiThread {
+                tvLoadingProgress.text = "A procurar edição ($tag)..."
+            }
+            downloadPdf(fallbackUrl, destFile, fallbackIndex + 1)
+        } else {
+            runOnUiThread {
+                layoutPdfLoading.visibility = View.GONE
+                Toast.makeText(this@PdfViewerActivity, "Edição temporariamente indisponível.", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        }
+    }
+
+    private fun downloadPdf(url: String, destFile: File, fallbackIndex: Int = 0) {
         layoutPdfLoading.visibility = View.VISIBLE
         tvLoadingStatus.text = "A descarregar ${tvPdfTitle.text}..."
         tvLoadingProgress.text = "A estabelecer ligação segura..."
@@ -205,31 +222,13 @@ class PdfViewerActivity : BaseActivity() {
         downloadCall?.enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 if (call.isCanceled()) return
-                if (url.contains("/releases/latest/download/")) {
-                    val fallbackUrl = url.replace("/releases/latest/download/", "/releases/download/v7.4/")
-                    downloadPdf(fallbackUrl, destFile)
-                    return
-                }
-                runOnUiThread {
-                    layoutPdfLoading.visibility = View.GONE
-                    Toast.makeText(this@PdfViewerActivity, "Erro ao descarregar PDF: ${e.message}", Toast.LENGTH_LONG).show()
-                    finish()
-                }
+                tryNextFallback(url, destFile, fallbackIndex)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 if (!response.isSuccessful) {
-                    if (url.contains("/releases/latest/download/")) {
-                        response.close()
-                        val fallbackUrl = url.replace("/releases/latest/download/", "/releases/download/v7.4/")
-                        downloadPdf(fallbackUrl, destFile)
-                        return
-                    }
-                    runOnUiThread {
-                        layoutPdfLoading.visibility = View.GONE
-                        Toast.makeText(this@PdfViewerActivity, "Servidor de jornais indisponível (HTTP ${response.code})", Toast.LENGTH_SHORT).show()
-                        finish()
-                    }
+                    response.close()
+                    tryNextFallback(url, destFile, fallbackIndex)
                     return
                 }
 
