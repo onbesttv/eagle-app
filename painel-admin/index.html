@@ -1366,24 +1366,38 @@
                     </div>
                 </div>
 
-                <!-- Bloco do Link no Downloader -->
+                <!-- Bloco do Link e Código no Downloader -->
                 <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Link para Downloader / TV:</span>
-                        <span style="font-size: 11px; color: #10b981; font-weight: 600;">Permanente</span>
-                    </div>
-                    <div style="display: flex; align-items: center; background: #070b13; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 8px 12px; gap: 8px; flex-wrap: wrap;">
-                        <span style="color: #60a5fa; font-family: monospace; font-size: 14px; font-weight: 700; flex: 1; min-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            eaglepanel.site/dream.apk
-                        </span>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="copyText('https://eaglepanel.site/dream.apk', 'Link copiado!')" title="Copiar URL completo" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;">
-                                📋 Copiar Link
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                        <!-- Código Numérico do Downloader -->
+                        <div style="background: #070b13; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                            <div>
+                                <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Código Downloader / Firestick:</div>
+                                <div style="color: #10b981; font-family: monospace; font-size: 20px; font-weight: 800; letter-spacing: 1px;">8036962</div>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="copyText('8036962', 'Código 8036962 copiado!')" title="Copiar código numérico do Downloader" style="padding: 6px 12px; font-size: 12px; white-space: nowrap;">
+                                📋 Copiar Código
                             </button>
-                            <a href="https://eaglepanel.site/dream.apk" download class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap; text-decoration: none;">
-                                ⬇️ Baixar APK
-                            </a>
                         </div>
+
+                        <!-- Link Direto / Web -->
+                        <div style="background: #070b13; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                            <div style="overflow: hidden;">
+                                <div style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Link Direto / Web:</div>
+                                <div style="color: #60a5fa; font-family: monospace; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">eaglepanel.site/dream.apk</div>
+                            </div>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="copyText('https://eaglepanel.site/dream.apk', 'Link copiado!')" title="Copiar link completo" style="padding: 6px 10px; font-size: 12px; white-space: nowrap;">
+                                    📋 Copiar Link
+                                </button>
+                                <a href="https://eaglepanel.site/dream.apk" download class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 12px; white-space: nowrap; text-decoration: none;">
+                                    ⬇️ Baixar APK
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                        💡 Na aplicação <strong>Downloader</strong> da TV Box / Firestick, basta digitar o código <strong>8036962</strong> ou o link <strong>eaglepanel.site/dream.apk</strong>.
                     </div>
                 </div>
             </div>
@@ -4452,7 +4466,7 @@
     }
 
     function copyRedonLink() {
-        copyText("http://aftv.news/6718437", "Link copiado!");
+        copyText("http://aftv.news/8036962", "Código 8036962 copiado!");
     }
 
     async function saveActivationsToBackend(newList, fallbackDns = "") {
